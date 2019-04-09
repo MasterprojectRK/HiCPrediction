@@ -6,6 +6,7 @@ import os
 import logging as log
 import sys
 from pprint import pprint
+from collections import deque
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -14,23 +15,39 @@ from Autoencoders_Variants import data_utils as du
 import torch
 import torch.utils.data as utils
 import pickle
+from sparse_AE import DIVIDE
+from sparse_AE import DIAG
+from sparse_AE import MAX
+from sparse_AE import LOG
+from sparse_AE import CUT_W
+from sparse_AE import SPARSE
+from sparse_AE import LENGTH
 from sparse_AE import SparseAutoencoder
+import cooler
+from copy import copy, deepcopy
+
 log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
 
-
-
-CUT_W =20
+DATA_D = "../Data2e/"
+CHROM_D = DATA_D + "Chroms/"
+SET_D = DATA_D + "Sets/"
+PRED_D = DATA_D + "Predictions/"
+MODEL_D  = DATA_D + "Models/"
+CHUNK_D = DATA_D + "Chunks/"
+TEST_D =  DATA_D + "Tests/"
+IMAGE_D = DATA_D +  "Images/"
+ORIG_D = DATA_D +  "Orig/"
 
 def plotMatrix(directory, fileName):
     name = os.path.splitext(fileName)[0]
     args = ["--matrix",directory + fileName, "-out", "../Images/"+name+".png",
-            "--log1p","--clearMaskedBins", "--dpi", "300"]
+            "--log1p", "--dpi", "300"]
     hicPlot.main(args)
 
 
 def convertBigMatrix(matrixFile):
-    hic_ma = hm.hiCMatrix(matrixiFile)
+    hic_ma = hm.hiCMatrix(matrixFile)
     firstCut = hic_ma.cut_intervals[0][0]
     i = 0
     newCuts = []
@@ -45,43 +62,60 @@ def convertBigMatrix(matrixFile):
             firstCut = cut[0]
     i = 0
     for key in hic_ma.chrBinBoundaries:
+        print(key)
         ma = hm.hiCMatrix(None)
         pair =  hic_ma.chrBinBoundaries[key]
         b1 = pair[0]
         b2 = pair[1]
         newM = hic_ma.matrix[b1:b2,b1:b2]
         ma.setMatrix(newM,newCuts[i])
-        ma.save("../Data/Chroms/Chr" + key +"_100kb.cool")
+        ma.save(CHROM_D+"/Chr" + key +".cool")
         i += 1
 
 
 def flattenMatrix(matrix):
     flattened = []
     matrix = np.asarray(matrix)
-    
     width = len(matrix)
     for i in range(width):
         tmp = i + CUT_W
-        cut = min(width, tmp) 
-        cutM = matrix[i:i+1,i:cut].flatten()
-        flattened.extend(cutM)
-    return flattened
-
-
-def reverseFlattenedMatrix(flattened, width):
-    matrix = np.zeros((width,width))
-    e = 0
-    for i in range(width):
-        x = 0
-        tmp = i + CUT_W
-        if width <= tmp:
+        if width < tmp:
             cut = width
-            x = tmp - width
         else:
             cut = tmp
-        s = e
-        e = s + CUT_W - x
-        matrix[i:i+1, i:cut] = flattened[s:e]
+        cutM = matrix[i:i+1,i:cut].flatten().tolist()
+        if tmp > width:
+            cutM.extend(np.zeros(tmp-width))
+        flattened.append(cutM)
+    return flattened
+
+def putFlattenedHorizontal(flattened):
+    matrix = np.zeros((LENGTH,LENGTH))
+    e = 0
+    print(len(flattened), len(flattened[0]))
+    for i in range(LENGTH):
+        for j in range(CUT_W):
+        #print(flattened[i])
+            matrix[i][j] = flattened[i][j]
+            matrix[j][i] = flattened[i][j]
+    #print(matrix)
+    return(matrix)
+
+
+
+def reverseFlattenedMatrix(flattened):
+    matrix = np.zeros((LENGTH,LENGTH))
+    e = 0
+    for i in range(LENGTH):
+        x = 0
+        tmp = i + CUT_W
+        if LENGTH < tmp:
+            cut = LENGTH
+            x = tmp -LENGTH 
+        else:
+            cut = tmp
+        a = CUT_W - x
+        matrix[i:i+1, i:cut] = flattened[i][:a]
     return(matrix)
 
 
@@ -90,7 +124,7 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
     binSize = 100000
     matrix = matrix.todense()
     matrix = np.triu(matrix)
-    matrix = np.tril(matrix, CUT_W)
+    matrix = np.tril(matrix, CUT_W-1)
     done = False
     length, width = matrix.shape
     start = 0
@@ -118,7 +152,8 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
         region = chromosome+":"+str(first)+"-"+str(last)
         m = hm.hiCMatrix(None)
         m.setMatrix(chunk,corrCuts)
-        m.save("../Data/Chunks100kb/"+region.replace(":", "_").replace("-","_")+"_100kb.cool")
+        m.save("../Data/Chunks200/"+region.replace(":",
+            "_").split("-")[0].replace("00","")+".cool")
         start += cutLength - overlap
         end += cutLength - overlap
 
@@ -131,31 +166,73 @@ def iterateAll():
         cutMatrix(ma, ma.getChrNames()[0])
 
 def printAll(chromosome):
-    d = "../Data/Chunks100kb/"
+    d = "../Data/Chunks200/"
     for f in os.listdir(d):
         c = f.split("_")[0]
-        if c is not  "X":
-            if chromosome == int(c):
+        if chromosome == int(c):
                 plotMatrix(d,f)
                 ma = hm.hiCMatrix(d+f)
 
 def createDataset():
-    d = "../Data/Chunks100kb/"
+    d = "../Data/Chunks200/"
     matrixList = []
     for f in os.listdir(d):
         c = f.split("_")[0]
-        if c is not  "X":
-            if 4 == int(c):
-                ma = hm.hiCMatrix(d+f)
-                matrix = ma.matrix.todense()
-                matrix = matrix / 55994
-                flattened = flattenMatrix(matrix) 
-                print(len(flattened))
-                matrixList.append(flattened)
-    tensor_x = torch.stack([torch.Tensor(i) for i in matrixList])
+        if 4 == int(c):
+            ma = hm.hiCMatrix(d+f)
+            matrix = ma.matrix.todense()
+            matrix = np.triu(matrix)
+            safe = deepcopy(matrix)
+
+            maxV = matrix.max()
+            if np.isnan(matrix).any() or maxV == 0:
+                continue
+            if LOG:
+                matrix += 1
+                matrix = np.log(matrix) /np.log( MAX)
+            elif DIVIDE:
+                matrix  = matrix/ MAX 
+            if DIAG:
+                matrix = flattenMatrix(matrix) 
+                print(len(matrix),len(matrix[0]))
+            else: 
+                matrix = np.asarray(matrix)
+            if SPARSE:
+                matrix = sparse.coo_matrix(matrix)
+                print(matrix.col)
+                print(matrix.row)
+                ind = np.array([matrix.row, matrix.col])
+                i = torch.LongTensor([matrix.row,matrix.col])
+                v = torch.FloatTensor(matrix.data)
+                matrix = torch.sparse.FloatTensor(i,v,torch.Size([200,200]))
+                print(matrix)
+            #r = reverseFlattenedMatrix(matrix)
+
+            #r *= np.log(MAX)
+            #r = np.exp(r)
+            #r -= 1
+            #print(np.allclose(r,safe))
+            #print(safe[-1][-20:])
+            #print(r[-1][-20:])
+            matrixList.append(matrix)
+            break
+    if SPARSE:
+        tensor_x = torch.cat(tuple(torch.Tensor([i])) for i in matrixList)
+    else:
+        print(torch.Tensor([[matrixList[0]]]))
+        tensor_x = torch.cat(tuple(torch.Tensor([[i]]) for i in matrixList))
+    print(tensor_x.shape)
     dataset = utils.TensorDataset(tensor_x)
-    #print(dataset[0])
-    pickle.dump(dataset, open( "../Data/chr4_100kb.p", "wb" ) )
+    div = ""
+    diag = ""
+    log = ""
+    if LOG:
+        log = "_log"
+    if DIAG:
+        diag = "_diag"
+    if DIVIDE:
+        div = "_div"
+    pickle.dump(dataset, open( "../Data/chr4_200"+log+div+diag+".p", "wb" ) )
  
 
 
@@ -191,7 +268,7 @@ def plotMatrix2(chunk):
         position = [left_margin, bottom, width, height]
         print(region)
         args = ["--matrix", "","-out","../Images/"+region+".png","--title",
-                region,"--region", region, "--log1p","--clearMaskedBins"]
+                region,"--region", region, "--log1p"]
         args = hicPlot.parse_arguments().parse_args(args)
         cmap = cm.get_cmap(args.colorMap)
         log.debug("Nan values set to black\n")
@@ -202,48 +279,99 @@ def plotMatrix2(chunk):
                     args, cmap, pNorm=norm)
 
 def applyAE():
-    
-    model =SparseAutoencoder(3810,1000)
+    test = False 
+    model =SparseAutoencoder()
+
     model.load_state_dict(torch.load("../Data/autoencoder.pt"))
     model.eval()
-    matrix = "../Data/Chunks100kb/4_15000000_35000000_100kb.cool"
-    ma = hm.hiCMatrix(matrix)
+    chrom = "4"
+    pDir = "../Data/Chunks100kbPredicted/"
+    if test:
+        d = "../Data/Test200/"
+        start = "15"
+    else:
+        d = "../Data/Chunks200/"
+        start = "0"
+    name = chrom + "_"+start
+    matrix = name +".cool"
+    ma = hm.hiCMatrix(d+matrix)
     m = ma.matrix.todense()
-    m = m /  55994
-    length = len(m)
-    m = flattenMatrix(m) 
-    print(m[-10:])
-    print(len(m))
-    t = torch.Tensor(m)
+    if LOG:
+        m += 1
+        m = np.log(m) /  np.log(MAX)
+    elif DIVIDE:
+        m = m / MAX 
+        length = len(m)
+    if  DIAG:
+        m = flattenMatrix(m) 
+    else:
+        m = m.tolist()
+    t = torch.Tensor([[m]])
     encoded, decoded = model(t)
-    #print(m)
-    print(decoded)
+    decoded = decoded[0][0]
+    print(decoded.shape)
+    print(m[-1])
+    print(decoded[-1][:100])
     new = decoded.detach().numpy()
-    print(new[-10:])
-    new *= 55994
-    new = reverseFlattenedMatrix(new,length)
+    if LOG:
+        new *= np.log(MAX)
+        new = np.exp(new)
+        new -= 1
+    if DIVIDE:
+        new *= MAX
+    if DIAG:
+        new = reverseFlattenedMatrix(new)
     new = sparse.csr_matrix(new)
-    plotMatrix("../Data/Chunks100kb/","4_15000000_35000000_100kb.cool")
+    plotMatrix(d,matrix)
     ma.setMatrix(new, ma.cut_intervals)
-    ma.save("../Data/Chunks100kbPredicted/4_15_P.cool")
-    plotMatrix("../Data/Chunks100kbPredicted/", "4_15_P.cool")
+    ma.save(pDir + name + "_P.cool")
+    plotMatrix(pDir, name + "_P.cool")
+
+def showDiagonal():
+    d = "../Data/Test200/"
+    start = "15"
+    chrom = "4"
+    name = chrom + "_"+start
+    matrix = name +".cool"
+    ma = hm.hiCMatrix(d+matrix)
+    m = ma.matrix.todense()
+    m += 1
+    m = np.log(m) /  np.log(MAX)
+    m = np.asarray(m)
+    m = flattenMatrix(m) 
+    for i in range(5):
+        for j in range(5):
+            m[i+25][j+5]= 1
+    m2 = reverseFlattenedMatrix(m) 
+    m = putFlattenedHorizontal(m)
+    m = sparse.csr_matrix(m)
+    ma.setMatrix(m, ma.cut_intervals)
+    pDir = "../Data/Chunks100kbPredicted/"
+    ma.save(PRED_D + name + "_Weird.cool")
+    plotMatrix(PRED_D, name + "_Weird.cool")
+    
+    m2 = sparse.csr_matrix(m2)
+    ma.setMatrix(m2, ma.cut_intervals)
+    ma.save(PRED_D + name + "_WeirdC.cool")
+    plotMatrix(PRED_D, name + "_WeirdC.cool")
 
 
-
-#matrix = "../Data/GSE63525_GM12878_insitu_primary_100kb.cool"
+matrix = "../Data2e/Orig/GSE63525_GM12878_insitu_primary_10kb_KR.cool"
+convertBigMatrix(matrix)
 #matrix = "../Data/GSE63525_GM12878_insitu_primary_100kb_KR_chr1.cool"
 # ae = SAEL1.SparseAutoencoderL1()
 #matrix = "../Data/Chroms/ChrY_100kb.cool"
 #printMatrix(matrix, "ChrY")
-#matrix = "../Data/Chroms/Chr2_100kb.cool"
-#printMatrix(matrix, "Chr2")
+#matrix = "../Data/Chroms/Chr4_Adj.cool"
+#plotMatrix("../Data/Chroms/", "Chr4_Adj.cool")
 #matrix = "../Data/Chr3_100kb.cool"
 #printMatrix(matrix, "Chr3")
 #matrix = "../Data/Chr4_100kb.cool"
 #printMatrix(matrix, "Chr4")
 #iterateAll()
-#printAll(5)
+#printAll(4)
 #plotMatrix("../Data/Chroms/","Chr5_100kb.cool")
 #createDataset()
-applyAE()
+#applyAE()
+#showDiagonal()
 
