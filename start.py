@@ -10,8 +10,6 @@ from collections import deque
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from Autoencoders_Variants import sparse_autoencoder_l1 as SAEL1
-from Autoencoders_Variants import data_utils as du
 import torch
 import torch.utils.data as utils
 import pickle
@@ -30,7 +28,7 @@ log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
 
 BIN = 10000
-DATA_D = "../Data2e/"
+DATA_D = "Data2e/"
 CHROM_D = DATA_D + "Chroms/"
 SET_D = DATA_D + "Sets/"
 PRED_D = DATA_D + "Predictions/"
@@ -131,7 +129,6 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
         end += cutLength - overlap
 
 def iterateAll():
-    d = CHROM_D
     allChunks = []
     for f in os.listdir(CHROM_D):
         ma = hm.hiCMatrix(CHROM_D+f)
@@ -328,8 +325,6 @@ def showDiagonal():
     plotMatrix(PRED_D, name + "_WeirdC.cool")
 
 
-matrix = "../Data2e/Orig/GSE63525_GM12878_insitu_primary_10kb_KR.cool"
-convertBigMatrix(matrix)
 #matrix = "../Data/GSE63525_GM12878_insitu_primary_100kb_KR_chr1.cool"
 # ae = SAEL1.SparseAutoencoderL1()
 #matrix = "../Data/Chroms/ChrY_100kb.cool"
