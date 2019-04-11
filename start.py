@@ -125,8 +125,7 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
         region = chromosome+":"+str(first)+"-"+str(last)
         m = hm.hiCMatrix(None)
         m.setMatrix(chunk,corrCuts)
-        m.save(CHUNK_D+region.replace(":",
-            "_").split("-")[0].replace("00","")+".cool")
+        m.save(CHUNK_D+region.replace(":","_").split("-")[0][:4]+".cool")
         start += cutLength - overlap
         end += cutLength - overlap
 
