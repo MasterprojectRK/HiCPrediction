@@ -30,7 +30,7 @@ log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
 
 BIN = 10000
-DATA_D = "../Data2e/"
+DATA_D = "Data2e/"
 CHROM_D = DATA_D + "Chroms/"
 SET_D = DATA_D + "Sets/"
 PRED_D = DATA_D + "Predictions/"
@@ -131,7 +131,6 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
         end += cutLength - overlap
 
 def iterateAll():
-    d = CHROM_D
     allChunks = []
     for f in os.listdir(CHROM_D):
         ma = hm.hiCMatrix(CHROM_D+f)
