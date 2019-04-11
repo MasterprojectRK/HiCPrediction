@@ -10,6 +10,8 @@ from collections import deque
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from Autoencoders_Variants import sparse_autoencoder_l1 as SAEL1
+from Autoencoders_Variants import data_utils as du
 import torch
 import torch.utils.data as utils
 import pickle
@@ -27,6 +29,7 @@ from copy import copy, deepcopy
 log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
 
+BIN = 10000
 DATA_D = "../Data2e/"
 CHROM_D = DATA_D + "Chroms/"
 SET_D = DATA_D + "Sets/"
@@ -42,33 +45,6 @@ def plotMatrix(directory, fileName):
     args = ["--matrix",directory + fileName, "-out", "../Images/"+name+".png",
             "--log1p", "--dpi", "300"]
     hicPlot.main(args)
-
-
-def convertBigMatrix(matrixFile):
-    hic_ma = hm.hiCMatrix(matrixFile)
-    firstCut = hic_ma.cut_intervals[0][0]
-    i = 0
-    newCuts = []
-    newCuts.append([])
-    for cut in hic_ma.cut_intervals:
-        if cut[0] == firstCut:
-            newCuts[i].append(cut)
-        else:
-            i+=1
-            newCuts.append([])
-            newCuts[i].append(cut)
-            firstCut = cut[0]
-    i = 0
-    for key in hic_ma.chrBinBoundaries:
-        print(key)
-        ma = hm.hiCMatrix(None)
-        pair =  hic_ma.chrBinBoundaries[key]
-        b1 = pair[0]
-        b2 = pair[1]
-        newM = hic_ma.matrix[b1:b2,b1:b2]
-        ma.setMatrix(newM,newCuts[i])
-        ma.save(CHROM_D+"/Chr" + key +".cool")
-        i += 1
 
 
 def flattenMatrix(matrix):
@@ -97,7 +73,7 @@ def putFlattenedHorizontal(flattened):
             matrix[i][j] = flattened[i][j]
             matrix[j][i] = flattened[i][j]
     #print(matrix)
-    return matrix
+    return(matrix)
 
 
 
@@ -114,12 +90,11 @@ def reverseFlattenedMatrix(flattened):
             cut = tmp
         a = CUT_W - x
         matrix[i:i+1, i:cut] = flattened[i][:a]
-    return matrix
+    return(matrix)
 
 
-def cutMatrix(ma, chromosome, cutLength = 200 ,  overlap = 50):
+def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
     matrix = ma.matrix
-    binSize = 100000
     matrix = matrix.todense()
     matrix = np.triu(matrix)
     matrix = np.tril(matrix, CUT_W-1)
@@ -156,6 +131,7 @@ def cutMatrix(ma, chromosome, cutLength = 200 ,  overlap = 50):
         end += cutLength - overlap
 
 def iterateAll():
+    d = CHROM_D
     allChunks = []
     for f in os.listdir(CHROM_D):
         ma = hm.hiCMatrix(CHROM_D+f)
@@ -163,7 +139,8 @@ def iterateAll():
         cutMatrix(ma, ma.getChrNames()[0])
 
 def printAll(chromosome):
-    for f in os.listdir(CHROM_D):
+    d = "../Data/Chunks200/"
+    for f in os.listdir(d):
         c = f.split("_")[0]
         if chromosome == int(c):
                 plotMatrix(d,f)
@@ -352,7 +329,7 @@ def showDiagonal():
     plotMatrix(PRED_D, name + "_WeirdC.cool")
 
 
-matrix = "Data2e/Orig/GSE63525_GM12878_insitu_primary_10kb_KR.cool"
+matrix = "../Data2e/Orig/GSE63525_GM12878_insitu_primary_10kb_KR.cool"
 convertBigMatrix(matrix)
 #matrix = "../Data/GSE63525_GM12878_insitu_primary_100kb_KR_chr1.cool"
 # ae = SAEL1.SparseAutoencoderL1()
@@ -364,7 +341,7 @@ convertBigMatrix(matrix)
 #printMatrix(matrix, "Chr3")
 #matrix = "../Data/Chr4_100kb.cool"
 #printMatrix(matrix, "Chr4")
-#iterateAll()
+iterateAll()
 #printAll(4)
 #plotMatrix("../Data/Chroms/","Chr5_100kb.cool")
 #createDataset()

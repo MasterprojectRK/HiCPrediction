@@ -20,7 +20,7 @@ use_sparse = False
 
 LENGTH = 200
 DIAG = False
-CUT_W =20
+CUT_W =200
 DIVIDE =  False
 SPARSE= True 
 LOG = True
