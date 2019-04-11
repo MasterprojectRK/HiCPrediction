@@ -147,9 +147,8 @@ def printAll(chromosome):
                 ma = hm.hiCMatrix(d+f)
 
 def createDataset():
-    d = "../Data/Chunks200/"
     matrixList = []
-    for f in os.listdir(d):
+    for f in os.listdir(CHUNK_D):
         c = f.split("_")[0]
         if 4 == int(c):
             ma = hm.hiCMatrix(d+f)
@@ -341,7 +340,7 @@ convertBigMatrix(matrix)
 #printMatrix(matrix, "Chr3")
 #matrix = "../Data/Chr4_100kb.cool"
 #printMatrix(matrix, "Chr4")
-iterateAll()
+#iterateAll()
 #printAll(4)
 #plotMatrix("../Data/Chroms/","Chr5_100kb.cool")
 #createDataset()
