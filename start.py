@@ -10,8 +10,6 @@ from collections import deque
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from Autoencoders_Variants import sparse_autoencoder_l1 as SAEL1
-from Autoencoders_Variants import data_utils as du
 import torch
 import torch.utils.data as utils
 import pickle
@@ -125,7 +123,7 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
         region = chromosome+":"+str(first)+"-"+str(last)
         m = hm.hiCMatrix(None)
         m.setMatrix(chunk,corrCuts)
-        m.save(CHUNK_D+region.replace(":","_").split("-")[0][:4]+".cool")
+        m.save(CHUNK_D+region.replace(":","_").split("-")[0][:6]+".cool")
         start += cutLength - overlap
         end += cutLength - overlap
 
@@ -313,8 +311,6 @@ def showDiagonal():
     plotMatrix(PRED_D, name + "_WeirdC.cool")
 
 
-matrix = "../Data2e/Orig/GSE63525_GM12878_insitu_primary_10kb_KR.cool"
-convertBigMatrix(matrix)
 #matrix = "../Data/GSE63525_GM12878_insitu_primary_100kb_KR_chr1.cool"
 # ae = SAEL1.SparseAutoencoderL1()
 #matrix = "../Data/Chroms/ChrY_100kb.cool"
@@ -325,7 +321,7 @@ convertBigMatrix(matrix)
 #printMatrix(matrix, "Chr3")
 #matrix = "../Data/Chr4_100kb.cool"
 #printMatrix(matrix, "Chr4")
-#iterateAll()
+iterateAll()
 #printAll(4)
 #plotMatrix("../Data/Chroms/","Chr5_100kb.cool")
 #createDataset()
