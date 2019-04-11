@@ -10,8 +10,6 @@ from collections import deque
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from Autoencoders_Variants import sparse_autoencoder_l1 as SAEL1
-from Autoencoders_Variants import data_utils as du
 import torch
 import torch.utils.data as utils
 import pickle
@@ -99,7 +97,7 @@ def putFlattenedHorizontal(flattened):
             matrix[i][j] = flattened[i][j]
             matrix[j][i] = flattened[i][j]
     #print(matrix)
-    return(matrix)
+    return matrix
 
 
 
@@ -116,10 +114,10 @@ def reverseFlattenedMatrix(flattened):
             cut = tmp
         a = CUT_W - x
         matrix[i:i+1, i:cut] = flattened[i][:a]
-    return(matrix)
+    return matrix
 
 
-def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
+def cutMatrix(ma, chromosome, cutLength = 200 ,  overlap = 50):
     matrix = ma.matrix
     binSize = 100000
     matrix = matrix.todense()
@@ -152,22 +150,20 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
         region = chromosome+":"+str(first)+"-"+str(last)
         m = hm.hiCMatrix(None)
         m.setMatrix(chunk,corrCuts)
-        m.save("../Data/Chunks200/"+region.replace(":",
+        m.save(CHUNK_D+region.replace(":",
             "_").split("-")[0].replace("00","")+".cool")
         start += cutLength - overlap
         end += cutLength - overlap
 
 def iterateAll():
-    d = "../Data/Chroms/"
     allChunks = []
-    for f in os.listdir(d):
-        ma = hm.hiCMatrix(d+f)
+    for f in os.listdir(CHROM_D):
+        ma = hm.hiCMatrix(CHROM_D+f)
         print(f, ma.matrix.shape)
         cutMatrix(ma, ma.getChrNames()[0])
 
 def printAll(chromosome):
-    d = "../Data/Chunks200/"
-    for f in os.listdir(d):
+    for f in os.listdir(CHROM_D):
         c = f.split("_")[0]
         if chromosome == int(c):
                 plotMatrix(d,f)
@@ -356,7 +352,7 @@ def showDiagonal():
     plotMatrix(PRED_D, name + "_WeirdC.cool")
 
 
-matrix = "../Data2e/Orig/GSE63525_GM12878_insitu_primary_10kb_KR.cool"
+matrix = "Data2e/Orig/GSE63525_GM12878_insitu_primary_10kb_KR.cool"
 convertBigMatrix(matrix)
 #matrix = "../Data/GSE63525_GM12878_insitu_primary_100kb_KR_chr1.cool"
 # ae = SAEL1.SparseAutoencoderL1()
