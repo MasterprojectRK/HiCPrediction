@@ -13,30 +13,13 @@ from matplotlib.colors import LogNorm
 import torch
 import torch.utils.data as utils
 import pickle
-from sparse_AE import DIVIDE
-from sparse_AE import DIAG
-from sparse_AE import MAX
-from sparse_AE import LOG
-from sparse_AE import CUT_W
-from sparse_AE import SPARSE
-from sparse_AE import LENGTH
-from sparse_AE import SparseAutoencoder
+from sparse import *
 import cooler
 from copy import copy, deepcopy
 
 log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
 
-BIN = 10000
-DATA_D = "Data2e/"
-CHROM_D = DATA_D + "Chroms/"
-SET_D = DATA_D + "Sets/"
-PRED_D = DATA_D + "Predictions/"
-MODEL_D  = DATA_D + "Models/"
-CHUNK_D = DATA_D + "Chunks/"
-TEST_D =  DATA_D + "Tests/"
-IMAGE_D = DATA_D +  "Images/"
-ORIG_D = DATA_D +  "Orig/"
 
 def plotMatrix(directory, fileName):
     name = os.path.splitext(fileName)[0]
@@ -123,7 +106,9 @@ def cutMatrix(ma,chromosome, cutLength =200,  overlap = 50):
         region = chromosome+":"+str(first)+"-"+str(last)
         m = hm.hiCMatrix(None)
         m.setMatrix(chunk,corrCuts)
-        m.save(CHUNK_D+region.replace(":","_").split("-")[0][:6]+".cool")
+        region_end =  int(int(region.split("-")[1]) / 10000)
+        name = region.split(":")[0] +"_" + str(region_end).zfill(5) 
+        m.save(CHUNK_D+name+".cool")
         start += cutLength - overlap
         end += cutLength - overlap
 
@@ -142,12 +127,16 @@ def printAll(chromosome):
                 plotMatrix(d,f)
                 ma = hm.hiCMatrix(d+f)
 
-def createDataset():
+def createDataset(create_test =False):
+    if create_test:
+        d = TEST_D
+    else:
+        d = CHUNK_D
     matrixList = []
-    for f in os.listdir(CHUNK_D):
+    for f in os.listdir(d):
         c = f.split("_")[0]
-        if CHR == int(c):
-            ma = hm.hiCMatrix(CHUNK_D+f)
+        if CHR == c:
+            ma = hm.hiCMatrix(d+f)
             matrix = ma.matrix.todense()
             matrix = np.triu(matrix)
             safe = deepcopy(matrix)
@@ -162,7 +151,6 @@ def createDataset():
                 matrix  = matrix/ MAX 
             if DIAG:
                 matrix = flattenMatrix(matrix) 
-                print(len(matrix),len(matrix[0]))
             else: 
                 matrix = np.asarray(matrix)
             #r = reverseFlattenedMatrix(matrix)
@@ -181,14 +169,16 @@ def createDataset():
     div = ""
     diag = ""
     log = ""
+    test = ""
     if LOG:
         log = "_log"
     if DIAG:
         diag = "_diag"
     if DIVIDE:
         div = "_div"
-    pickle.dump(dataset, open( SET_D + CHR+log+div+diag+".p", "wb" ) )
- 
+    if create_test:
+        test = "_test"
+    pickle.dump(dataset, open( SET_D + CHR+log+div+diag+test+".p", "wb" ) )
 
 
 def plotMatrix2(chunk):
@@ -321,10 +311,11 @@ def showDiagonal():
 #printMatrix(matrix, "Chr3")
 #matrix = "../Data/Chr4_100kb.cool"
 #printMatrix(matrix, "Chr4")
-iterateAll()
+#iterateAll()
 #printAll(4)
 #plotMatrix("../Data/Chroms/","Chr5_100kb.cool")
-#createDataset()
+createDataset()
+createDataset(create_test=True)
 #applyAE()
 #showDiagonal()
 

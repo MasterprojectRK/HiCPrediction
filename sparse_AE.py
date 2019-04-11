@@ -12,7 +12,18 @@ import sys
 import pickle
 
 # global constants
-BATCH_SIZE = 256
+BIN = 10000
+CHR = "4"
+DATA_D = "Data2e/"
+CHROM_D = DATA_D + "Chroms/"
+SET_D = DATA_D + "Sets/"
+PRED_D = DATA_D + "Predictions/"
+MODEL_D  = DATA_D + "Models/"
+CHUNK_D = DATA_D + "Chunks/"
+TEST_D =  DATA_D + "Test/"
+IMAGE_D = DATA_D +  "Images/"
+ORIG_D = DATA_D +  "Orig/"
+BATCH_SIZE = 8
 BETA = 3
 RHO = 0.01
 N_EPOCHS = 300
@@ -28,11 +39,11 @@ MAX = 55994
 D1 = 0.0
 D2 = 0.5
 IN = 1
-C1 = 8
-C2 = 8
-C3 = 8
+C1 = 4
+C2 = 4
+C3 = 4
 P1 = 2
-L1 = 8000 
+L1 = 4000 
 OUT = 1000
 MASK =torch.Tensor([[0,1,0,0,0],[0,1,1,0,0],[0,1,1,1,0],[0,0,1,1,0],[0,0,0,1,0]])
 MASK = 8* MASK[None,None]
@@ -56,10 +67,10 @@ class SparseAutoencoder(nn.Module):
         )
         self.lin1 = nn.Sequential(
             nn.Dropout(D2),
-            nn.Linear(C3 * 100 *10,OUT),
+            nn.Linear(C3 * 100 *100,OUT),
         )
         self.lin2 = nn.Sequential(
-            nn.Linear(OUT, C3 * 100 * 10)
+            nn.Linear(OUT, C3 * 100 * 100)
         )
         self.tra1 = nn.Sequential(
             nn.Dropout(D1),
@@ -103,8 +114,8 @@ class SparseAutoencoder(nn.Module):
         #c2 = self.conv2(p1)
         #log.debug("c2",c2.shape)
         #c3 = self.conv3(c2)
-        #log.debug("c3",c3.shape)
         c3 = p1
+        log.debug("c3",c3.shape)
         c3 = c3.view(c3.size(0), -1)
         l1 = self.lin1(c3)
         encoded = l1
@@ -112,7 +123,7 @@ class SparseAutoencoder(nn.Module):
         
         
         l2 = self.lin2(encoded)
-        l2 = l2.view(l2.size(0),C3, 100 ,10)
+        l2 = l2.view(l2.size(0),C3, 100 ,100)
         log.debug("l2",l2.shape)
         #t1 = self.tra1(l2)
         #log.debug("t1",t1.shape)
@@ -154,8 +165,8 @@ def train():
         div = "_div"
     if DIAG:
         diag = "_diag"
-    train_set = pickle.load( open( "../Data/chr4_200"+log+div+diag+".p", "rb" ) )
-    test_set = pickle.load( open( "../Data/chr4_200_test"+log+div+diag+".p", "rb" ) )
+    train_set = pickle.load( open( SET_D+"4"+log+div+diag+".p", "rb" ) )
+    test_set = pickle.load( open( SET_D+CHR+log+div+diag+"_test.p", "rb" ) )
     print(len(train_set))
     train_loader = torch.utils.data.DataLoader(
         dataset=train_set,
@@ -199,12 +210,12 @@ def train():
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'loss': loss
-                },  "../Data/autoencoder"+str(epoch)+".pt" )
+                },  MODEL_D+"autoencoder"+str(epoch)+".pt" )
         print("Epoch: [%3d], Loss: %.4f Val: %.4f" %(epoch + 1, train_loss.data,
                                                         test_loss.data))
         sys.stdout.flush()
 
-    torch.save(model.state_dict(), "../Data/autoencoder.pt"  )
+    torch.save(model.state_dict(), MODEL_D+"autoencoder.pt"  )
 
 if __name__== "__main__":
     train()
