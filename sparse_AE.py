@@ -11,6 +11,8 @@ import math
 import sys
 import pickle
 
+cuda = torch.cuda.is_available()
+device = torch.device('cuda:0' if cuda else 'cpu')
 # global constants
 BIN = 10000
 CHR = "4"
@@ -169,6 +171,7 @@ def train(MSE):
         shuffle=False)
 
     model = SparseAutoencoder()
+    if cuda: model.to(device)
     #optimizer = optim.Adam(auto_encoder.parameters(), lr=0.01)
     optimizer = torch.optim.Adam(
         model.parameters(), lr=0.0001)
@@ -180,6 +183,7 @@ def train(MSE):
         for b_index, (x) in enumerate(train_loader):
             x = x[0]
             x = Variable(x)
+            if cuda: x= x.to(device)
             encoded, decoded = model(x)
             loss = criterion(decoded,x)
             if use_sparse:
@@ -194,6 +198,7 @@ def train(MSE):
         for b_index, (x) in enumerate(test_loader):
             x = x[0]
             x = Variable(x)
+            if cuda: x= x.to(device)
             encoded, decoded = model(x)
             test_loss = criterion(decoded,x)
         if epoch % 100 == 0 and epoch > 0:
