@@ -13,7 +13,7 @@ from matplotlib.colors import LogNorm
 import torch
 import torch.utils.data as utils
 import pickle
-from sparse import *
+from sparse_AE import *
 import cooler
 from copy import copy, deepcopy
 
