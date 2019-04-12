@@ -23,7 +23,7 @@ np.set_printoptions(threshold=sys.maxsize)
 
 def plotMatrix(directory, fileName):
     name = os.path.splitext(fileName)[0]
-    args = ["--matrix",directory + fileName, "-out", "../Images/"+name+".png",
+    args = ["--matrix",directory + fileName, "-out", IMAGE_D+name+".png",
             "--log1p", "--dpi", "300"]
     hicPlot.main(args)
 
@@ -223,21 +223,19 @@ def plotMatrix2(chunk):
         hicPlot.plotHeatmap(matrix, None, fig, position,
                     args, cmap, pNorm=norm)
 
-def applyAE():
-    test = False 
+def applyAE(test=False): 
     model =SparseAutoencoder()
-
-    model.load_state_dict(torch.load("../Data/autoencoder.pt"))
+    ae = "1"
+    # model.load_state_dict(torch.load(MODEL_D+"autoencoder_"+ae+".pt"))
+    model.load_state_dict(torch.load(MODEL_D+"autoencoder_L1.pt"))
     model.eval()
-    chrom = "4"
-    pDir = "../Data/Chunks100kbPredicted/"
     if test:
-        d = "../Data/Test200/"
-        start = "15"
+        d = TEST_D
+        end = "11000"
     else:
-        d = "../Data/Chunks200/"
-        start = "0"
-    name = chrom + "_"+start
+        d = CHUNK_D 
+        end = "15200"
+    name = CHR + "_"+end
     matrix = name +".cool"
     ma = hm.hiCMatrix(d+matrix)
     m = ma.matrix.todense()
@@ -254,9 +252,9 @@ def applyAE():
     t = torch.Tensor([[m]])
     encoded, decoded = model(t)
     decoded = decoded[0][0]
-    print(decoded.shape)
-    print(m[-1])
-    print(decoded[-1][:100])
+    # print(decoded.shape)
+    # print(m[-1])
+    # print(decoded[-1][:100])
     new = decoded.detach().numpy()
     if LOG:
         new *= np.log(MAX)
@@ -269,11 +267,11 @@ def applyAE():
     new = sparse.csr_matrix(new)
     plotMatrix(d,matrix)
     ma.setMatrix(new, ma.cut_intervals)
-    ma.save(pDir + name + "_P.cool")
-    plotMatrix(pDir, name + "_P.cool")
+    ma.save(PRED_D + name + "_P_L1.cool")
+    plotMatrix(PRED_D, name + "_P_L1.cool")
 
 def showDiagonal():
-    d = "../Data/Test200/"
+    d = TEST_D
     start = "15"
     chrom = "4"
     name = chrom + "_"+start
@@ -314,8 +312,9 @@ def showDiagonal():
 #iterateAll()
 #printAll(4)
 #plotMatrix("../Data/Chroms/","Chr5_100kb.cool")
-createDataset()
-createDataset(create_test=True)
-#applyAE()
+#createDataset()
+#createDataset(create_test=True)
+applyAE()
+applyAE(test=True)
 #showDiagonal()
 
