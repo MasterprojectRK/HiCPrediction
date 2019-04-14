@@ -1,4 +1,5 @@
 from hicmatrix import HiCMatrix as hm
+import torch
 from hicexplorer import hicPlotMatrix as hicPlot
 import numpy as np
 from scipy import sparse
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import torch
 import torch.utils.data as utils
+import argparse
 import pickle
 from sparse_AE import *
 import cooler
@@ -20,6 +22,17 @@ from copy import copy, deepcopy
 log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
 
+
+def createAverage():
+    x = np.zeros([200,200]) 
+    t =  pickle.load( open(SET_D+CHR+"_test.p","rb" ) )
+    for y in t:
+        x = x + Variable(y[0])[0].detach().numpy()
+    v = pickle.load( open(SET_D+CHR+".p","rb" ) )
+    for y in v:
+        x = x + Variable(y[0])[0].detach().numpy()
+    x /= (len(v) +len(t))
+    pickle.dump(x, open( SET_D + CHR+"_avg.p", "wb" ) )
 
 def plotMatrix(directory, fileName):
     name = os.path.splitext(fileName)[0]
@@ -41,7 +54,7 @@ def flattenMatrix(matrix):
         cutM = matrix[i:i+1,i:cut].flatten().tolist()
         if tmp > width:
             cutM.extend(np.zeros(tmp-width))
-        flattened.append(cutM)
+    flattened.append(cutM)
     return flattened
 
 def putFlattenedHorizontal(flattened):
@@ -55,7 +68,6 @@ def putFlattenedHorizontal(flattened):
             matrix[j][i] = flattened[i][j]
     #print(matrix)
     return(matrix)
-
 
 
 def reverseFlattenedMatrix(flattened):
@@ -128,6 +140,7 @@ def printAll(chromosome):
                 ma = hm.hiCMatrix(d+f)
 
 def createDataset(create_test =False):
+    a = pickle.load( open( SET_D+CHR+"_avg.p", "rb" ) )
     if create_test:
         d = TEST_D
     else:
@@ -136,8 +149,11 @@ def createDataset(create_test =False):
     for f in os.listdir(d):
         c = f.split("_")[0]
         if CHR == c:
+            print(f)
             ma = hm.hiCMatrix(d+f)
             matrix = ma.matrix.todense()
+            if AVG:
+                matrix -= a
             matrix = np.triu(matrix)
             safe = deepcopy(matrix)
 
@@ -170,6 +186,9 @@ def createDataset(create_test =False):
     diag = ""
     log = ""
     test = ""
+    avg = ""
+    if AVG:
+        avg = "_avg"
     if LOG:
         log = "_log"
     if DIAG:
@@ -178,7 +197,7 @@ def createDataset(create_test =False):
         div = "_div"
     if create_test:
         test = "_test"
-    pickle.dump(dataset, open( SET_D + CHR+log+div+diag+test+".p", "wb" ) )
+    pickle.dump(dataset, open( SET_D + CHR+log+div+diag+avg+test+".p", "wb" ) )
 
 
 def plotMatrix2(chunk):
@@ -223,11 +242,9 @@ def plotMatrix2(chunk):
         hicPlot.plotHeatmap(matrix, None, fig, position,
                     args, cmap, pNorm=norm)
 
-def applyAE(test=False): 
+def applyAE(modelName='autoencoder.pt', test=False): 
     model =SparseAutoencoder()
-    ae = "1"
-    # model.load_state_dict(torch.load(MODEL_D+"autoencoder_"+ae+".pt"))
-    model.load_state_dict(torch.load(MODEL_D+"autoencoder_L1.pt"))
+    model.load_state_dict(torch.load(MODEL_D+modelName))
     model.eval()
     if test:
         d = TEST_D
@@ -239,6 +256,10 @@ def applyAE(test=False):
     matrix = name +".cool"
     ma = hm.hiCMatrix(d+matrix)
     m = ma.matrix.todense()
+    real_m = ma.matrix.todense()
+    a = pickle.load( open( SET_D+CHR+"_avg.p", "rb" ) )
+    if AVG:
+        m -= a
     if LOG:
         m += 1
         m = np.log(m) /  np.log(MAX)
@@ -264,11 +285,24 @@ def applyAE(test=False):
         new *= MAX
     if DIAG:
         new = reverseFlattenedMatrix(new)
+    if AVG:
+        new += a
     new = sparse.csr_matrix(new)
-    plotMatrix(d,matrix)
+    #plotMatrix(d,matrix)
     ma.setMatrix(new, ma.cut_intervals)
     ma.save(PRED_D + name + "_P_L1.cool")
     plotMatrix(PRED_D, name + "_P_L1.cool")
+    
+
+
+    # real_m = sparse.csr_matrix(real_m - a)
+    # ma.setMatrix(real_m, ma.cut_intervals)
+    # ma.save(PRED_D + name + "_sub_avg.cool")
+    # plotMatrix(PRED_D, name + "_sub_avg.cool")
+    # a = sparse.csr_matrix(a)
+    # ma.setMatrix(a, ma.cut_intervals)
+    # ma.save(PRED_D + CHR+ "_avg.cool")
+    # plotMatrix(PRED_D, CHR + "_avg.cool")
 
 def showDiagonal():
     d = TEST_D
@@ -289,7 +323,7 @@ def showDiagonal():
     m = putFlattenedHorizontal(m)
     m = sparse.csr_matrix(m)
     ma.setMatrix(m, ma.cut_intervals)
-    pDir = "../Data/Chunks100kbPredicted/"
+    pDir = PRED_D
     ma.save(PRED_D + name + "_Weird.cool")
     plotMatrix(PRED_D, name + "_Weird.cool")
     
@@ -299,22 +333,68 @@ def showDiagonal():
     plotMatrix(PRED_D, name + "_WeirdC.cool")
 
 
-#matrix = "../Data/GSE63525_GM12878_insitu_primary_100kb_KR_chr1.cool"
-# ae = SAEL1.SparseAutoencoderL1()
-#matrix = "../Data/Chroms/ChrY_100kb.cool"
-#printMatrix(matrix, "ChrY")
-#matrix = "../Data/Chroms/Chr4_Adj.cool"
-#plotMatrix("../Data/Chroms/", "Chr4_Adj.cool")
-#matrix = "../Data/Chr3_100kb.cool"
-#printMatrix(matrix, "Chr3")
-#matrix = "../Data/Chr4_100kb.cool"
-#printMatrix(matrix, "Chr4")
-#iterateAll()
-#printAll(4)
-#plotMatrix("../Data/Chroms/","Chr5_100kb.cool")
-#createDataset()
-#createDataset(create_test=True)
-applyAE()
-applyAE(test=True)
-#showDiagonal()
 
+def main(args=None):
+
+    parser = argparse.ArgumentParser(description='HiC Prediction')
+
+    parserRequired = parser.add_argument_group('Required arguments')
+
+    # define the arguments
+    parserRequired.add_argument('--action', '-a', choices=['train', 'create',
+         'predict','cutMatrix', 'createAverage'], help='Action to take', required=True)
+
+    parserOpt = parser.add_argument_group('Optional arguments')
+    parserOpt.add_argument('--learningRate', '-lr',type=float, default=0.0001)
+    parserOpt.add_argument('--epochs', '-e',type=int, default=200)
+    parserOpt.add_argument('--chrom', '-c',type=int, default=4)
+    parserOpt.add_argument('--cutLength', '-cl',type=int, default=200)
+    parserOpt.add_argument('--cutWidth', '-cw',type=int, default=200)
+    parserOpt.add_argument('--maxValue', '-mv',type=int, default=4846)
+    parserOpt.add_argument('--batchSize', '-b',type=int, default=132)
+    parserOpt.add_argument('--model', '-m',type=str, default='autoencoder.pt')
+    parserOpt.add_argument('--mse', '-mse', default=False)
+    parserOpt.add_argument('--validationData', '-v',default=False)
+    parserOpt.add_argument('--trainData', '-t',default=True)
+    print(args)
+    args = parser.parse_args(args)
+    print(args)
+    if args.action == "train":
+        LEARN_R = args.learningRate
+        CHROM = args.chrom
+        N_EPOCHS = args.epochs
+        BATCH_SIZE = args.batchSize
+        mse = args.mse 
+        model = args.model
+        train(mse=mse, modelName=model)
+    elif args.action == "create":
+        CHROM = args.chrom
+        MAX =args.maxValue
+        if args.validationData:
+            createDataset(True)
+        if args.trainData:
+            createDataset(False)
+    elif args.action == "predict":
+        CHROM = args.chrom
+        MAX =args.maxValue
+        model = args.model
+        if args.validationData:
+            applyAE(modelName=model, test=True)
+        if args.trainData:
+            applyAE(modelName=model, test=False)
+    elif args.action == "cutMatrix":
+        CHROM = args.chrom
+        MAX =args.maxValue
+        CUT_W = args.cutWidth
+        LENGTH = args.cutLength
+        iterateAll()
+    elif args.action == "createAverage":
+        CHROM = args.chrom
+        MAX =args.maxValue
+        createAverage()
+
+
+if __name__ == "__main__":
+   torch.set_num_threads(5)
+   main(sys.argv[1:])
+   print(torch.get_num_threads() )

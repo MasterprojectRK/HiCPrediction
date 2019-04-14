@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import math
 import sys
 import pickle
+import time
 
 cuda = torch.cuda.is_available()
 device = torch.device('cuda:0' if cuda else 'cpu')
@@ -30,11 +31,13 @@ BETA = 3
 RHO = 0.01
 N_EPOCHS = 500
 use_sparse = False
+LEARN_R = 0.0001
 
 LENGTH = 200
 DIAG = False
 CUT_W =200
 DIVIDE =  False
+AVG = False
 SPARSE= False
 LOG = True
 MAX = 4846
@@ -109,8 +112,6 @@ class SparseAutoencoder(nn.Module):
         li1 = self.lin1(co3)
         encoded = li1
         #log.debug("enc",encoded.shape)
-        
-        
         li2 = self.lin2(encoded)
         li2 = li2.view(li2.size(0),C3, 100 ,100)
         #log.debug("l2",l2.shape)
@@ -143,23 +144,23 @@ def kl_divergence(p, q):
     s2 = torch.sum((1 - p) * torch.log((1 - p) / (1 - q)))
     return s1 + s2
 
-def train(MSE):
+def train(modelName='autoencoder.pt', mse=False):
     rho = torch.FloatTensor([RHO for _ in range(1000)]).unsqueeze(0)
     div = ""
+    avg = ""
     log = ""
     diag = ""
     if LOG:
         log = "_log"
     if DIVIDE:
         div = "_div"
+    if AVG:
+        avg = "_avg"
     if DIAG:
         diag = "_diag"
-    if MSE:
-        autoencoder = MODEL_D + "autoencoder_MSE.pt"
-    else:
-        autoencoder = MODEL_D + "autoencoder_L1.pt"
-    train_set = pickle.load( open( SET_D+"4"+log+div+diag+".p", "rb" ) )
-    test_set = pickle.load( open( SET_D+CHR+log+div+diag+"_test.p", "rb" ) )
+    autoencoder = MODEL_D + modelName
+    train_set = pickle.load( open( SET_D+CHR+log+div+diag+avg+".p", "rb" ) )
+    test_set = pickle.load( open( SET_D+CHR+log+div+diag+avg+"_test.p", "rb" ) )
     print(len(train_set))
     train_loader = torch.utils.data.DataLoader(
         dataset=train_set,
@@ -172,14 +173,14 @@ def train(MSE):
 
     model = SparseAutoencoder()
     if cuda: model.to(device)
-    #optimizer = optim.Adam(auto_encoder.parameters(), lr=0.01)
     optimizer = torch.optim.Adam(
-        model.parameters(), lr=0.0001)
-    if MSE:
+        model.parameters(), lr=LEARN_R)
+    if mse:
         criterion = nn.MSELoss()
     else:
         criterion = nn.L1Loss()
     for epoch in range(N_EPOCHS):
+        start = time. time()
         for b_index, (x) in enumerate(train_loader):
             x = x[0]
             x = Variable(x)
@@ -195,27 +196,19 @@ def train(MSE):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        for b_index, (x) in enumerate(test_loader):
-            x = x[0]
-            x = Variable(x)
-            if cuda: x= x.to(device)
-            encoded, decoded = model(x)
-            test_loss = criterion(decoded,x)
+        if epoch % 10 == 0:
+            for b_index, (x) in enumerate(test_loader):
+                x = x[0]
+                x = Variable(x)
+                if cuda: x= x.to(device)
+                encoded, decoded = model(x)
+                test_loss = criterion(decoded,x)
         if epoch % 100 == 0 and epoch > 0:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': loss
-                },  autoencoder )
-        print("Epoch: [%3d], Loss: %.4f Val: %.4f" %(epoch + 1, train_loss.data,
-                                                        test_loss.data))
+            torch.save(model.state_dict(),autoencoder  )
+        end = time. time()
+        print("Epoch: [%3d], Loss: %.4f Val: %.4f Time:%.4f" %(epoch + 1, train_loss.data,
+                                                        test_loss.data,
+                                                               end-start))
         sys.stdout.flush()
-    if MSE:
-        torch.save(model.state_dict(),autoencoder  )
-    else:
-        torch.save(model.state_dict(), autoencoder )
+    torch.save(model.state_dict(),autoencoder  )
 
-if __name__== "__main__":
-    train(True)
-    train(False)
