@@ -14,6 +14,7 @@ from matplotlib.colors import LogNorm
 import torch
 import torch.utils.data as utils
 import argparse
+import torch.multiprocessing as mp
 import pickle
 from sparse_AE import *
 import cooler
@@ -21,6 +22,7 @@ from copy import copy, deepcopy
 
 log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
+torch.set_num_threads(16)
 
 
 def createAverage():
@@ -140,7 +142,6 @@ def printAll(chromosome):
                 ma = hm.hiCMatrix(d+f)
 
 def createDataset(create_test =False):
-    a = pickle.load( open( SET_D+CHR+"_avg.p", "rb" ) )
     if create_test:
         d = TEST_D
     else:
@@ -149,10 +150,10 @@ def createDataset(create_test =False):
     for f in os.listdir(d):
         c = f.split("_")[0]
         if CHR == c:
-            print(f)
             ma = hm.hiCMatrix(d+f)
             matrix = ma.matrix.todense()
             if AVG:
+                a = pickle.load( open( SET_D+CHR+"_avg.p", "rb" ) )
                 matrix -= a
             matrix = np.triu(matrix)
             safe = deepcopy(matrix)
@@ -160,6 +161,12 @@ def createDataset(create_test =False):
             maxV = matrix.max()
             if np.isnan(matrix).any() or maxV == 0:
                 continue
+            if LOGNORM:
+                matrix += 1
+                matrix = np.log(matrix) /np.log( MAX)
+                print(np.sum(matrix))
+                matrix /= np.sum(matrix)
+                print(np.sum(matrix))
             if LOG:
                 matrix += 1
                 matrix = np.log(matrix) /np.log( MAX)
@@ -189,15 +196,18 @@ def createDataset(create_test =False):
     avg = ""
     if AVG:
         avg = "_avg"
+    lognorm = ""
     if LOG:
         log = "_log"
+    if LOGNORM:
+        lognorm = "_lognorm"
     if DIAG:
         diag = "_diag"
     if DIVIDE:
         div = "_div"
     if create_test:
         test = "_test"
-    pickle.dump(dataset, open( SET_D + CHR+log+div+diag+avg+test+".p", "wb" ) )
+    pickle.dump(dataset, open( SET_D + CHR+log+lognorm+div+diag+avg+test+".p", "wb" ) )
 
 
 def plotMatrix2(chunk):
@@ -257,8 +267,8 @@ def applyAE(modelName='autoencoder.pt', test=False):
     ma = hm.hiCMatrix(d+matrix)
     m = ma.matrix.todense()
     real_m = ma.matrix.todense()
-    a = pickle.load( open( SET_D+CHR+"_avg.p", "rb" ) )
     if AVG:
+        a = pickle.load( open( SET_D+CHR+"_avg.p", "rb" ) )
         m -= a
     if LOG:
         m += 1
@@ -289,6 +299,7 @@ def applyAE(modelName='autoencoder.pt', test=False):
         new += a
     new = sparse.csr_matrix(new)
     #plotMatrix(d,matrix)
+    print(name)
     ma.setMatrix(new, ma.cut_intervals)
     ma.save(PRED_D + name + "_P_L1.cool")
     plotMatrix(PRED_D, name + "_P_L1.cool")
@@ -332,7 +343,18 @@ def showDiagonal():
     ma.save(PRED_D + name + "_WeirdC.cool")
     plotMatrix(PRED_D, name + "_WeirdC.cool")
 
-
+def startTraining(args):
+    model = SparseAutoencoder()
+    train(model,args)
+    # num_processes = 3
+    # model.share_memory()
+    # processes = []
+    # for rank in range(num_processes):
+        # p = mp.Process(target=train, args=(model, args))
+        # p.start()
+        # processes.append(p)
+    # for p in processes:
+        # p.join()
 
 def main(args=None):
 
@@ -346,27 +368,22 @@ def main(args=None):
 
     parserOpt = parser.add_argument_group('Optional arguments')
     parserOpt.add_argument('--learningRate', '-lr',type=float, default=0.0001)
-    parserOpt.add_argument('--epochs', '-e',type=int, default=200)
-    parserOpt.add_argument('--chrom', '-c',type=int, default=4)
+    parserOpt.add_argument('--epochs', '-e',type=int, default=50)
+    parserOpt.add_argument('--chrom', '-c',type=str, default="4")
     parserOpt.add_argument('--cutLength', '-cl',type=int, default=200)
     parserOpt.add_argument('--cutWidth', '-cw',type=int, default=200)
     parserOpt.add_argument('--maxValue', '-mv',type=int, default=4846)
     parserOpt.add_argument('--batchSize', '-b',type=int, default=132)
     parserOpt.add_argument('--model', '-m',type=str, default='autoencoder.pt')
     parserOpt.add_argument('--mse', '-mse', default=False)
-    parserOpt.add_argument('--validationData', '-v',default=False)
-    parserOpt.add_argument('--trainData', '-t',default=True)
+    parserOpt.add_argument('--validationData', '-v',type=bool, default=False)
+                
+    parserOpt.add_argument('--trainData', '-t',type=bool,default=True)
     print(args)
     args = parser.parse_args(args)
     print(args)
     if args.action == "train":
-        LEARN_R = args.learningRate
-        CHROM = args.chrom
-        N_EPOCHS = args.epochs
-        BATCH_SIZE = args.batchSize
-        mse = args.mse 
-        model = args.model
-        train(mse=mse, modelName=model)
+        startTraining(args)
     elif args.action == "create":
         CHROM = args.chrom
         MAX =args.maxValue
@@ -378,10 +395,10 @@ def main(args=None):
         CHROM = args.chrom
         MAX =args.maxValue
         model = args.model
-        if args.validationData:
-            applyAE(modelName=model, test=True)
-        if args.trainData:
-            applyAE(modelName=model, test=False)
+        # if args.validationData:
+        applyAE(modelName=model, test=True)
+        # if args.trainData:
+        applyAE(modelName=model, test=False)
     elif args.action == "cutMatrix":
         CHROM = args.chrom
         MAX =args.maxValue
@@ -395,6 +412,4 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-   torch.set_num_threads(5)
    main(sys.argv[1:])
-   print(torch.get_num_threads() )

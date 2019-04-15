@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import math
 import sys
 import pickle
+import numpy as np
 import time
 
 cuda = torch.cuda.is_available()
@@ -26,12 +27,10 @@ CHUNK_D = DATA_D + "Chunks/"
 TEST_D =  DATA_D + "Test/"
 IMAGE_D = DATA_D +  "Images/"
 ORIG_D = DATA_D +  "Orig/"
-BATCH_SIZE = 132
-BETA = 3
-RHO = 0.01
-N_EPOCHS = 500
-use_sparse = False
-LEARN_R = 0.0001
+#BETA = 0.0001 
+BETA = 1 
+RHO = 0.3
+use_sparse = True
 
 LENGTH = 200
 DIAG = False
@@ -40,16 +39,17 @@ DIVIDE =  False
 AVG = False
 SPARSE= False
 LOG = True
+LOGNORM = False
 MAX = 4846
 D1 = 0.1
 D2 = 0.5
 IN = 1
-C1 = 8
-C2 = 8
-C3 = 8
+C1 = 2
+C2 = 2
+C3 = 2
 P1 = 2
-L1 = 4000 
-OUT = 4000
+L1 = 40000 
+OUT = 40000
 class SparseAutoencoder(nn.Module):
     def __init__(self,c1=C1, c2=C2, c3=C3, p1=P1, l1=L1, out=OUT,
                  d1=D1,d2=D2, inp=IN ):
@@ -59,39 +59,39 @@ class SparseAutoencoder(nn.Module):
         #    ,nn.ReLU(inplace=True)
         #)
         self.MP1 = nn.MaxPool2d(p1)
-        self.conv2 = nn.Sequential(
-            nn.Dropout(d1),
-            nn.Conv2d(c1, c2, 5, stride=1,padding=2),
-            nn.ReLU(inplace=True),
-        )
-        self.conv3 = nn.Sequential(
-            nn.Dropout(d1),
-            nn.Conv2d(c2, c3, 5, stride=1,padding=2),
-            nn.ReLU(inplace=True),
-        )
+        # self.conv2 = nn.Sequential(
+            # nn.Dropout(d1),
+            # nn.Conv2d(c1, c2, 5, stride=1,padding=2),
+            # nn.ReLU(inplace=True),
+        # )
+        # self.conv3 = nn.Sequential(
+            # nn.Dropout(d1),
+            # nn.Conv2d(c2, c3, 5, stride=1,padding=2),
+            # nn.ReLU(inplace=True),
+        # )
         self.lin1 = nn.Sequential(
             nn.Dropout(d2),
-            nn.Linear(c3 * 100 *100,OUT),
+            nn.Linear(c1 * 100 *100,OUT),
+            nn.Sigmoid()
         )
         self.lin2 = nn.Sequential(
-            nn.Linear(out, c3 * 100 * 100)
+            nn.Linear(out, c1 * 100 * 100)
         )
-        self.tra1 = nn.Sequential(
-            nn.Dropout(d1),
-            nn.ConvTranspose2d(c3, c2,kernel_size=5,stride=1, padding=2),
-            nn.ReLU(True),
-        )
-        self.tra2 = nn.Sequential(
-            nn.Dropout(d1),
-            nn.ConvTranspose2d(c2,c1,kernel_size=5,stride=1, padding=2),
-            nn.ReLU(True),
-        )
+        # self.tra1 = nn.Sequential(
+            # nn.Dropout(d1),
+            # nn.ConvTranspose2d(c3, c2,kernel_size=5,stride=1, padding=2),
+            # nn.ReLU(True),
+        # )
+        # self.tra2 = nn.Sequential(
+            # nn.Dropout(d1),
+            # nn.ConvTranspose2d(c2,c1,kernel_size=5,stride=1, padding=2),
+            # nn.ReLU(True),
+        # )
         self.up1 = nn.Upsample(scale_factor=p1, mode="bilinear")
 
         self.tra3 =  nn.Sequential(
             nn.Dropout(d1),
             nn.ConvTranspose2d(c1,IN,kernel_size=5,stride=1, padding=2),
-            #nn.ReLU(True),
             nn.Sigmoid()
         )
 
@@ -113,7 +113,7 @@ class SparseAutoencoder(nn.Module):
         encoded = li1
         #log.debug("enc",encoded.shape)
         li2 = self.lin2(encoded)
-        li2 = li2.view(li2.size(0),C3, 100 ,100)
+        li2 = li2.view(li2.size(0),C1, 100 ,100)
         #log.debug("l2",l2.shape)
         #t1 = self.tra1(l2)
         #log.debug("t1",t1.shape)
@@ -130,56 +130,44 @@ class SparseAutoencoder(nn.Module):
 
 
 
-def kl_divergence(p, q):
-    '''
-    args:
-        2 tensors `p` and `q`
-    returns:
-        kl divergence between the softmax of `p` and `q`
-    '''
-    p = F.softmax(p, dim=-1)
-    q = F.softmax(q, dim=-1)
-
-    s1 = torch.sum(p * torch.log(p / q))
-    s2 = torch.sum((1 - p) * torch.log((1 - p) / (1 - q)))
-    return s1 + s2
-
-def train(modelName='autoencoder.pt', mse=False):
-    rho = torch.FloatTensor([RHO for _ in range(1000)]).unsqueeze(0)
+def train(model, args):
+    rho = torch.FloatTensor([RHO for _ in range(40000)]).unsqueeze(0)
+    print(rho)
     div = ""
     avg = ""
     log = ""
     diag = ""
+    lognorm = ""
     if LOG:
         log = "_log"
+    if LOGNORM:
+        lognorm = "_lognorm"
     if DIVIDE:
         div = "_div"
     if AVG:
         avg = "_avg"
     if DIAG:
         diag = "_diag"
-    autoencoder = MODEL_D + modelName
-    train_set = pickle.load( open( SET_D+CHR+log+div+diag+avg+".p", "rb" ) )
-    test_set = pickle.load( open( SET_D+CHR+log+div+diag+avg+"_test.p", "rb" ) )
+    autoencoder = MODEL_D + args.model
+    train_set = pickle.load( open( SET_D+args.chrom+log+lognorm+div+diag+avg+".p", "rb" ) )
+    test_set = pickle.load( open( SET_D+args.chrom+log+lognorm+div+diag+avg+"_test.p", "rb" ) )
     print(len(train_set))
     train_loader = torch.utils.data.DataLoader(
         dataset=train_set,
-        batch_size=BATCH_SIZE,
+        batch_size=args.batchSize,
         shuffle=True)
     test_loader = torch.utils.data.DataLoader(
         dataset=test_set,
-        batch_size=BATCH_SIZE,
+        batch_size=args.batchSize,
         shuffle=False)
 
-    model = SparseAutoencoder()
     if cuda: model.to(device)
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=LEARN_R)
-    if mse:
+    optimizer = torch.optim.Adam( model.parameters(), lr=args.learningRate)
+    if args.mse:
         criterion = nn.MSELoss()
     else:
         criterion = nn.L1Loss()
-    for epoch in range(N_EPOCHS):
+    for epoch in range(args.epochs):
         start = time. time()
         for b_index, (x) in enumerate(train_loader):
             x = x[0]
@@ -188,13 +176,28 @@ def train(modelName='autoencoder.pt', mse=False):
             encoded, decoded = model(x)
             loss = criterion(decoded,x)
             if use_sparse:
-                rho_hat = torch.sum(encoded, dim=0, keepdim=True)
-                sparsity_penalty = BETA * kl_divergence(rho, rho_hat)
+                sqrt_encoded = torch.sqrt(encoded)
+                avg_encoded = torch.div(sqrt_encoded, 115)
+                rho_hat = torch.sum(avg_encoded, dim=0, keepdim=True)
+                rho_hat_old = torch.div(torch.sum(encoded, dim=0,keepdim=True),115)
+                print(rho_hat)
+                print(torch.sum(rho))
+                print(torch.sum(rho_hat))
+                print(torch.sum(rho_hat_old))
+                # sparsity_penalty = BETA * F.kl_div(rho, rho_hat)
+                sparsity_penalty = torch.abs(torch.div(torch.sum(rho_hat)-
+                    torch.sum(rho),40000))
+                # sparsity_penalty = 0.1 * torch.div(torch.abs(torch.sum(rho)
+                                        # -torch.sum(rho_hat)),40000)
+                print(sparsity_penalty)
+                if sparsity_penalty < 0.005:
+                    sparsity_penalty = 0
+                print(loss)
                 train_loss = loss + sparsity_penalty
             else:
                 train_loss = loss
             optimizer.zero_grad()
-            loss.backward()
+            train_loss.backward()
             optimizer.step()
         if epoch % 10 == 0:
             for b_index, (x) in enumerate(test_loader):
