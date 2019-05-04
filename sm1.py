@@ -19,6 +19,8 @@ import pickle
 from m1 import *
 import cooler
 from copy import copy, deepcopy
+from scipy import signal
+from scipy import misc
 
 log.basicConfig(level=log.DEBUG)
 np.set_printoptions(threshold=sys.maxsize)
@@ -26,10 +28,14 @@ torch.set_num_threads(16)
 np.set_printoptions(precision=3, suppress=True)
 
 
-def plotMatrix(directory, fileName):
+def plotMatrix(directory, fileName, log):
     name = os.path.splitext(fileName)[0]
-    args = ["--matrix",directory + fileName, "-out", IMAGE_D+name+".png",
-            "--log1p", "--dpi", "300"]
+    if log:
+        args = ["--matrix",directory + fileName, "-out", IMAGE_D+name+".png",
+              "--log1p",   "--dpi", "300", "--vMin" ,"1"]
+    else:
+        args = ["--matrix",directory + fileName, "-out", IMAGE_D+name+".png",
+            "--dpi", "300","--vMax" ,"700","--vMin" ,"0"]
     hicPlot.main(args)
 
 
@@ -78,35 +84,101 @@ def iterateAll(args):
         print(f, ma.matrix.shape)
         cutMatrix(ma, ma.getChrNames()[0],args)
 
-def printAll(chromosome):
-    d = TEST_D
+def convertMatrix(hicMa, method):
+    if method == "customLog":
+        customLogVec = np.vectorize(customLog)
+        matrix = hicMa.matrix.todense()
+        print(matrix[0])
+        matrix = customLogVec(matrix)
+        print(matrix[0])
+        matrix = np.round(matrix, 2)
+        matrix = sparse.csr_matrix(matrix)
+        hicMa.setMatrix(matrix, hicMa.cut_intervals)
+        return hicMa
+    if method =='treshold':
+        matrix = hicMa.matrix.todense()
+        matrix[matrix < 100] = 10
+        # matrix = np.log(matrix) / np.log(20000)
+        matrix = sparse.csr_matrix(matrix)
+        hicMa.setMatrix(matrix, hicMa.cut_intervals)
+        return hicMa
+    if method =='manualAssign':
+        manualVec = np.vectorize(manualAssign)
+        matrix = hicMa.matrix.todense()
+        print(matrix[0])
+        matrix = manualVec(matrix)
+        matrix = sparse.csr_matrix(matrix)
+        hicMa.setMatrix(matrix, hicMa.cut_intervals)
+        return hicMa
+
+def convertAll(chromosome):
+    i = 0
+    d = CHUNK_D
     for f in os.listdir(d):
         c = f.split("_")[0]
+        e = f.split("_")[1]
         if chromosome == int(c):
-                plotMatrix(d,f)
+        # if "00205.cool" == e
                 ma = hm.hiCMatrix(d+f)
+                # ma = convertMatrix(ma, 'customLog')
+                ma.save(CUSTOM_D  + f)
+                i += 1
+                if i > 10:
+                    break
+
+
+def printAll(chromosome, d):
+    i = 0
+    for f in os.listdir(d):
+        c = f.split("_")[0]
+        e = f.split("_")[1]
+        # if "00205.cool" == e:
+        if chromosome == int(c):
+                plotMatrix(d,f, False)
+                # ma = hm.hiCMatrix(d+f)
+                i += 1
+                if i > 10:
+                    break
 
 def reverseCustomLog(a):
     if a == 0:
         return 0
-    elif a > 0.25:
-        a *= np.log(10000)
+    elif a > reverseMiddle:
+        a += sink
+        a *= np.log(maxLog)
         a = np.exp(a)
-        a += 32.5
+        a += shift
         return a
     else:
-        return (a**0.2)*50
+        return (a**(1/exponent))*divisor
+sink = 0
+logMax = 10000
+reverseMiddle = 0
+shift = 0 #32.5
+middle = 0
+divisor = 1#50
+exponent =1#5
 
-
+def manualAssign(a):
+    if a < 40: return 0
+    elif a < 80: return 0.1
+    elif a < 150: return 0.2
+    elif a < 250: return 0.3
+    elif a < 400: return 0.4
+    elif a < 600: return 0.5
+    elif a < 800: return 0.6
+    elif a < 1500: return 0.7 
+    elif a < 2500: return 0.8
+    else: return 0.9
 
 def customLog(a):
     if a == 0:
         return 0
-    elif a >= 38:
-        a -= 32.5
-        return np.log(a) /np.log(10000)
+    elif a >= middle:
+        a -= shift
+        return np.log(a) /np.log(logMax) - sink
     else:
-        return (a/50)**5
+        return (a/divisor)**exponent
 
 
 def createDataset(args, create_test =False):
@@ -181,18 +253,12 @@ def applyAE(args, test=False):
     else:
         m = m.tolist()
     print(m[0])
-    # print(m[10])
     t = torch.Tensor([[m]])
     encoded, decoded = model(t)
-    # print(encoded)
     decoded = decoded[0][0]
     encoded = encoded[0]
-    # en = encoded.detach().numpy().reshape(100,100)
-    # print(en)
     new = decoded.detach().numpy()
     new2 = deepcopy(new)
-    # print(np.sum(abs(m-new))/10000)
-    # print(new[10])
     print(new[0])
     if args.prepData == 'customLog' or args.prepData == 'log':
         new *= np.log(args.maxValue)
@@ -211,14 +277,14 @@ def applyAE(args, test=False):
     print(name)
     ma.setMatrix(new, ma.cut_intervals)
     ma.save(PRED_D + name + "_P_L1.cool")
-    plotMatrix(PRED_D, name + "_P_L1.cool")
+    plotMatrix(PRED_D, name + "_P_L1.cool", True)
     if args.prepData == 'customLog':
         ma.setMatrix(new2, ma.cut_intervals)
         ma.save(PRED_D + name + "_P_L1_Own.cool")
-        plotMatrix(PRED_D, name + "_P_L1_Own.cool")
-        # ma.setMatrix(newCus, ma.cut_intervals)
+        plotMatrix(PRED_D, name + "_P_L1_Own.cool", True)
+    # ma.setMatrix(newCus, ma.cut_intervals)
     # ma.save(PRED_D + name + "_Cus.cool")
-    # plotMatrix(PRED_D, name + "_Cus.cool")
+    # plotMatrix(PRED_D, name + "_Cus.cool", True
 
 def startTraining(args):
     model = SparseAutoencoder(args)
@@ -241,12 +307,12 @@ def parseArguments(args=None):
     parserOpt.add_argument('--treshold', '-tr',type=int, default=0)
     parserOpt.add_argument('--beta', '-be',type=float, default=0.1)
     parserOpt.add_argument('--chrom', '-c',type=str, default="4")
-    parserOpt.add_argument('--cutLength', '-cl',type=int, default=100)
+    parserOpt.add_argument('--cutLength', '-cl',type=int, default=50)
     parserOpt.add_argument('--hidden', '-hl',type=str, default="S")
     parserOpt.add_argument('--output', '-ol',type=str, default="S")
-    parserOpt.add_argument('--outputSize', '-os',type=int, default=1000)
-    parserOpt.add_argument('--overlap', '-o',type=int, default=50)
-    parserOpt.add_argument('--cutWidth', '-cw',type=int, default=100)
+    parserOpt.add_argument('--outputSize', '-os',type=int, default=200)
+    parserOpt.add_argument('--overlap', '-o',type=int, default=40)
+    parserOpt.add_argument('--cutWidth', '-cw',type=int, default=50)
     parserOpt.add_argument('--maxValue', '-mv',type=int, default=10068)
     parserOpt.add_argument('--convSize', '-cs',type=int, default=5)
     parserOpt.add_argument('--firstLayer', '-fl',type=int, default=4)
@@ -293,17 +359,35 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
-    # printAll(4)
-    # d = CHUNK_C
-    # end = "15238"
+    # main(sys.argv[1:])
+    convertAll(4)
+    printAll(4, CUSTOM_D)
+    # d = CHUNK_D
+    # end = "00205"
     # name = CHR + "_"+end
     # matrix = name +".cool"
     # ma = hm.hiCMatrix(d+matrix)
+    # ma.save(PRED_D + name + "_orig.cool")
     # m = ma.matrix.todense()
-    # m[m<15] = 0
-    # print(m[0])
+    # # # m[m<15] = 0
+    # # print(m[0])
+    # m = np.log(m) /np.log(20000)
+
     # new = sparse.csr_matrix(m)
     # ma.setMatrix(new, ma.cut_intervals)
-    # ma.save(PRED_D + name + "_treshold15.cool")
-    # plotMatrix(PRED_D, name + "_treshold15.cool")
+    # ma.save(PRED_D + name + "_log.cool")
+    # # m = np.square(m)
+    # # m = np.square(m)
+    # p = 1
+    # q = 4
+    # j = 16
+    # scharr = np.array([[ q, p,q],
+            # [p, j, p],
+            # [q, p,  q]]) # Gx + j*Gy
+    # m = signal.convolve2d(m, scharr, mode='same')
+    # new = sparse.csr_matrix(m)
+    # ma.setMatrix(new, ma.cut_intervals)
+    # ma.save(PRED_D + name + "_log_log.cool")
+    # plotMatrix(PRED_D, name + "_log.cool", False)
+    # plotMatrix(PRED_D, name + "_log_log.cool", False)
+    # plotMatrix(PRED_D, name + "_orig.cool", False)

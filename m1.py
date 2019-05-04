@@ -25,13 +25,14 @@ SET_D = DATA_D + BIN +"Sets/"
 PRED_D = DATA_D + "Predictions/"
 MODEL_D  = DATA_D + "Models/"
 CHUNK_D = DATA_D +BIN +"Chunks/"
+CUSTOM_D = DATA_D +BIN +"Custom/"
 TEST_D =  DATA_D +BIN+ "Test/"
 IMAGE_D = DATA_D +  "Images/"
 ORIG_D = DATA_D +  "Orig/"
+
 RHO = 0.1
 use_sparse = False
 ARGS = None
-CUT_W =200
 class SparseAutoencoder(nn.Module):
     def __init__(self,args ):
         super(SparseAutoencoder, self).__init__()
@@ -43,31 +44,29 @@ class SparseAutoencoder(nn.Module):
             ,nn.ReLU(inplace=True)
         )
         self.MP1 = nn.MaxPool2d(args.pool1)
-        self.conv2 = nn.Sequential(
-            nn.Dropout(args.dropout1),
-            nn.Conv2d(args.firstLayer, args.secondLayer, args.convSize, stride=1,
-                      padding=args.padding),
-            nn.ReLU(inplace=True),
-        )
+        if args.lastLayer =="third" or args.lastLayer == "second":
+            self.conv2 = nn.Sequential(
+                nn.Dropout(args.dropout1),
+                nn.Conv2d(args.firstLayer, args.secondLayer, args.convSize, stride=1,
+                          padding=args.padding),
+                nn.ReLU(inplace=True),
+            )
+
         self.MP2 = nn.MaxPool2d(args.pool1)
-        self.conv3 = nn.Sequential(
-            nn.Dropout(args.dropout1),
-            nn.Conv2d(args.secondLayer, args.thirdLayer, args.convSize, stride=1,
-                      padding=args.padding),
-            nn.ReLU(inplace=True),
-        )
+        if args.lastLayer == "third":
+            self.conv3 = nn.Sequential(
+                nn.Dropout(args.dropout1),
+                nn.Conv2d(args.secondLayer, args.thirdLayer, args.convSize, stride=1,
+                          padding=args.padding),
+                nn.ReLU(inplace=True),
+            )
+
         if args.lastLayer =="third":
                 linInput = args.thirdLayer * args.dimAfterP2**2
         elif args.lastLayer =="second":
                 linInput = args.secondLayer * args.dimAfterP1**2
-        elif args.lastLayer =="thirdNoPool":
-                linInput = args.thirdLayer * args.cutLength**2
-        elif args.lastLayer =="secondNoPool":
-                linInput = args.secondLayer * args.cutLength**2
-        elif args.lastLayer =="first" :
+        elif args.lastLayer =="first":
                 linInput = args.firstLayer * args.dimAfterP1**2
-        elif args.lastLayer =="firstNoPool" :
-                linInput = args.firstLayer * args.cutLength**2
         self.lin1 = nn.Sequential(
             nn.Dropout(args.dropout2),
             nn.Linear(linInput ,args.outputSize),
@@ -86,34 +85,32 @@ class SparseAutoencoder(nn.Module):
             )
         if args.lastLayer =="third":
                 linInput = args.thirdLayer * args.dimAfterP2**2
-        if args.lastLayer =="thirdNoPool":
-                linInput =args.thirdLayer * args.cutLength**2
         elif args.lastLayer =="second":
                 linInput = args.secondLayer * args.dimAfterP1**2
-        elif args.lastLayer =="secondNoPool":
-                linInput = args.secondLayer * args.cutLength**2
         elif args.lastLayer =="first" :
                 linInput = args.firstLayer * args.dimAfterP1**2
-        elif args.lastLayer =="firstNoPool" :
-                linInput = args.firstLayer * args.cutLength**2
         
         self.lin2 = nn.Sequential(
             nn.Linear(args.outputSize, linInput),
             nn.ReLU(inplace=True),
         )
     
-        self.tra1 = nn.Sequential(
-            nn.Dropout(args.dropout1),
-            nn.ConvTranspose2d(args.thirdLayer, args.secondLayer,kernel_size=args.convSize,
-                               stride=1,padding=args.padding),
-            nn.ReLU(True),
-        )
+        if args.lastLayer =="third":
+            self.tra1 = nn.Sequential(
+                nn.Dropout(args.dropout1),
+                nn.ConvTranspose2d(args.thirdLayer, args.secondLayer,kernel_size=args.convSize,
+                                   stride=1,padding=args.padding),
+                nn.ReLU(True),
+             )
+
         self.up1 = nn.Upsample(scale_factor=args.pool1, mode="bilinear")
-        self.tra2 =  nn.Sequential(
-            nn.Dropout(args.dropout1),
-            nn.ConvTranspose2d(args.secondLayer, args.firstLayer,kernel_size=args.convSize,
-                               stride=1,padding=args.padding),
-        )
+        if args.lastLayer =="third" or args.lastLayer == "second":
+            self.tra2 =  nn.Sequential(
+                nn.Dropout(args.dropout1),
+                nn.ConvTranspose2d(args.secondLayer, args.firstLayer,kernel_size=args.convSize,
+                                   stride=1,padding=args.padding),
+            )
+        
         self.up2 = nn.Upsample(scale_factor=args.pool1, mode="bilinear")
         self.tra3 =  nn.Sequential(
             nn.Dropout(args.dropout1),
@@ -143,24 +140,6 @@ class SparseAutoencoder(nn.Module):
             li2 = li2.view(po1.size())
             u2 = self.up2(li2)
             t3 = self.tra3(u2)
-        elif self.args.lastLayer =="firstNoPool":
-            co1 = self.conv1(x)
-            co1_m = co1.view(co1.size(0), -1)
-            li1 = self.lin1(co1_m)
-            encoded = self.hidden(li1)
-            li2 = self.lin2(encoded)
-            li2 = li2.view(co1.size())
-            t3 = self.tra3(li2)
-        elif self.args.lastLayer =="secondNoPool":
-            co1 = self.conv1(x)
-            co2 = self.conv2(co1)
-            co2_m = co2.view(co2.size(0), -1)
-            li1 = self.lin1(co2_m)
-            encoded = self.hidden(li1)
-            li2 = self.lin2(encoded)
-            li2 = li2.view(co2.size())
-            t2 = self.tra2(li2)
-            t3 = self.tra3(t2)
         elif self.args.lastLayer =="second":
             co1 = self.conv1(x)
             po1 = self.MP1(co1)
@@ -173,18 +152,6 @@ class SparseAutoencoder(nn.Module):
             t2 = self.tra2(li2)
             u2 = self.up2(t2)
             t3 = self.tra3(u2)
-        elif self.args.lastLayer =="thirdNoPool":
-            co1 = self.conv1(x)
-            co2 = self.conv2(co1)
-            co3 = self.conv3(co2)
-            co3_m = co3.view(co3.size(0), -1)
-            li1 = self.lin1(co3_m)
-            encoded = self.hidden(li1)
-            li2 = self.lin2(encoded)
-            li2 = li2.view(co3.size())
-            t1 = self.tra1(li2)
-            t2 = self.tra2(t1)
-            t3 = self.tra3(t2)
         elif self.args.lastLayer =="third":
             co1 = self.conv1(x)
             po1 = self.MP1(co1)
@@ -239,7 +206,7 @@ def train(model, args):
     if cuda: model.to(device)
     optimizer = torch.optim.Adam( model.parameters(), lr=args.learningRate)
     if args.loss == "MSE":
-        criterion = nn.MSELoss()
+        criterion = nn.MSELoss(reduction='sum')
     elif args.loss == "L1":
         criterion = nn.L1Loss()
     elif args.loss == "BCE":
@@ -307,4 +274,5 @@ def train(model, args):
         sys.stdout.flush()
     if args.saveModel:
         torch.save(model.state_dict(),autoencoder  )
+    print(" Loss: %.4f l1Loss: %.4f Val: %.4f " %(train_loss.data,l1Loss.data,test_loss.data))
     return float(test_loss.data)
