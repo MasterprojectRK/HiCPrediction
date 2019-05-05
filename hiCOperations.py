@@ -1,4 +1,4 @@
-from hicmatrix import HiCMatrix as hm
+import HiCMatrix as hm
 import torch
 from hicexplorer import hicPlotMatrix as hicPlot
 import numpy as np
