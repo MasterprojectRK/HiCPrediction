@@ -2,36 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.utils.data as utils
+import torch.multiprocessing as mp
 from torch.autograd import Variable
 from torchvision import datasets, transforms
-import logging as log
-import os
-import matplotlib.pyplot as plt
-import math
-import sys
-import pickle
-import numpy as np
-import time
+from hiCOperations import *
 
 torch.set_printoptions(precision=6)
 cuda = torch.cuda.is_available()
 device = torch.device('cuda:0' if cuda else 'cpu')
-# global constants
-CHR = "4"
-BIN = "20"
-DATA_D = "Data2e/"
-CHROM_D = DATA_D +BIN+ "Chroms/"
-SET_D = DATA_D + BIN +"Sets/"
-PRED_D = DATA_D + "Predictions/"
-MODEL_D  = DATA_D + "Models/"
-CHUNK_D = DATA_D +BIN +"Chunks/"
-CUSTOM_D = DATA_D +BIN +"Custom/"
-TEST_D =  DATA_D +BIN+ "Test/"
-IMAGE_D = DATA_D +  "Images/"
-ORIG_D = DATA_D +  "Orig/"
 
-RHO = 0.1
-use_sparse = False
 ARGS = None
 class SparseAutoencoder(nn.Module):
     def __init__(self,args ):
