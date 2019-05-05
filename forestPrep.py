@@ -1,10 +1,7 @@
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 def applyForest(args, test=False): 
-    
-    
-    
-    
+    df = pickle.load(open( SET_D+args.chrom+"_allWindows.p", "rb" ) )
     new = sparse.csr_matrix(new)
     newCus = sparse.csr_matrix(newCus)
     new2 = sparse.csr_matrix(new2)
@@ -22,7 +19,7 @@ def applyForest(args, test=False):
     # plotMatrix(PRED_D, name + "_Cus.cool", True
 
 def splitDataset(args)
-    df = pickle.load(open( SET_D+args.chrom+"_allWIndows.p", "rb" ) )
+    df = pickle.load(open( SET_D+args.chrom+"_allWindows.p", "rb" ) )
     train, test = train_test_split(dataset, test_size=0.2)
     pickle.dump(train, open( SET_D +args.chrom+"_train.p", "wb" ) )
     pickle.dump(test, open( SET_D +args.chrom+"_test.p", "wb" ) )
@@ -70,8 +67,10 @@ def main(args=None):
     if args.action == "train":
         startTraining(args)
     elif args.action == "predict":
-        applyAE(args, test=True)
-        applyAE(args,  test=False)
+        predict(args)
+        predict(args)
+    elif args.action == "split":
+        splitDataset(args)
 
 
 if __name__ == "__main__":
