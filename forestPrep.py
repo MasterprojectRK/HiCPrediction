@@ -1,22 +1,29 @@
 from sklearn.ensemble import RandomForestRegressor
+from hiCOperations import *
 from sklearn.model_selection import train_test_split
-def applyForest(args, test=False): 
+def predict(args): 
     df = pickle.load(open( SET_D+args.chrom+"_allWindows.p", "rb" ) )
-    new = sparse.csr_matrix(new)
-    newCus = sparse.csr_matrix(newCus)
-    new2 = sparse.csr_matrix(new2)
-    # plotMatrix(d,matrix)
-    print(name)
-    ma.setMatrix(new, ma.cut_intervals)
-    ma.save(PRED_D + name + "_P_L1.cool")
-    plotMatrix(PRED_D, name + "_P_L1.cool", True)
-    if args.prepData == 'customLog':
-        ma.setMatrix(new2, ma.cut_intervals)
-        ma.save(PRED_D + name + "_P_L1_Own.cool")
-        plotMatrix(PRED_D, name + "_P_L1_Own.cool", True)
-    # ma.setMatrix(newCus, ma.cut_intervals)
-    # ma.save(PRED_D + name + "_Cus.cool")
-    # plotMatrix(PRED_D, name + "_Cus.cool", True
+    model = pickle.load(open( MODEL_D +args.chrom+"_model.p", "rb" ) )
+    matrix ="4_Bin20.cool"
+    ma = hm.hiCMatrix(CHROM_D+matrix)
+    mat = ma.matrix.todense()
+    s = ma.cut_intervals[0][1]
+    e = ma.cut_intervals[-1][2]
+    matData = df.where(df['first'] >= s and df['first'] <=
+                       e).where(df['second'] >= s and df['second'] <= e)
+    print(matData.shape)
+    X = matData[matData.columns.difference(['first, second, target'])]
+    y_true = matData['target']
+    y = model.predict(X)
+
+def joinDataset(args):
+    data = pd.DataFrame() 
+    for f in os.listdir(SET_D):
+        df = pickle.load(open( SET_D+f, "rb" ) )
+        data.append(df)
+    pickle.dump(window, open( SET_D +args.chrom+"_allWindows.p", "wb" ) )
+
+
 
 def splitDataset(args)
     df = pickle.load(open( SET_D+args.chrom+"_allWindows.p", "rb" ) )
@@ -41,7 +48,7 @@ def parseArguments(args=None):
 
     # define the arguments
     parserRequired.add_argument('--action', '-a', choices=['train',
-         'predict'], help='Action to take', required=True)
+         'predict', 'join', 'split'], help='Action to take', required=True)
 
     parserOpt = parser.add_argument_group('Optional arguments')
     parserOpt.add_argument('--learningRate', '-lr',type=float, default=0.001)
@@ -68,9 +75,10 @@ def main(args=None):
         startTraining(args)
     elif args.action == "predict":
         predict(args)
-        predict(args)
     elif args.action == "split":
         splitDataset(args)
+    elif args.action == "join":
+        joinDataset(args)
 
 
 if __name__ == "__main__":
