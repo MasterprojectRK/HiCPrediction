@@ -21,10 +21,15 @@ def applyForest(args, test=False):
     # ma.save(PRED_D + name + "_Cus.cool")
     # plotMatrix(PRED_D, name + "_Cus.cool", True
 
+def splitDataset(args)
+    df = pickle.load(open( SET_D+args.chrom+"_allWIndows.p", "rb" ) )
+    train, test = train_test_split(dataset, test_size=0.2)
+    pickle.dump(train, open( SET_D +args.chrom+"_train.p", "wb" ) )
+    pickle.dump(test, open( SET_D +args.chrom+"_test.p", "wb" ) )
+
 def startTraining(args):
     model = RandomForestRegressor(random_state=0,n_estimators=20, verbose=3)
-    dataset = pickle.load(open( SET_D+"allWindows.p", "rb" ) )
-    train, test = train_test_split(dataset, test_size=0.2)
+    df = pickle.load(open( SET_D+args.chrom+"_train.p", "rb" ) )
     train_X = df[df.columns.difference(['first, second, target'])]
     train_y = df['target']
     model.fit(X,y)
