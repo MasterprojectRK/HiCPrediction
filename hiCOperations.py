@@ -38,7 +38,7 @@ CUSTOM_D = DATA_D +BIN +"Custom/"
 TEST_D =  DATA_D +BIN+ "Test/"
 IMAGE_D = DATA_D +  "Images/"
 ORIG_D = DATA_D +  "Orig/"
-PROTEIN_D = DATA_D + "Proteins/"
+PROTEIN_D = DATA_D + BIN+"Proteins/"
 allProteins = pd.DataFrame()
 def chrom_filter(feature, c):
         "Returns True if correct chrom"
@@ -336,9 +336,9 @@ def parseArguments(args=None):
     parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='sum')
     parserOpt.add_argument('--chrom', '-c',type=str, default="4")
     parserOpt.add_argument('--reach', '-r',type=str, default="100")
-    parserOpt.add_argument('--cutLength', '-cl',type=int, default=50)
+    parserOpt.add_argument('--cutLength', '-cl',type=int, default=100)
     parserOpt.add_argument('--overlap', '-o',type=int, default=40)
-    parserOpt.add_argument('--cutWidth', '-cw',type=int, default=50)
+    parserOpt.add_argument('--cutWidth', '-cw',type=int, default=100)
     parserOpt.add_argument('--maxValue', '-mv',type=int, default=10068)
     parserOpt.add_argument('--validationData', '-v',type=bool, default=False)
     parserOpt.add_argument('--trainData', '-t',type=bool,default=True)
