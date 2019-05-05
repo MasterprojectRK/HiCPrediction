@@ -71,7 +71,6 @@ def createForestDataset(args):
     k = 0
     for j in range(rows):
         maxReach = min(int(args.reach)+1,rows-j)
-        print(maxReach)
         ownProteins = allProteins[allProteins.columns.difference(['start'])].iloc[j]
         ownProteins = ownProteins.rename('first').values.tolist()
         firstStart = allProteins.iloc[j]['start']
