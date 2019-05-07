@@ -49,11 +49,30 @@ def peak_filter(feature, s, e):
         peak = feature.start + int(feature[9])
         return s < peak and e > peak
 
+def createMatrixFromPrediction(args):
+    pred = pickle.load(open( SET_D +args.chrom+"_prediction.p", "rb" ) )
+    matrix =args.chrom +"_Bin20.cool"
+    ma = hm.hiCMatrix(CHROM_D+matrix)
+    matrix = ma.mattrix.todense()
+    new = np.zeros(matrix.shape)
+    cuts = ma.cut_intervals
+    for j, cut in enumerate(cuts):
+        for i in range(1,args.reach+1)
+            matrix[j][j+i] = pred[cut[1], cuts[j+i][1]
+    new = sparse.csr_matrix(new)
+    ma.setMatrix(new, ma.cut_intervals)
+    ma.save(PRED_D + matrix+"_pred.cool")
+    plotMatrix(PRED_D, matrix + "_pred.cool", True)
+
+
+
+
+
 def createForestDataset(args):
     allProteins = pickle.load(open( PROTEIN_D +args.chrom+"_allProteinsBinned.p", "rb" ) )
     proLen = allProteins.shape[1]
     rows = allProteins.shape[0]
-    matrix ="4_Bin20.cool"
+    matrix =args.chrom+"_Bin20.cool"
     ma = hm.hiCMatrix(CHROM_D+matrix).matrix
     ma = ma.todense()
     print(ma.shape)
