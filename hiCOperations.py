@@ -1,4 +1,4 @@
-import HiCMatrix as hm
+from hicmatrix import HiCMatrix as hm
 import torch
 from hicexplorer import hicPlotMatrix as hicPlot
 import numpy as np
@@ -26,8 +26,7 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 # global constants
-CHR = "4"
-BIN = "20"
+BIN = "10"
 DATA_D = "Data2e/"
 CHROM_D = DATA_D +BIN+ "Chroms/"
 SET_D = DATA_D + BIN +"Sets/"
@@ -39,13 +38,12 @@ TEST_D =  DATA_D +BIN+ "Test/"
 IMAGE_D = DATA_D +  "Images/"
 ORIG_D = DATA_D +  "Orig/"
 PROTEIN_D = DATA_D + BIN+"Proteins/"
+PROTEINORIG_D = DATA_D +"ProteinOrig/"
 allProteins = pd.DataFrame()
 def chrom_filter(feature, c):
-        "Returns True if correct chrom"
         return feature.chrom == c
 
 def peak_filter(feature, s, e):
-        "Returns True if correct chrom"
         peak = feature.start + int(feature[9])
         return s < peak and e > peak
 
@@ -58,60 +56,70 @@ def createForestDataset(args):
     ma = ma.todense()
     print(ma.shape)
     print(rows,proLen)
-    cols = ['first', 'second'] + list(range(3*(proLen-1)))+['distance','target']
+    cols = ['first', 'second','chrom'] + list(range(3*(proLen-1)))+['distance','target']
     # window.set_index('firstSecond', inplace=True)
-    # step = int(rows/30)
-    # for l in range(31):
-        # s = l * step 
-        # e = min((l+1)*step, rows)
-        # window = pd.DataFrame(columns =cols)
-        # k = 0
-        # for j in range(s,e):
-    window = pd.DataFrame(columns =cols)
+    step = int(rows/30)
     k = 0
-    for j in range(rows):
-        maxReach = min(int(args.reach)+1,rows-j)
-        ownProteins = allProteins[allProteins.columns.difference(['start'])].iloc[j]
-        ownProteins = ownProteins.rename('first').values.tolist()
-        firstStart = allProteins.iloc[j]['start']
-        for  i in range(1,maxReach):
-            secondStart = allProteins.iloc[j+i]['start']
-            distance = secondStart - firstStart
-            secondProteins = allProteins[allProteins.columns.difference(['start'])].iloc[j+i]
-            secondProteins = secondProteins.rename('second').values.tolist()
-            middleProteins = allProteins[allProteins.columns.difference(['start'])].iloc[j+1:j+i]
-            middleProteins = middleProteins.mean(axis=0).rename('middle').values.tolist()
-            frame = [firstStart, secondStart]
-            frame.extend(ownProteins)
-            frame.extend(middleProteins)
-            frame.extend(secondProteins)
-            frame.append(distance)
-            val = ma[j,j+i]
-            frame.append(val)
-            index = str(j) +"_"+str(i)
-            window.loc[k] = frame
-            k += 1
-        print(window.shape)
-    pickle.dump(window, open( SET_D +args.chrom+"_allWindows.p", "wb" ) )
-    # pickle.dump(window, open( SET_D +args.chrom+"_windows"+str(l)+".p", "wb" ) )
+    for l in range(31):
+        s = l * step 
+        e = min((l+1)*step, rows)
+        window = pd.DataFrame(columns =cols)
+        for j in range(s,e):
+    # window = pd.DataFrame(columns =cols)
+    # k = 0
+    # for j in range(rows):
+            maxReach = min(int(args.reach)+1,rows-j)
+            ownProteins = allProteins[allProteins.columns.difference(['start'])].iloc[j]
+            ownProteins = ownProteins.rename('first').values.tolist()
+            firstStart = allProteins.iloc[j]['start']
+            for  i in range(1,maxReach):
+                secondStart = allProteins.iloc[j+i]['start']
+                distance = secondStart - firstStart
+                secondProteins = allProteins[allProteins.columns.difference(['start'])].iloc[j+i]
+                secondProteins = secondProteins.rename('second').values.tolist()
+                middleProteins = allProteins[allProteins.columns.difference(['start'])].iloc[j+1:j+i]
+                middleProteins = middleProteins.mean(axis=0).rename('middle').values.tolist()
+                frame = [firstStart, secondStart, args.chrom]
+                frame.extend(ownProteins)
+                frame.extend(middleProteins)
+                frame.extend(secondProteins)
+                frame.append(distance)
+                val = ma[j,j+i]
+                frame.append(val)
+                index = str(j) +"_"+str(i)
+                window.loc[k] = frame
+                k += 1
+            print(window.shape)
+    # pickle.dump(window, open( SET_D +args.chrom+"_allWindows.p", "wb" ) )
+        pickle.dump(window, open( SET_D +args.chrom+"_windows"+str(l)+".p", "wb" ) )
 
-    def loadProteins(args):
-        matrix ="4_Bin20.cool"
-        ma = hm.hiCMatrix(CHROM_D+matrix)
-        cuts = ma.cut_intervals
-        allProteins = pd.DataFrame(columns=['start', 'H2az', 'H3k4me1', 'H3k4me2', 'H3k4me3',
-                                  'H3k9ac', 'H3k9me3', 'H3k27ac', 'H3k27me3',
-                                   'H3k36me3', 'H3k79me2', 'H4k20me1'],
-                                   index=range(len(cuts)))
-        i = 0
+
+def loadAllProteins(args):
+    for f in os.listdir(CHROM_D):
+        loadProtein(args, f)
+
+
+def loadProtein(args, chromFile=None):
+    if chromFile:
+        matrix = chromFile
+    else:
+        matrix =args.chrom+"_Bin"+BIN+".cool"
+    print(matrix)
+    ma = hm.hiCMatrix(CHROM_D+matrix)
+    cuts = ma.cut_intervals
+    allProteins = pd.DataFrame(columns=['start', 'H2az', 'H3k4me1', 'H3k4me2', 'H3k4me3',
+                              'H3k9ac', 'H3k9me3', 'H3k27ac', 'H3k27me3',
+                               'H3k36me3', 'H3k79me2', 'H4k20me1'],
+                               index=range(len(cuts)))
+    i = 0
     for cut in cuts:
         allProteins.iloc[i][0] = cut[1]
         i += 1
     i = 0
-    for f in os.listdir(PROTEIN_D):
-        path  = PROTEIN_D+f
+    for f in os.listdir(PROTEINORIG_D):
+        path  = PROTEINORIG_D+f
         a = pybedtools.BedTool(path)
-        a = a.filter(chrom_filter, c='chr'+CHR)
+        a = a.filter(chrom_filter, c='chr'+args.chrom)
         a = a.sort()
         j = 0
         for cut in cuts:    
@@ -122,9 +130,11 @@ def createForestDataset(args):
             allProteins.iloc[j][i+1] = score
             j += 1 
         i += 1
-    print(allProteins)
+        print(allProteins.shape)
+    c = matrix.split("_")[0]
+    print(c)
     pickle.dump(allProteins, open( PROTEIN_D +
-                                  args.chrom+"_allProteinsBinned.p", "wb" ) )
+                                  c+"_allProteinsBinned.p", "wb" ) )
 
 def plotMatrix(directory, fileName, log):
     name = os.path.splitext(fileName)[0]
@@ -329,7 +339,7 @@ def parseArguments(args=None):
 
     # define the arguments
     parserRequired.add_argument('--action', '-a', choices=[ 'create','cutMatrix', 
-                    'createAverage', 'loadProteins', 'createWindows'], help='Action to take', required=True)
+                    'createAverage','loadAllProteins', 'loadProteins', 'createWindows'], help='Action to take', required=True)
 
     parserOpt = parser.add_argument_group('Optional arguments')
     parserOpt.add_argument('--treshold', '-tr',type=int, default=0)
@@ -353,8 +363,10 @@ def main(args=None):
         createDataset(args, False)
     elif args.action == "cutMatrix":
         iterateAll(args)
-    elif args.action == "loadProteins":
-        loadProteins(args)
+    elif args.action == "loadProtein":
+        loadProtein(args, chromFile=None)
+    elif args.action == "loadAllProteins":
+        loadAllProteins(args)
     elif args.action == "createWindows":
         createForestDataset(args)
 
