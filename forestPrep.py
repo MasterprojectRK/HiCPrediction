@@ -4,36 +4,43 @@ from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestRegressor
 
 def predict(args):
-    if not os.path.exists(args.predDir):
-        os.mkdir(args.predDir)
-    df = pickle.load(open( args.sourceFile, "rb" ) )
-    model = pickle.load(open( args.modelFile, "rb" ) )
+    df = pickle.load(open( SET_D+tagCreator(args, "set")+".p", "rb" ) )
+    model = pickle.load(open( MODEL_D+tagCreator(args, "model") +".p", "rb" ) )
     df = df.fillna(value=0)
-    test_X = df[df.columns.difference(['first', 'second', 'target'])]
-    print(test_X)
-    print(test_X)
-    test_y = df['target']
+    test_X = df[df.columns.difference(['first', 'second','chrom','reads', 'logTarget',
+                                       'normTarget'])]
+    test_y = df[args.conversion + 'Target']
     y_pred = model.predict(test_X)
     test_y = test_y.to_frame()
     print(model.score(test_X,test_y))
-    test_y['first'] = df['first']
     test_y['second'] = df['second']
+    test_y['first'] = df['first']
     test_y['pred'] = y_pred
     test_y = test_y.set_index(['first','second'])
-    # print(test_y.loc[(161480000,161500000)])
-
-    pickle.dump(test_y, open(args.predDir+"/" PREDTYPE, "wb" ) )
-    
+    if args.directConversion:
+        predictionToMatrix(args, test_y) 
+    else:
+        pickle.dump(test_y, open(PRED_D+tagCreator(args, "pred")+".p", "wb" ) )
 
 def createCombinedDataset(args):
-    d = SET_D +args.conversion+"/all/"
-    chroms = [item for item in args.chroms.split('_')]
+    d = SET_D 
+    chroms = [item for item in chromStringToList(args.chroms)]
     data = pd.DataFrame() 
     for f in chroms:
-        df = pickle.load(open(d+f+".p", "rb" ) )
-        data = data.append(df)
-    pickle.dump(data, open(SET_D+args.conversion+"/combined/"+args.chroms+".p", "wb" ) )
+        print(f)
+        if  "A" in args.arms:
+            args.chrom = f + "_A"
+            df = pickle.load(open(d+tagCreator(args, "set")+".p", "rb" ) )
+            data = data.append(df)
+        if  "B" in args.arms:
+            args.chrom = f + "_B"
+            if  os.path.isfile(d+tagCreator(args, "set")+".p"):
+                df = pickle.load(open(d+tagCreator(args, "set")+".p", "rb" ) )
+                data = data.append(df)
+    pickle.dump(data, open(SET_D+tagCreator(args, "setC")+".p", "wb" ), protocol=4 )
     print(data.shape)
+
+
 
 
 def splitDataset2(args):
@@ -67,17 +74,18 @@ def splitDataset(args):
 
 def startTraining(args):
     model = RandomForestRegressor(random_state=5,n_estimators=args.estimators,n_jobs=3, verbose=3)
-    df = pickle.load(open( args.trainFile, "rb" ) )
+    df = pickle.load(open(SET_D+tagCreator(args, "setC")+".p", "rb" ) )
     # print(df.isnull().values.any())
     df.replace([np.inf, -np.inf], np.nan)
     print(df.max())
     print(df)
     df = df.fillna(value=0)
-    X = df[df.columns.difference(['first', 'second', 'target'])]
-    y = df['target']
+    X = df[df.columns.difference(['first', 'second','chrom',
+                                  'reads','logTarget','normTarget'])]
+    y = df[args.conversion + 'Target']
     print(type(y[0]))
     model.fit(X, y)
-    pickle.dump(model, open(args.modelFile, "wb" ) )
+    pickle.dump(model, open(MODEL_D+tagCreator(args, "model")+".p", "wb" ) )
     
 def parseArguments(args=None):
     print(args)
@@ -91,24 +99,28 @@ def parseArguments(args=None):
          'predict','combine', 'split'], help='Action to take', required=True)
 
     parserOpt = parser.add_argument_group('Optional arguments')
-    parserOpt.add_argument('--learningRate', '-lr',type=float, default=0.001)
+    # parserOpt.add_argument('--learningRate', '-lr',type=float, default=0.001)
     parserOpt.add_argument('--estimators', '-e',type=int, default=20)
-    parserOpt.add_argument('--trainFile', '-tf',type=str, default="")
+    # parserOpt.add_argument('--trainFile', '-tf',type=str, default="")
     parserOpt.add_argument('--sourceFile', '-sf',type=str, default="")
-    parserOpt.add_argument('--modelFile', '-mf',type=str, default="")
-    parserOpt.add_argument('--predDir', '-pd',type=str, default="")
+    # parserOpt.add_argument('--modelFile', '-mf',type=str, default="")
+    # parserOpt.add_argument('--predDir', '-pd',type=str, default="")
     parserOpt.add_argument('--chrom', '-c',type=str, default="4")
+    parserOpt.add_argument('--reach', '-r',type=str, default="99")
     parserOpt.add_argument('--chroms', '-cs',type=str, default="1_2")
-    parserOpt.add_argument('--cutLength', '-cl',type=int, default=50)
-    parserOpt.add_argument('--maxValue', '-mv',type=int, default=10068)
-    parserOpt.add_argument('--batchSize', '-b',type=int, default=256)
-    parserOpt.add_argument('--model', '-m',type=str, default='autoencoder.pt')
-    parserOpt.add_argument('--conversion', '-co',type=str, default="default")
-    parserOpt.add_argument('--saveModel', '-sm', default=True)
-    parserOpt.add_argument('--loss', '-l',type=str, default='L1')
-    parserOpt.add_argument('--prepData', '-dp',type=str, default='log')
-    parserOpt.add_argument('--validationData', '-v',type=bool, default=False)
-    parserOpt.add_argument('--trainData', '-t',type=bool,default=True)
+    parserOpt.add_argument('--arms', '-ar',type=str, default="AB")
+    # parserOpt.add_argument('--cutLength', '-cl',type=int, default=50)
+    # parserOpt.add_argument('--maxValue', '-mv',type=int, default=10068)
+    # parserOpt.add_argument('--batchSize', '-b',type=int, default=256)
+    # parserOpt.add_argument('--model', '-m',type=str, default='autoencoder.pt')
+    parserOpt.add_argument('--conversion', '-co',type=str, default="norm")
+    parserOpt.add_argument('--directConversion', '-d',type=bool, default=True)
+    parserOpt.add_argument('--windowOperation', '-wo',type=str, default="avg")
+    # parserOpt.add_argument('--saveModel', '-sm', default=True)
+    # parserOpt.add_argument('--loss', '-l',type=str, default='L1')
+    # parserOpt.add_argument('--prepData', '-dp',type=str, default='log')
+    # parserOpt.add_argument('--validationData', '-v',type=bool, default=False)
+    # parserOpt.add_argument('--trainData', '-t',type=bool,default=True)
     args = parser.parse_args(args)
     print(args)
     return args
