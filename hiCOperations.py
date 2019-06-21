@@ -46,12 +46,12 @@ def chrom_filter(feature, c):
 
 def peak_filter(feature, s, e):
         peak = feature.start + int(feature[9])
-        return s < peak and e > peak
+        return s <= peak and e >= peak
 
 
 def predictionToMatrix(args, pred=None):
     if pred is None:
-        pred = pickle.load(open(PRED_D+tagCreator(args, "pred")+".p", "rb" ) )
+        pred = pickle.load(open(tagCreator(args, "pred"), "rb" ) )
     ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
     mat = ma.matrix.todense()
     factor =  np.max(mat)
@@ -65,20 +65,17 @@ def predictionToMatrix(args, pred=None):
         print('\r', end='') # use '\r' to go back
         sys.stdout.flush()
 
-        for i in range(maxV):
-            val = pred.loc[(cut[1], cuts[j+i][1])]
+        for i in range(2,maxV):
+            val = pred.loc[(cut[1], cuts[j+i][1])]['pred']
             if args.conversion == "norm":
-                val= val['pred']  * factor
+                val= val  * factor
             elif args.conversion == "log":
-                val= val['pred']  * np.log(factor)
+                val= val  * np.log(factor)
                 val = np.exp(val) - 1
             new[j][j+i] = val
     new = sparse.csr_matrix(new)
     ma.setMatrix(new, ma.cut_intervals)
-    newName = tagCreator(args, "pred")+".cool"
-    ma.save(PRED_D + newName)
-    # plotMatrix(PRED_D + args.predDir, newName, name=args.predDir)
-    # plotMatrix(CHROM_D, args.orig +COOL )
+    ma.save(tagCreator(args, "pred"))
 
 def divideIntoArms(args):
     ma = hm.hiCMatrix(CHROM_D +args.chrom+".cool")
@@ -158,23 +155,40 @@ def chromsToName(s):
 
 
 def tagCreator(args, mode):
-    end =  "_"+args.conversion + "_"+args.windowOperation
+    if args.equalizeProteins:
+        ep = "_E"
+    else:
+        ep = ""
+    if args.normalizeProteins:
+        nop = "_N"
+    else:
+        nop = ""
+    
+    wmep = "_"+args.windowOperation +"_M"+args.mergeOperation+ep +nop
+
+    cowmep =  "_"+args.conversion +  wmep
+    csa = chromsToName(args.chroms)+"_"+args.arms
+    csam = csa + "_"+args.model
+
     if mode == "set":
-        return args.chrom + "_" +args.windowOperation 
+        return SET_D + args.chrom + wmep +".p"
+
     elif mode == "model":
-        return chromsToName(args.chroms)+"_"+args.arms+ end
+        return MODEL_D + csam + cowmep+".p"
+
+    elif mode == "protein":
+        return PROTEIN_D + args.chrom+ "_M"+args.mergeOperation+nop+".p"
     elif mode == "pred":
-        return args.chrom + "P_"+chromsToName(args.chroms)+"_"+args.arms+ end 
+        return PRED_D + args.chrom + "_P"+ csam + cowmep +".cool"
+
     elif mode == "setC":
-        return chromsToName(args.chroms)+"_"+args.arms+ "_"+ args.windowOperation
+        return SET_D+csa+ wmep +".p"
+
+    elif mode == "image":
+        return IMAGE_D + args.chrom +"_R" + args.region+"_P"+csam + cowmep +".png"
 
 def createForestDataset(args):
-    allProteins = pickle.load(open( PROTEIN_D
-        +args.chrom+"_Proteins.p", "rb" )).values.tolist()
-        # +args.chrom+"_allProteinsBinned.p", "rb" ))
-    # print(allProteins)
-    # proLen = allProteins.shape
-    # rows = allProteins.shape[0]
+    allProteins = pickle.load(open(tagCreator(args, "protein"), "rb" )).values.tolist()
     colNr = np.shape(allProteins)[1]
     rows = np.shape(allProteins)[0]
     ma = hm.hiCMatrix(ARM_D+args.chrom+".cool").matrix
@@ -182,8 +196,7 @@ def createForestDataset(args):
     logs = deepcopy(reads)
     norms = deepcopy(reads)
     
-    maxValue = np.amax(logs)
-    print(maxValue)
+    maxValue = 25790 
     logs = np.log(logs+1)
     logs /= np.log(maxValue)
     norms /= maxValue
@@ -196,7 +209,7 @@ def createForestDataset(args):
         maxReach = min(int(args.reach)+1,rows-j)
         ownProteins = allProteins[j][1:]
         firstStart = allProteins[j][0]
-        for  i in range(0,maxReach):
+        for  i in range(2,maxReach):
             secondStart = allProteins[j+i][0]
             distance = secondStart - firstStart
             secondProteins = allProteins[j+i][1:]
@@ -212,6 +225,12 @@ def createForestDataset(args):
                     middleProteins = np.max(middleProteins, axis=0)[1:]
 
             frame = [firstStart, secondStart,args.chrom]
+            if args.equalizeProteins:
+                for l in range(len(ownProteins)):
+                    if ownProteins[l] == 0:
+                        secondProteins[l] = 0
+                    elif secondProteins[l] == 0:
+                        ownProteins[l] = 0
             frame.extend(ownProteins)
             frame.extend(middleProteins)
             frame.extend(secondProteins)
@@ -225,7 +244,7 @@ def createForestDataset(args):
             window.append(frame)
     data = pd.DataFrame(window,columns =cols)
     print(data.shape)
-    pickle.dump(data, open( SET_D+tagCreator(args, "set")+".p", "wb" ) )
+    pickle.dump(data, open(tagCreator(args, "set"), "wb" ) )
 
 
 
@@ -236,13 +255,15 @@ def createAllWindows(args):
 
 def loadAllProteins(args):
     for f in os.listdir(ARM_D):
-        args.chrom = f.split("_")[0]
-        loadProtein(args, f)
+        args.chrom = f.split(".")[0]
+        loadProtein(args)
 
+def score(feature):
+    return feature.score
 
-def loadProtein(args, matrix=None):
-    print(matrix)
-    ma = hm.hiCMatrix(ARM_D+matrix)
+def loadProtein(args):
+    ma = hm.hiCMatrix(ARM_D+args.chrom+".cool")
+    fullChrom = args.chrom.split("_")[0]
     cuts = ma.cut_intervals
     i = 0
     allProteins = []
@@ -252,32 +273,51 @@ def loadProtein(args, matrix=None):
         i += 1
     i = 0
     for f in os.listdir(PROTEINORIG_D):
-        print(i)
+        print(f)
         path  = PROTEINORIG_D+f
         a = pybedtools.BedTool(path)
-        a = a.filter(chrom_filter, c='chr'+args.chrom)
+        b = a.to_dataframe()
+        c = b.iloc[:,6]
+        maxV = max(c)
+        if maxV == 0:
+            maxV = 1
+        a = a.filter(chrom_filter, c='chr'+fullChrom)
         a = a.sort()
         j = 0
         for cut in cuts:    
+            print(str(j+1)+"/"+str(len(cuts)),end='')
+            print('\r', end='') # use '\r' to go back
             tmp = a.filter(peak_filter, cut[1], cut[2])
-            tmp = [float(x.score) for x in tmp]
-            if args.mergeOperation == 'sum':
-                score = sum(tmp)
-            allProteins[j][i+1] = score
+            if args.normalizeProteins:
+                tmp = [float(x[6])/maxV for x in tmp]
+            else:
+                tmp = [float(x[6]) for x in tmp]
+            if len(tmp) == 0:
+                tmp.append(0)
+            if args.mergeOperation == 'avg':
+                score = np.mean(tmp)
+            elif args.mergeOperation == 'max':
+                score = np.max(tmp)
+            elif args.mergeOperation == 'sum':
+                score = np.sum(tmp)
+            allProteins[j][i+1] = score 
             j += 1 
         i += 1
-    c = matrix.split(".")[0]
-    print(c)
+    print(args.chrom)
+    if args.normalizeProteins:
+        nop = "_N"
+    else:
+        nop = ""
     data = pd.DataFrame(allProteins,columns=['start','ctcf', 'rad21', 'smc3', 'H2az', 'H3k4me1', 'H3k4me2', 'H3k4me3',
                               'H3k9ac', 'H3k9me3', 'H3k27ac', 'H3k27me3',
                                'H3k36me3', 'H3k79me2', 'H4k20me1'],
                                index=range(len(cuts)))
-    pickle.dump(data, open( PROTEIN_D + c+"_Proteins.p", "wb" ) )
+    pickle.dump(data, open(tagCreator(args, "protein") , "wb" ) )
 
-def plotMatrix(args):
+def plotPredMatrix(args):
 
-    name = args.sourceFile.split(".")[0].split("/")[-1]
-    a = ["--matrix",args.sourceFile,
+    name = tagCreator(args, "pred")  
+    a = ["--matrix",name,
             "--dpi", "300"]
     if args.log:
         a.extend(["--log1p", "--vMin" ,"1"])
@@ -285,7 +325,33 @@ def plotMatrix(args):
         a.extend(["--vMax" ,"1","--vMin" ,"0"])
     if args.region:
         a.extend(["--region", args.region])
+    elif args.regionIndex1 and args.regionIndex2:
+        ma = hm.hiCMatrix(name)
+        cuts = ma.cut_intervals
+        args.region = args.chrom.split("_")[0] +":"+str(cuts[args.regionIndex1][1])+"-"+ str(cuts[args.regionIndex2][1])
+        a.extend(["--region", args.region])
+
+    a.extend( ["-out",tagCreator(args, "image")])
+    hicPlot.main(a)
+
+def plotMatrix(args):
+    name = args.sourceFile.split(".")[0].split("/")[-1]
+    a = ["--matrix",args.sourceFile,
+            "--dpi", "300"]
+    if args.log:
+        a.extend(["--log1p", "--vMin" ,"1","--vMax" ,"1000"])
+    else:
+        a.extend(["--vMax" ,"1","--vMin" ,"0"])
+    if args.region:
+        a.extend(["--region", args.region])
         name = name + "_r"+args.region
+    elif args.regionIndex1 and args.regionIndex2:
+        ma = hm.hiCMatrix(args.sourceFile)
+        cuts = ma.cut_intervals
+        region = args.chrom +":"+str(cuts[args.regionIndex1][1])+"-"+ str(cuts[args.regionIndex2][1])
+        a.extend(["--region", region])
+        name = name + "_R"+region
+
     a.extend( ["-out", IMAGE_D+name+".png"])
     hicPlot.main(a)
 
@@ -295,83 +361,18 @@ def plotMatrix(args):
 
 def plotAllOfDir(args):
     for f in os.listdir(args.targetDir):
-        x = f.split(".")[0]
-        print(args.targetDir,f)
-        plotMatrix(args.targetDir,f,x, args.log )
-                #FORGOT NORMAL PLOT FOR NORMAL MATRIX
-
-# def plotRegion(args):
-    # model = chromsToName(args.chroms)
-    # targetDir = PRED_D+args.conversion+ "/" +args.chrom +"P/" +model
-    # plotMatrix(targetDir,'matrix.cool',args.chrom+"_"+args.region +"_"+
-        # args.chroms+args.conversion, args.log )
-
-
-def printCuts(args):
-    ma = hm.hiCMatrix(args.sourceFile)
-    print(ma.cut_intervals)
-
-
-def parseArguments(args=None):
-    print(args)
-
-    parser = argparse.ArgumentParser(description='HiC Prediction')
-
-    parserRequired = parser.add_argument_group('Required arguments')
-
-    # define the arguments
-    parserRequired.add_argument('--action', '-a', choices=[ 'createAllWindows','plotAll',
-    'plot','createArms', 'printCuts','loadAllProteins' ,  'createWindows'],
-        help='Action to take', required=True)
-
-    parserOpt = parser.add_argument_group('Optional arguments')
-    # parserOpt.add_argument('--treshold', '-tr',type=int, default=0)
-    parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='sum')
-    parserOpt.add_argument('--windowOperation', '-wo',type=str, default='avg')
-    parserOpt.add_argument('--chrom', '-c',type=str, default="1")
-    # parserOpt.add_argument('--bin', '-b',type=str, default="20")
-    parserOpt.add_argument('--reach', '-r',type=str, default="99")
-    parserOpt.add_argument('--conversion', '-co',type=str, default="default")
-    parserOpt.add_argument('--chroms', '-cs',type=str, default="1_2")
-    # parserOpt.add_argument('--suffix', '-s',type=str, default="")
-    parserOpt.add_argument('--region', '-re',type=str, default=None)
-    parserOpt.add_argument('--arms', '-ar',type=str, default="AB")
-    parserOpt.add_argument('--name', '-n',type=str, default="")
-    parserOpt.add_argument('--sourceFile', '-sf',type=str, default="")
-    parserOpt.add_argument('--targetDir', '-td',type=str, default="")
-    # parserOpt.add_argument('--cutLength', '-cl',type=int, default=100)
-    # parserOpt.add_argument('--overlap', '-o',type=int, default=0)
-    # parserOpt.add_argument('--cutWidth', '-cw',type=int, default=100)
-    # parserOpt.add_argument('--maxValue', '-mv',type=int, default=10068)
-    # parserOpt.add_argument('--validationData', '-v',type=bool, default=False)
-    parserOpt.add_argument('--log', '-l',type=bool, default=True)
-    # parserOpt.add_argument('--trainData', '-t',type=bool,default=True)
-    args = parser.parse_args(args)
-    print(args)
-    return args
-
-def main(args=None):
-    args = parseArguments(args)
-    if args.action == "loadProtein":
-        loadProtein(args, chromFile=None)
-    elif args.action == "loadAllProteins":
-        loadAllProteins(args)
-    elif args.action == "createWindows":
-        createForestDataset(args)
-    elif args.action == "createAllWindows":
-        createAllWindows(args)
-    # elif args.action == "predToM":
-        # predictionToMatrix(args)
-    elif args.action == "plot":
+        args.sourceFile = args.targetDir+"/"+f
         plotMatrix(args)
-    elif args.action == "plotAll":
-        plotAllOfDir(args)
-    elif args.action == "createArms":
-        createAllArms(args)
-    elif args.action == "printCuts":
-        printCuts(args)
+
+
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    # main(sys.argv[1:])
+    for f in os.listdir(PROTEIN_D):
+        if  len(f.split("Proteins_")) > 1:
+            n = f.split("Proteins_")[0] 
+            m = f.split("Proteins_")[1]
+            os.rename(PROTEIN_D+f, PROTEIN_D+n+"M"+m)
+
 
