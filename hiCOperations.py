@@ -31,6 +31,7 @@ DATA_D = "Data2e/"
 CHROM_D = DATA_D +BIN_D+ "Chroms/"
 ARM_D = DATA_D +BIN_D+ "Arms/"
 SET_D = DATA_D + BIN_D +"Sets/"
+SETC_D = DATA_D + BIN_D +"SetsCombined/"
 PRED_D = DATA_D +BIN_D+ "Predictions/"
 MODEL_D  = DATA_D + BIN_D+"Models/"
 CHUNK_D = DATA_D +BIN_D +"Chunks/"
@@ -71,6 +72,8 @@ def predictionToMatrix(args, pred=None):
                 val= val  * factor
             elif args.conversion == "log":
                 val= val  * np.log(factor)
+                val = np.exp(val) - 1
+            elif args.conversion == "standardLog":
                 val = np.exp(val) - 1
             new[j][j+i] = val
     new = sparse.csr_matrix(new)
@@ -168,7 +171,7 @@ def tagCreator(args, mode):
 
     cowmep =  "_"+args.conversion +  wmep
     csa = chromsToName(args.chroms)+"_"+args.arms
-    csam = csa + "_"+args.model
+    csam = csa + "_"+args.model +"_" + args.loss
 
     if mode == "set":
         return SET_D + args.chrom + wmep +".p"
@@ -182,7 +185,7 @@ def tagCreator(args, mode):
         return PRED_D + args.chrom + "_P"+ csam + cowmep +".cool"
 
     elif mode == "setC":
-        return SET_D+csa+ wmep +".p"
+        return SETC_D+csa+ wmep +".p"
 
     elif mode == "image":
         return IMAGE_D + args.chrom +"_R" + args.region+"_P"+csam + cowmep +".png"
@@ -246,6 +249,18 @@ def createForestDataset(args):
     print(data.shape)
     pickle.dump(data, open(tagCreator(args, "set"), "wb" ) )
 
+
+def createAllCombinations(args):
+    for w in ["max", "avg", "sum"]:
+        args.windowOperation = w
+        for m in ["max", "avg", "sum"]:
+            args.mergeOperation = m
+            for n in [False, True]:
+                args.normalizeProteins = n
+                for e in [False, True]:
+                    args.equalizeProteins = e
+                    if  not os.path.isfile(tagCreator(args, "set")):
+                        createAllWindows(args)
 
 
 def createAllWindows(args):
@@ -356,23 +371,49 @@ def plotMatrix(args):
     hicPlot.main(a)
 
 
+def plotDir(args):
+    for p in ["default", "standardLog", 'log','norm']:
+        args.conversion = p
+        for w in ["max", "avg", "sum"]:
+            args.windowOperation = w
+            for me in ["max", "avg", "sum"]:
+                args.mergeOperation = me
+                for m in ["rf"]:
+                    args.model = m
+                    for n in [False, True]:
+                        args.normalizeProteins = n
+                        for n in [False, True]:
+                            args.equalizeProteins = n
+                            if  os.path.isfile(tagCreator(args, "pred")):
+                                print(tagCreator(args, "pred"))
+                                args.regionIndex1 = 401
+                                args.regionIndex2 = 600
+                                plotPredMatrix(args)
+                            else:
+                                print(tagCreator(args, "pred"))
 
 
-
-def plotAllOfDir(args):
-    for f in os.listdir(args.targetDir):
-        args.sourceFile = args.targetDir+"/"+f
-        plotMatrix(args)
 
 
 
 
 if __name__ == "__main__":
-    # main(sys.argv[1:])
-    for f in os.listdir(PROTEIN_D):
-        if  len(f.split("Proteins_")) > 1:
-            n = f.split("Proteins_")[0] 
-            m = f.split("Proteins_")[1]
-            os.rename(PROTEIN_D+f, PROTEIN_D+n+"M"+m)
+    # d = PRED_D
+    # key = "rf_n"
+    # for f in os.listdir(d):
+        # if len(f.split(key))>1:
+            # n = f.split(key)[0]
+            # m = f.split(key)[1]
+            # os.rename(d+f, d+n+"rf_mse_n"+m)
+    # df = pd.DataFrame(columns=['name','modelScore','r2 score',
+                               # 'MSE','MAE','MSLE', 'window', 'merge',
+                               # 'model', 'ep', 'np', 'conversion', 'chrom',
+                               # 'trainChroms'])
+    # df = df.set_index(['name'])
+    # pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
 
-
+    df = pickle.load(open(DATA_D+"results.p", "rb" ) )
+    # df['lossFunction'] ="mse"
+    # df = df.set_index(['name'])
+    # pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
+    print(df[:40])

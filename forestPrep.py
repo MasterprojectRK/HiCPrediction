@@ -5,6 +5,10 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import r2_score
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_log_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import GridSearchCV
 
 def predict(args):
     ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
@@ -19,6 +23,7 @@ def predict(args):
     test_y = test_y.to_frame()
     test_y['normTarget'] = df['normTarget']
     test_y['logTarget'] = df['logTarget']
+    test_y['standardLog'] = np.log(df['reads']+1)
     y_pred = model.predict(test_X)
     test_y['pred'] = y_pred
     y_pred = np.absolute(y_pred)
@@ -36,15 +41,23 @@ def predict(args):
     elif args.conversion == 'default':
         target = 'reads'
         reads = y_pred
+    elif args.conversion == 'standardLog':
+        target = 'standardLog'
+        reads = y_pred
+        reads = np.exp(reads) - 1
     test_y['reads'] = df['reads']
     test_y['predReads'] = reads
-    print(test_y)
-    print(model.score(test_X,test_y[target]))
+    score = model.score(test_X,test_y[target])
+    print(score)
+
     test_y = test_y.set_index(['first','second'])
-    if args.directConversion:
-        predictionToMatrix(args, test_y) 
-    else:
+    if args.directConversion == 1:
+        if  not os.path.isfile(tagCreator(args, "pred")):
+            predictionToMatrix(args, test_y) 
+    elif args.directConversion == 2:
         pickle.dump(test_y, open(tagCreator(args, "pred"), "wb" ) )
+    elif args.directConversion == 0:
+        saveResults(args, test_y['predReads'], test_y['reads'], score)
 
 def createCombinedDataset(args):
     chroms = [item for item in chromStringToList(args.chroms)]
@@ -63,13 +76,46 @@ def createCombinedDataset(args):
     pickle.dump(data, open(tagCreator(args, "setC"), "wb" ), protocol=4 )
     print(data.shape)
 
+def saveResults(args, y_pred, y_true, score):
+    print(r2_score(y_pred,y_true))
+    print(mean_squared_error(y_pred, y_true))
+    print(mean_absolute_error(y_pred, y_true))
+    print(mean_squared_log_error(y_pred, y_true))
+    df = pickle.load(open(DATA_D+"results.p", "rb" ) )
+    df.loc[tagCreator(args,"pred").split("/")[-1],:]= pd.Series([score,
+                              r2_score(y_pred,y_true),mean_squared_error(y_pred, y_true),
+                              mean_absolute_error(y_pred, y_true), 
+                              mean_squared_log_error(y_pred, y_true),
+                              args.windowOperation, args.mergeOperation,
+                              args.model, args.equalizeProteins,
+                              args.normalizeProteins, args.conversion,
+                              args.chrom, args.chroms, args.loss ],
+                             index=df.columns )
+    print(df)
+    df = df.sort_values(by=['trainChroms', 'chrom', 'model','conversion', 'window',
+                  'merge', 'ep', 'np'])
+    pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
 
 
 def startTraining(args):
     if args.model == "rf":
+        if args.grid == 1:
+            param_grid = {
+                'max_features': [ 'sqrt'],
+                'min_samples_leaf': [2, 4, 6, 8],
+                'min_samples_split': [2,4,6, 8],
+                'n_estimators': [10, 20, 30]
+            }
 
-        model = RandomForestRegressor(random_state=5,n_estimators=args.estimators,
-                                      n_jobs=3, verbose=3)
+            # Create a based model
+            rf = RandomForestRegressor()
+
+            # Instantiate the grid search model
+            grid_search = GridSearchCV(estimator = rf, param_grid = param_grid,
+                                      cv = 3, n_jobs = 4, verbose = 3)
+        else:
+            model = RandomForestRegressor(max_features='sqrt',random_state=5,n_estimators=args.estimators,
+                                      n_jobs=4, verbose=3, criterion=args.loss)
     elif args.model ==  "ada":
         params = {'n_estimators': 500, 'max_depth': 4, 'min_samples_split': 2,
                   'verbose':True,'learning_rate': 0.01, 'loss': 'ls'}
@@ -84,19 +130,73 @@ def startTraining(args):
     df = pickle.load(open(path, "rb" ) )
     # print(df.isnull().values.any())
     df.replace([np.inf, -np.inf], np.nan)
-    print(df.max())
-    print(df)
+    # print(df)
     df = df.fillna(value=0)
     X = df[df.columns.difference(['first', 'second','chrom',
                                   'reads','logTarget','normTarget'])]
     if args.conversion == 'default':
         y = df['reads']
+    elif args.conversion == 'standardLog':
+        y = np.log(df['reads']+1)
     else:
         y = df[args.conversion +'Target']
-    print(type(y[0]))
-    model.fit(X, y)
-    pickle.dump(model, open(tagCreator(args, "model"), "wb" ) )
-    
+    if args.grid:
+            grid_search.fit(X,y)
+
+            print(grid_search.best_params_)
+    else:
+        model.fit(X, y)
+        pickle.dump(model, open(tagCreator(args, "model"), "wb" ) )
+   
+
+def trainAll(args):
+    for me in ["max", "sum","avg"]:
+        args.mergeOperation = me
+        for w in [ "max", "sum" ,"avg"]:
+            args.windowOperation = w
+            for p in ["default", "standardLog"]:
+                args.conversion = p
+                for m in ["rf"]:
+                    args.model = m
+                    for n in [False, True]:
+                        args.normalizeProteins = n
+                        for e in [False, True]:
+                            args.equalizeProteins = e
+                            if  not os.path.isfile(tagCreator(args, "model")):
+                                    startTraining(args)
+
+
+def predictAll(args):
+    df = pickle.load(open(DATA_D+"results.p", "rb" ) )
+    for p in ["default", "standardLog"]:
+        args.conversion = p
+        for w in ["max", "avg", "sum"]:
+            args.windowOperation = w
+            for me in ["max", "avg", "sum"]:
+                args.mergeOperation = me
+                for m in ["rf"]:
+                    args.model = m
+                    for n in [False, True]:
+                        args.normalizeProteins = n
+                        for e in [False, True]:
+                            args.equalizeProteins = e
+                            if  os.path.isfile(tagCreator(args, "model")):
+                                print(tagCreator(args,"model"))
+                                if args.directConversion == 0:
+
+                                    if tagCreator(args,"pred").split("/")[-1] in df.index:
+                                        print("Exists")
+                                    else:
+                                        predict(args)
+
+                                elif  args.directConversion == 1: 
+                                    if not os.path.isfile(tagCreator(args,"pred")):
+                                        predict(args)
+                                    else:
+                                        print("Exists")
+                                else:
+                                    predict(args)
+
 def parseArguments(args=None):
     print(args)
 
@@ -105,8 +205,9 @@ def parseArguments(args=None):
     parserRequired = parser.add_argument_group('Required arguments')
 
     # define the arguments
-    parserRequired.add_argument('--action', '-a', choices=['train',
-         'predict','combine', 'split', 'createAllWindows','plotAll',
+    parserRequired.add_argument('--action', '-a',
+                                choices=['train','allCombs',
+     'predictAll','predict','combine', 'split','trainAll', 'createAllWindows','plotAll',
     'loadProtein','plot','plotPred','createArms', 'loadAllProteins'
                                                            ,  'createWindows' ], help='Action to take', required=True)
 
@@ -118,7 +219,8 @@ def parseArguments(args=None):
     parserOpt.add_argument('--chroms', '-cs',type=str, default="1_2")
     parserOpt.add_argument('--arms', '-ar',type=str, default="AB")
     parserOpt.add_argument('--conversion', '-co',type=str, default="norm")
-    parserOpt.add_argument('--directConversion', '-d',type=bool, default=True)
+    parserOpt.add_argument('--directConversion', '-d',type=int, default=1)
+    parserOpt.add_argument('--grid', '-g',type=int, default=0)
     parserOpt.add_argument('--windowOperation', '-wo',type=str, default="avg")
     parserOpt.add_argument('--equalizeProteins', '-ep',type=bool, default=False)
     parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='max')
@@ -126,6 +228,7 @@ def parseArguments(args=None):
     parserOpt.add_argument('--region', '-re',type=str, default=None)
     parserOpt.add_argument('--log', '-l',type=bool, default=True)
     parserOpt.add_argument('--model', '-m',type=str, default="rf")
+    parserOpt.add_argument('--loss', '-lf',type=str, default="mse")
     parserOpt.add_argument('--regionIndex2', '-r2',type=int, default=None)
     parserOpt.add_argument('--regionIndex1', '-r1',type=int, default=None)
     args = parser.parse_args(args)
@@ -136,8 +239,12 @@ def main(args=None):
     args = parseArguments(args)
     if args.action == "train":
         startTraining(args)
+    elif args.action == "trainAll":
+        trainAll(args)
     elif args.action == "predict":
         predict(args)
+    elif args.action == "predictAll":
+        predictAll(args)
     elif args.action == "split":
         splitDataset2(args)
     elif args.action == "combine":
@@ -150,12 +257,14 @@ def main(args=None):
         createForestDataset(args)
     elif args.action == "createAllWindows":
         createAllWindows(args)
+    elif args.action == "allCombs":
+        createAllCombinations(args)
     elif args.action == "plot":
         plotMatrix(args)
     elif args.action == "plotPred":
         plotPredMatrix(args)
     elif args.action == "plotAll":
-        plotAllOfDir(args)
+        plotDir(args)
     elif args.action == "createArms":
         createAllArms(args)
 
