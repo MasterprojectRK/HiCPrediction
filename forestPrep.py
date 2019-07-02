@@ -6,20 +6,30 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
+from scipy.stats.stats import pearsonr
 from sklearn.metrics import mean_squared_log_error
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import auc
+import matplotlib.pyplot as plt
 
 def predict(args):
-    ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
-    matrix = ma.matrix.todense()
-    maxV = np.max(matrix)
-    df = pickle.load(open( tagCreator(args, "set"), "rb" ) )
+    # ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
+    # matrix = ma.matrix.todense()
+    # maxV = np.max(matrix)
+    tmp = args.chroms
+    args.chroms = args.chrom
+    path =  tagCreator(args, "setC")
+    if not os.path.isfile(path):
+        createCombinedDataset(args)
+    df = pickle.load(open( tagCreator(args, "setC"), "rb" ) )
+    args.chroms = tmp
     model = pickle.load(open( tagCreator(args, "model"), "rb" ) )
     df = df.fillna(value=0)
     test_X = df[df.columns.difference(['first', 'second','chrom','reads', 'logTarget',
                                        'normTarget'])]
     test_y = df['reads']
+    test_y = df['chrom']
     test_y = test_y.to_frame()
     test_y['normTarget'] = df['normTarget']
     test_y['logTarget'] = df['logTarget']
@@ -52,12 +62,11 @@ def predict(args):
 
     test_y = test_y.set_index(['first','second'])
     if args.directConversion == 1:
-        if  not os.path.isfile(tagCreator(args, "pred")):
-            predictionToMatrix(args, test_y) 
+        predictionPreparation(args, test_y) 
     elif args.directConversion == 2:
         pickle.dump(test_y, open(tagCreator(args, "pred"), "wb" ) )
     elif args.directConversion == 0:
-        saveResults(args, test_y['predReads'], test_y['reads'], score)
+        saveResults(args, test_y, score)
 
 def createCombinedDataset(args):
     chroms = [item for item in chromStringToList(args.chroms)]
@@ -76,21 +85,32 @@ def createCombinedDataset(args):
     pickle.dump(data, open(tagCreator(args, "setC"), "wb" ), protocol=4 )
     print(data.shape)
 
-def saveResults(args, y_pred, y_true, score):
-    print(r2_score(y_pred,y_true))
-    print(mean_squared_error(y_pred, y_true))
-    print(mean_absolute_error(y_pred, y_true))
-    print(mean_squared_log_error(y_pred, y_true))
+def plotGraphics(args):
+    plt.plot(indices, values)
+    plt.savefig(tagCreator(args, "plot"))
+
+def saveResults(args, y, score):
+    y_pred = y['predReads']
+    y_true = y['reads']
+    new = y.groupby('distance', group_keys=False)[['reads',
+                                                   'predReads']].corr(method='pearson')
+    new = new.iloc[0::2,-1]
+    values = new.values
+    indices = new.index.tolist()
+    indices = list(map(lambda x: x[0], indices))
+    indices = np.asarray(indices)
+    indices = indices /5000
+    indices = indices /(len(indices)+2)
+
+    aucScore = auc(indices, values)
     df = pickle.load(open(DATA_D+"results.p", "rb" ) )
-    df.loc[tagCreator(args,"pred").split("/")[-1],:]= pd.Series([score,
-                              r2_score(y_pred,y_true),mean_squared_error(y_pred, y_true),
-                              mean_absolute_error(y_pred, y_true), 
-                              mean_squared_log_error(y_pred, y_true),
-                              args.windowOperation, args.mergeOperation,
-                              args.model, args.equalizeProteins,
-                              args.normalizeProteins, args.conversion,
-                              args.chrom, args.chroms, args.loss ],
-                             index=df.columns )
+    cols = [score, r2_score(y_pred,y_true),mean_squared_error(y_pred, y_true),
+            mean_absolute_error(y_pred, y_true), mean_squared_log_error(y_pred, y_true),
+            aucScore, args.windowOperation, args.mergeOperation,
+            args.model, args.equalizeProteins,args.normalizeProteins, args.conversion,
+            args.chrom, args.chroms, args.loss ]
+    cols.extend(values)
+    df.loc[tagCreator(args,"pred").split("/")[-1],:]= pd.Series(cols, index=df.columns )
     print(df)
     df = df.sort_values(by=['trainChroms', 'chrom', 'model','conversion', 'window',
                   'merge', 'ep', 'np'])
@@ -150,52 +170,68 @@ def startTraining(args):
    
 
 def trainAll(args):
-    for me in ["max", "sum","avg"]:
-        args.mergeOperation = me
-        for w in [ "max", "sum" ,"avg"]:
-            args.windowOperation = w
-            for p in ["default", "standardLog"]:
-                args.conversion = p
-                for m in ["rf"]:
-                    args.model = m
-                    for n in [False, True]:
-                        args.normalizeProteins = n
-                        for e in [False, True]:
-                            args.equalizeProteins = e
-                            if  not os.path.isfile(tagCreator(args, "model")):
+    for c in [9,11,14,17,19,"2-4", "5-10"]:
+        args.chroms = str(c)
+        for me in ["avg"]:
+            args.mergeOperation = me
+            for w in ["avg"]:
+                args.windowOperation = w
+                for p in ["default", "standardLog"]:
+                    args.conversion = p
+                    for m in ["rf"]:
+                        args.model = m
+                        for n in [False, True]:
+                            args.normalizeProteins = n
+                            for e in [False, True]:
+                                args.equalizeProteins = e
+                                if  not os.path.isfile(tagCreator(args, "model")):
+                                    print(tagCreator(args, "model"))
                                     startTraining(args)
 
 
 def predictAll(args):
     df = pickle.load(open(DATA_D+"results.p", "rb" ) )
-    for p in ["default", "standardLog"]:
-        args.conversion = p
-        for w in ["max", "avg", "sum"]:
-            args.windowOperation = w
-            for me in ["max", "avg", "sum"]:
-                args.mergeOperation = me
-                for m in ["rf"]:
-                    args.model = m
-                    for n in [False, True]:
-                        args.normalizeProteins = n
-                        for e in [False, True]:
-                            args.equalizeProteins = e
-                            if  os.path.isfile(tagCreator(args, "model")):
-                                print(tagCreator(args,"model"))
-                                if args.directConversion == 0:
+    for cs in [9,11,14,17,19]:
+        args.chroms = str(cs)
+        for c in [9,11,14,17,19]:
+        # for c in [9]:
+            chrom = str(c)
+            args.chrom = chrom
+            for p in ["default", "standardLog"]:
+                args.conversion = p
+                for w in ["avg"]:
+                    args.windowOperation = w
+                    for me in ["avg"]:
+                        args.mergeOperation = me
+                        for m in ["rf"]:
+                            args.model = m
+                            for n in [False, True]:
+                                args.normalizeProteins = n
+                                for e in [False, True]:
+                                    args.equalizeProteins = e
+                                    if  os.path.isfile(tagCreator(args, "model")):
+                                        print(tagCreator(args,"pred"))
+                                        if args.directConversion == 0:
+                                            if tagCreator(args,"pred").split("/")[-1] in df.index:
+                                                print("Exists")
+                                            else:
+                                                predict(args)
 
-                                    if tagCreator(args,"pred").split("/")[-1] in df.index:
-                                        print("Exists")
-                                    else:
-                                        predict(args)
-
-                                elif  args.directConversion == 1: 
-                                    if not os.path.isfile(tagCreator(args,"pred")):
-                                        predict(args)
-                                    else:
-                                        print("Exists")
-                                else:
-                                    predict(args)
+                                        elif  args.directConversion == 1: 
+                                            exists = True
+                                            for suf in ["_A","_B"]:
+                                                args.chrom = chrom + suf
+                                                if not os.path.isfile(tagCreator(args,"pred"))\
+                                                and os.path.isfile(ARM_D +args.chrom+".cool"):
+                                                    exists = False
+                                            
+                                            if exists == False:
+                                                args.chrom = chrom
+                                                predict(args)
+                                            else:
+                                                print("Both exist")
+                                        else:
+                                            predict(args)
 
 def parseArguments(args=None):
     print(args)
@@ -215,7 +251,7 @@ def parseArguments(args=None):
     parserOpt.add_argument('--estimators', '-e',type=int, default=20)
     parserOpt.add_argument('--sourceFile', '-sf',type=str, default="")
     parserOpt.add_argument('--chrom', '-c',type=str, default="4")
-    parserOpt.add_argument('--reach', '-r',type=str, default="99")
+    parserOpt.add_argument('--reach', '-r',type=str, default="200")
     parserOpt.add_argument('--chroms', '-cs',type=str, default="1_2")
     parserOpt.add_argument('--arms', '-ar',type=str, default="AB")
     parserOpt.add_argument('--conversion', '-co',type=str, default="norm")
@@ -223,7 +259,7 @@ def parseArguments(args=None):
     parserOpt.add_argument('--grid', '-g',type=int, default=0)
     parserOpt.add_argument('--windowOperation', '-wo',type=str, default="avg")
     parserOpt.add_argument('--equalizeProteins', '-ep',type=bool, default=False)
-    parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='max')
+    parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='avg')
     parserOpt.add_argument('--normalizeProteins', '-np',type=bool, default=False)
     parserOpt.add_argument('--region', '-re',type=str, default=None)
     parserOpt.add_argument('--log', '-l',type=bool, default=True)

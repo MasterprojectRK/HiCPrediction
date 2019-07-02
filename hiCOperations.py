@@ -26,7 +26,7 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 # global constants
-BIN_D = "20B/"
+BIN_D = "5B/"
 DATA_D = "Data2e/"
 CHROM_D = DATA_D +BIN_D+ "Chroms/"
 ARM_D = DATA_D +BIN_D+ "Arms/"
@@ -34,8 +34,8 @@ SET_D = DATA_D + BIN_D +"Sets/"
 SETC_D = DATA_D + BIN_D +"SetsCombined/"
 PRED_D = DATA_D +BIN_D+ "Predictions/"
 MODEL_D  = DATA_D + BIN_D+"Models/"
-CHUNK_D = DATA_D +BIN_D +"Chunks/"
 IMAGE_D = DATA_D +  "Images/"
+PLOT_D = DATA_D +BIN_D +  "Plots/"
 ORIG_D = DATA_D +  "BaseData/Orig/"
 PROTEIN_D = DATA_D + BIN_D+"Proteins/"
 PROTEINORIG_D = DATA_D +"BaseData/ProteinOrig/"
@@ -50,14 +50,38 @@ def peak_filter(feature, s, e):
         return s <= peak and e >= peak
 
 
-def predictionToMatrix(args, pred=None):
-    if pred is None:
-        pred = pickle.load(open(tagCreator(args, "pred"), "rb" ) )
+def predictionPreparation(args, pred=1):
+    # if pred == 1:
+        # pred = pickle.load(open(tagCreator(args, "pred"), "rb" ) )
+    if len(args.chrom.split("_")) > 1:
+        predictionToMatrix(args, pred)
+    else:
+        print(tagCreator(args, "pred"))
+        c = args.chrom
+        args.chrom = c +"_A"
+        predA = pred.loc[pred['chrom'] == args.chrom]
+        if  os.path.isfile(ARM_D +args.chrom+".cool")\
+            and not os.path.isfile(tagCreator(args,"pred")):
+            predictionToMatrix(args, predA)
+        else: 
+            print("A exists")
+        
+        args.chrom = c +"_B"
+        predB = pred.loc[pred['chrom'] == args.chrom]
+        if  os.path.isfile(ARM_D +args.chrom+".cool")\
+            and not os.path.isfile(tagCreator(args,"pred")):
+            predictionToMatrix(args, predB)
+        else: 
+            print("B exists")
+
+
+
+def predictionToMatrix(args, pred):
+    print("Now Converting:")
     ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
     mat = ma.matrix.todense()
     factor =  np.max(mat)
     new = np.zeros(mat.shape)
-    print(new.shape)
     cuts = ma.cut_intervals
     l = len(cuts)
     for j, cut in enumerate(cuts):
@@ -128,9 +152,9 @@ def divideIntoArms(args):
     ma.save(ARM_D + args.chrom + "_B.cool")
 
 def createAllArms(args):
-    # for i in range(1,13):
-        # args.chrom = str(i)
-        # divideIntoArms(args)
+    for i in range(1,13):
+        args.chrom = str(i)
+        divideIntoArms(args)
     for i in range(16,22):
         args.chrom = str(i)
         divideIntoArms(args)
@@ -189,6 +213,8 @@ def tagCreator(args, mode):
 
     elif mode == "image":
         return IMAGE_D + args.chrom +"_R" + args.region+"_P"+csam + cowmep +".png"
+    elif mode == "plot":
+        return PLOT_D  + args.chrom +"_P"+csam + cowmep +".png"
 
 def createForestDataset(args):
     allProteins = pickle.load(open(tagCreator(args, "protein"), "rb" )).values.tolist()
@@ -198,11 +224,10 @@ def createForestDataset(args):
     reads = ma.todense()
     logs = deepcopy(reads)
     norms = deepcopy(reads)
-    
     maxValue = 25790 
     logs = np.log(logs+1)
     logs /= np.log(maxValue)
-    norms /= maxValue
+    norms =norms /  maxValue
     print(ma.shape)
     print(rows,colNr)
     cols = ['first', 'second','chrom'] + list(range(3*
@@ -251,9 +276,9 @@ def createForestDataset(args):
 
 
 def createAllCombinations(args):
-    for w in ["max", "avg", "sum"]:
+    for w in ["avg"]:
         args.windowOperation = w
-        for m in ["max", "avg", "sum"]:
+        for m in ["avg"]:
             args.mergeOperation = m
             for n in [False, True]:
                 args.normalizeProteins = n
@@ -264,14 +289,21 @@ def createAllCombinations(args):
 
 
 def createAllWindows(args):
+    i = 0
     for f in os.listdir(ARM_D):
         args.chrom = f.split(".")[0]
-        createForestDataset(args)
+        if  os.path.isfile(tagCreator(args, "protein")):
+            i += 1
+            print(i)
+            if  not os.path.isfile(tagCreator(args, "set")):
+                createForestDataset(args)
 
 def loadAllProteins(args):
     for f in os.listdir(ARM_D):
         args.chrom = f.split(".")[0]
-        loadProtein(args)
+        c = int(f.split("_")[0])
+        if  not os.path.isfile(tagCreator(args, "protein")):
+            loadProtein(args)
 
 def score(feature):
     return feature.score
@@ -293,7 +325,8 @@ def loadProtein(args):
         a = pybedtools.BedTool(path)
         b = a.to_dataframe()
         c = b.iloc[:,6]
-        maxV = max(c)
+        minV = min(c)
+        maxV = max(c) - minV
         if maxV == 0:
             maxV = 1
         a = a.filter(chrom_filter, c='chr'+fullChrom)
@@ -304,7 +337,7 @@ def loadProtein(args):
             print('\r', end='') # use '\r' to go back
             tmp = a.filter(peak_filter, cut[1], cut[2])
             if args.normalizeProteins:
-                tmp = [float(x[6])/maxV for x in tmp]
+                tmp = [(float(x[6]) -minV) / maxV for x in tmp]
             else:
                 tmp = [float(x[6]) for x in tmp]
             if len(tmp) == 0:
@@ -347,6 +380,8 @@ def plotPredMatrix(args):
         a.extend(["--region", args.region])
 
     a.extend( ["-out",tagCreator(args, "image")])
+    print(a)
+    args.region = None
     hicPlot.main(a)
 
 def plotMatrix(args):
@@ -372,25 +407,30 @@ def plotMatrix(args):
 
 
 def plotDir(args):
-    for p in ["default", "standardLog", 'log','norm']:
-        args.conversion = p
-        for w in ["max", "avg", "sum"]:
-            args.windowOperation = w
-            for me in ["max", "avg", "sum"]:
-                args.mergeOperation = me
-                for m in ["rf"]:
-                    args.model = m
-                    for n in [False, True]:
-                        args.normalizeProteins = n
-                        for n in [False, True]:
-                            args.equalizeProteins = n
-                            if  os.path.isfile(tagCreator(args, "pred")):
-                                print(tagCreator(args, "pred"))
-                                args.regionIndex1 = 401
-                                args.regionIndex2 = 600
-                                plotPredMatrix(args)
-                            else:
-                                print(tagCreator(args, "pred"))
+    args.regionIndex1 = 201
+    args.regionIndex2 = 400
+    for cs in [9,11,14,17,19]:
+        args.chroms = str(cs)
+        for c in ["9_A","9_B","11_A", "11_B","14_A", "14_B","17_A",
+                  "17_B","19_A", "19_B"]:
+            args.chrom = str(c)
+            for p in ["default", "standardLog"]:
+                args.conversion = p
+                for w in ["avg"]:
+                    args.windowOperation = w
+                    for me in ["avg"]:
+                        args.mergeOperation = me
+                        for m in ["rf"]:
+                            args.model = m
+                            for n in [False, True]:
+                                args.normalizeProteins = n
+                                for n in [False, True]:
+                                    args.equalizeProteins = n
+                                    if os.path.isfile(tagCreator(args,"pred")):
+                                        print(tagCreator(args, "pred"))
+                                        plotPredMatrix(args)
+                                    else:
+                                        print(tagCreator(args, "pred"))
 
 
 
@@ -405,15 +445,21 @@ if __name__ == "__main__":
             # n = f.split(key)[0]
             # m = f.split(key)[1]
             # os.rename(d+f, d+n+"rf_mse_n"+m)
-    # df = pd.DataFrame(columns=['name','modelScore','r2 score',
-                               # 'MSE','MAE','MSLE', 'window', 'merge',
-                               # 'model', 'ep', 'np', 'conversion', 'chrom',
-                               # 'trainChroms'])
+    cols = ['name','modelScore','r2 score','MSE','MAE','MSLE','AUC', 'window', 'merge',
+            'model', 'ep', 'np', 'conversion', 'chrom','trainChroms',
+            'loss']
+    cols.extend(np.array(list(range(2,201)))/200)
+    print(cols)
+    df = pd.DataFrame(columns=cols)
+    print(df)
+    df = df.set_index(['name'])
+    pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
+    # df = pd.DataFrame(columns=['name',np.array(list(range(2,200)))/200])
     # df = df.set_index(['name'])
-    # pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
+    # pickle.dump(df, open(DATA_D+"correlations.p", "wb" ) )
 
-    df = pickle.load(open(DATA_D+"results.p", "rb" ) )
+    # df = pickle.load(open(DATA_D+"results.p", "rb" ) )
     # df['lossFunction'] ="mse"
     # df = df.set_index(['name'])
     # pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
-    print(df[:40])
+    # print(df[:40])
