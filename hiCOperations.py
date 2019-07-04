@@ -27,6 +27,7 @@ np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 # global constants
 BIN_D = "5B/"
+binSize = 5000
 DATA_D = "Data2e/"
 CHROM_D = DATA_D +BIN_D+ "Chroms/"
 ARM_D = DATA_D +BIN_D+ "Arms/"
@@ -90,7 +91,12 @@ def predictionToMatrix(args, pred):
         print('\r', end='') # use '\r' to go back
         sys.stdout.flush()
 
-        for i in range(2,maxV):
+        for i in range(0,maxV):
+            # print(i)
+            # print(j)
+            # print(cut)
+            # print(cuts[j+i])
+            # print(pred[:2])
             val = pred.loc[(cut[1], cuts[j+i][1])]['pred']
             if args.conversion == "norm":
                 val= val  * factor
@@ -114,7 +120,7 @@ def divideIntoArms(args):
         elems = x.split("\t")
         if elems[1] == "chr"+args.chrom:
             print(elems)
-            break
+            continue
     start = int(elems[2])
     end = int(elems[3])
     cuts = ma.cut_intervals
@@ -219,12 +225,14 @@ def tagCreator(args, mode):
 def createForestDataset(args):
     allProteins = pickle.load(open(tagCreator(args, "protein"), "rb" )).values.tolist()
     colNr = np.shape(allProteins)[1]
+    zeroProteins = np.zeros(colNr -1)
     rows = np.shape(allProteins)[0]
     ma = hm.hiCMatrix(ARM_D+args.chrom+".cool").matrix
+    ma2 = hm.hiCMatrix(CHROM_D+args.chrom.split("_")[0]+".cool").matrix
     reads = ma.todense()
     logs = deepcopy(reads)
     norms = deepcopy(reads)
-    maxValue = 25790 
+    maxValue = np.max(ma2.todense()) 
     logs = np.log(logs+1)
     logs /= np.log(maxValue)
     norms =norms /  maxValue
@@ -233,42 +241,25 @@ def createForestDataset(args):
     cols = ['first', 'second','chrom'] + list(range(3*
          (colNr-1)))+['distance','reads','logTarget','normTarget']
     window = []
+    if args.windowOperation == 'avg':
+        convertF = np.mean
+    elif args.windowOperation == 'sum':
+        convertF = np.sum
+    elif args.windowOperation == 'max':
+        convertF = np.max
     for j in range(rows):
         maxReach = min(int(args.reach)+1,rows-j)
-        ownProteins = allProteins[j][1:]
         firstStart = allProteins[j][0]
-        for  i in range(2,maxReach):
-            secondStart = allProteins[j+i][0]
-            distance = secondStart - firstStart
-            secondProteins = allProteins[j+i][1:]
+        for  i in range(0,maxReach):
             if j+1 >= j+i:
-                middleProteins = np.zeros(colNr -1)
+                middleProteins = zeroProteins
             else:
-                middleProteins = allProteins[j+1:j+i]
-                if args.windowOperation == 'avg':
-                    middleProteins = np.mean(middleProteins, axis=0)[1:]
-                elif args.windowOperation == 'sum':
-                    middleProteins = np.sum(middleProteins, axis=0)[1:]
-                elif args.windowOperation == 'max':
-                    middleProteins = np.max(middleProteins, axis=0)[1:]
-
-            frame = [firstStart, secondStart,args.chrom]
-            if args.equalizeProteins:
-                for l in range(len(ownProteins)):
-                    if ownProteins[l] == 0:
-                        secondProteins[l] = 0
-                    elif secondProteins[l] == 0:
-                        ownProteins[l] = 0
-            frame.extend(ownProteins)
+                middleProteins = convertF(allProteins[j+1:j+i], axis=0)[1:]
+            frame = [firstStart, allProteins[j+i][0],args.chrom]
+            frame.extend(allProteins[j][1:])
             frame.extend(middleProteins)
-            frame.extend(secondProteins)
-            frame.append(distance)
-            valR = reads[j,j+i]
-            valL = logs[j,j+i]
-            valN = norms[j,j+i]
-            frame.append(valR)
-            frame.append(valL)
-            frame.append(valN)
+            frame.extend(allProteins[j+i][1:])
+            frame.extend([i*binSize, reads[j,j+i],logs[j,j+i],norms[j,j+i]])
             window.append(frame)
     data = pd.DataFrame(window,columns =cols)
     print(data.shape)
@@ -280,21 +271,21 @@ def createAllCombinations(args):
         args.windowOperation = w
         for m in ["avg"]:
             args.mergeOperation = m
-            for n in [False, True]:
+            for n in [False]:
                 args.normalizeProteins = n
-                for e in [False, True]:
+                for e in [False]:
                     args.equalizeProteins = e
-                    if  not os.path.isfile(tagCreator(args, "set")):
-                        createAllWindows(args)
+                    createAllWindows(args)
 
 
 def createAllWindows(args):
-    i = 0
+    i = 1
     for f in os.listdir(ARM_D):
         args.chrom = f.split(".")[0]
         if  os.path.isfile(tagCreator(args, "protein")):
-            i += 1
-            print(i)
+            # if int(args.chrom.split("_")[0]) < 22:
+                # continue
+            print(args.chrom)
             if  not os.path.isfile(tagCreator(args, "set")):
                 createForestDataset(args)
 
@@ -385,30 +376,31 @@ def plotPredMatrix(args):
     hicPlot.main(a)
 
 def plotMatrix(args):
-    name = args.sourceFile.split(".")[0].split("/")[-1]
-    a = ["--matrix",args.sourceFile,
-            "--dpi", "300"]
-    if args.log:
-        a.extend(["--log1p", "--vMin" ,"1","--vMax" ,"1000"])
-    else:
-        a.extend(["--vMax" ,"1","--vMin" ,"0"])
-    if args.region:
-        a.extend(["--region", args.region])
-        name = name + "_r"+args.region
-    elif args.regionIndex1 and args.regionIndex2:
-        ma = hm.hiCMatrix(args.sourceFile)
-        cuts = ma.cut_intervals
-        region = args.chrom +":"+str(cuts[args.regionIndex1][1])+"-"+ str(cuts[args.regionIndex2][1])
-        a.extend(["--region", region])
-        name = name + "_R"+region
+    # for i in range(10):
+        # args.regionIndex1 = i*200 + 1
+        # args.regionIndex1 = (i+1)*200
+        name = args.sourceFile.split(".")[0].split("/")[-1]
+        a = ["--matrix",args.sourceFile,
+                "--dpi", "300"]
+        if args.log:
+            a.extend(["--log1p", "--vMin" ,"1","--vMax" ,"1000"])
+        else:
+            a.extend(["--vMax" ,"1","--vMin" ,"0"])
+        if args.region:
+            a.extend(["--region", args.region])
+            name = name + "_r"+args.region
+        elif args.regionIndex1 and args.regionIndex2:
+            ma = hm.hiCMatrix(args.sourceFile)
+            cuts = ma.cut_intervals
+            region = args.chrom +":"+str(cuts[args.regionIndex1][1])+"-"+ str(cuts[args.regionIndex2][1])
+            a.extend(["--region", region])
+            name = name + "_R"+region
 
-    a.extend( ["-out", IMAGE_D+name+".png"])
-    hicPlot.main(a)
+        a.extend( ["-out", IMAGE_D+name+".png"])
+        hicPlot.main(a)
 
 
 def plotDir(args):
-    args.regionIndex1 = 201
-    args.regionIndex2 = 400
     for cs in [9,11,14,17,19]:
         args.chroms = str(cs)
         for c in ["9_A","9_B","11_A", "11_B","14_A", "14_B","17_A",
@@ -428,9 +420,10 @@ def plotDir(args):
                                     args.equalizeProteins = n
                                     if os.path.isfile(tagCreator(args,"pred")):
                                         print(tagCreator(args, "pred"))
-                                        plotPredMatrix(args)
-                                    else:
-                                        print(tagCreator(args, "pred"))
+                                        for i in range(10):
+                                            args.regionIndex1 = i*200 + 1
+                                            args.regionIndex2 = (i+1)*200
+                                            plotPredMatrix(args)
 
 
 
@@ -447,13 +440,18 @@ if __name__ == "__main__":
             # os.rename(d+f, d+n+"rf_mse_n"+m)
     cols = ['name','modelScore','r2 score','MSE','MAE','MSLE','AUC', 'window', 'merge',
             'model', 'ep', 'np', 'conversion', 'chrom','trainChroms',
-            'loss']
-    cols.extend(np.array(list(range(2,201)))/200)
-    print(cols)
+            'loss', 'estimators']
+    cols.extend(np.array(list(range(0,201)))/200)
+    # print(cols)
     df = pd.DataFrame(columns=cols)
-    print(df)
+    # print(df)
     df = df.set_index(['name'])
     pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
+    
+    # df = pickle.load(open(DATA_D+"results.p", "rb" ) )
+    # print(len(df))
+    # df = df[~df.chrom.str.contains("B")]
+    # print(len(df))
     # df = pd.DataFrame(columns=['name',np.array(list(range(2,200)))/200])
     # df = df.set_index(['name'])
     # pickle.dump(df, open(DATA_D+"correlations.p", "wb" ) )

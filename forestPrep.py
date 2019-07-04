@@ -17,6 +17,7 @@ def predict(args):
     # ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
     # matrix = ma.matrix.todense()
     # maxV = np.max(matrix)
+    maxV =25790
     tmp = args.chroms
     args.chroms = args.chrom
     path =  tagCreator(args, "setC")
@@ -66,11 +67,13 @@ def predict(args):
     elif args.directConversion == 2:
         pickle.dump(test_y, open(tagCreator(args, "pred"), "wb" ) )
     elif args.directConversion == 0:
+
         saveResults(args, test_y, score)
 
 def createCombinedDataset(args):
     chroms = [item for item in chromStringToList(args.chroms)]
     data = pd.DataFrame() 
+    tmp = args.chrom
     for f in chroms:
         print(f)
         if  "A" in args.arms:
@@ -82,8 +85,9 @@ def createCombinedDataset(args):
             if  os.path.isfile(tagCreator(args, "set")):
                 df = pickle.load(open(tagCreator(args, "set"), "rb" ) )
                 data = data.append(df)
-    pickle.dump(data, open(tagCreator(args, "setC"), "wb" ), protocol=4 )
+    args.chrom = tmp
     print(data.shape)
+    pickle.dump(data, open(tagCreator(args, "setC"), "wb" ), protocol=4 )
 
 def plotGraphics(args):
     plt.plot(indices, values)
@@ -108,7 +112,7 @@ def saveResults(args, y, score):
             mean_absolute_error(y_pred, y_true), mean_squared_log_error(y_pred, y_true),
             aucScore, args.windowOperation, args.mergeOperation,
             args.model, args.equalizeProteins,args.normalizeProteins, args.conversion,
-            args.chrom, args.chroms, args.loss ]
+            args.chrom, args.chroms, args.loss , args.estimators]
     cols.extend(values)
     df.loc[tagCreator(args,"pred").split("/")[-1],:]= pd.Series(cols, index=df.columns )
     print(df)
@@ -170,19 +174,21 @@ def startTraining(args):
    
 
 def trainAll(args):
-    for c in [9,11,14,17,19,"2-4", "5-10"]:
-        args.chroms = str(c)
+    for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
+               "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
+    # for cs in [9,11,14,17,19,"2-4", "5-10"]:
+        args.chroms = str(cs)
         for me in ["avg"]:
             args.mergeOperation = me
             for w in ["avg"]:
                 args.windowOperation = w
-                for p in ["default", "standardLog"]:
+                for p in ["default", "log", "standardLog"]:
                     args.conversion = p
                     for m in ["rf"]:
                         args.model = m
-                        for n in [False, True]:
+                        for n in [ False]:
                             args.normalizeProteins = n
-                            for e in [False, True]:
+                            for e in [False]:
                                 args.equalizeProteins = e
                                 if  not os.path.isfile(tagCreator(args, "model")):
                                     print(tagCreator(args, "model"))
@@ -191,47 +197,58 @@ def trainAll(args):
 
 def predictAll(args):
     df = pickle.load(open(DATA_D+"results.p", "rb" ) )
-    for cs in [9,11,14,17,19]:
+    # for cs in [14]:
+    for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
+               "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
         args.chroms = str(cs)
-        for c in [9,11,14,17,19]:
-        # for c in [9]:
-            chrom = str(c)
-            args.chrom = chrom
-            for p in ["default", "standardLog"]:
-                args.conversion = p
+        # for c in range(1,7):
+        for c in [9,11,14,17,19,1,2,3,4]:
+        # for c in range(3,23):
+                args.chrom = str(c)
                 for w in ["avg"]:
                     args.windowOperation = w
                     for me in ["avg"]:
                         args.mergeOperation = me
                         for m in ["rf"]:
                             args.model = m
-                            for n in [False, True]:
-                                args.normalizeProteins = n
-                                for e in [False, True]:
-                                    args.equalizeProteins = e
-                                    if  os.path.isfile(tagCreator(args, "model")):
-                                        print(tagCreator(args,"pred"))
-                                        if args.directConversion == 0:
-                                            if tagCreator(args,"pred").split("/")[-1] in df.index:
-                                                print("Exists")
+                            for p in ["log","default", "standardLog"]:
+                                args.conversion = p
+                                for n in [False]:
+                                    args.normalizeProteins = n
+                                    for e in [False]:
+                                        args.equalizeProteins = e
+                                        if  os.path.isfile(tagCreator(args,
+                                                                         "model")):
+                                            print(tagCreator(args,"pred"))
+                                            if args.directConversion == 0:
+                                                if tagCreator(args,"pred").split("/")[-1] in df.index:
+                                                    print("Exists")
+                                                else:
+                                                    predict(args)
+
+                                            elif  args.directConversion == 1: 
+                                                exists = True
+
+                                                for suf in ["_A", "_B"]:
+                                                    args.chrom = str(c) + suf
+                                                    if os.path.isfile(ARM_D +args.chrom+".cool"):
+                                                        if not os.path.isfile(tagCreator(args,"pred")):
+                                                            exists = False
+                                                args.chrom = str(c)
+                                                if exists == False:
+                                                    print(args.chrom)
+                                                    predict(args)
+                                                else:
+                                                    print("Both exist")
                                             else:
                                                 predict(args)
 
-                                        elif  args.directConversion == 1: 
-                                            exists = True
-                                            for suf in ["_A","_B"]:
-                                                args.chrom = chrom + suf
-                                                if not os.path.isfile(tagCreator(args,"pred"))\
-                                                and os.path.isfile(ARM_D +args.chrom+".cool"):
-                                                    exists = False
-                                            
-                                            if exists == False:
-                                                args.chrom = chrom
-                                                predict(args)
-                                            else:
-                                                print("Both exist")
-                                        else:
-                                            predict(args)
+def checkIfAlMetricsExist(args, key):
+    if  not os.path.isfile(tagCreator(args, key)):
+        return False
+    return True
+            
+
 
 def parseArguments(args=None):
     print(args)
@@ -244,17 +261,17 @@ def parseArguments(args=None):
     parserRequired.add_argument('--action', '-a',
                                 choices=['train','allCombs',
      'predictAll','predict','combine', 'split','trainAll', 'createAllWindows','plotAll',
-    'loadProtein','plot','plotPred','createArms', 'loadAllProteins'
-                                                           ,  'createWindows' ], help='Action to take', required=True)
+    'loadProtein','plot','plotPred','createArms','loadAllProteins','trainPredictAll',
+    'createWindows' ], help='Action to take', required=True)
 
     parserOpt = parser.add_argument_group('Optional arguments')
-    parserOpt.add_argument('--estimators', '-e',type=int, default=20)
+    parserOpt.add_argument('--estimators', '-e',type=int, default=10)
     parserOpt.add_argument('--sourceFile', '-sf',type=str, default="")
     parserOpt.add_argument('--chrom', '-c',type=str, default="4")
     parserOpt.add_argument('--reach', '-r',type=str, default="200")
     parserOpt.add_argument('--chroms', '-cs',type=str, default="1_2")
     parserOpt.add_argument('--arms', '-ar',type=str, default="AB")
-    parserOpt.add_argument('--conversion', '-co',type=str, default="norm")
+    parserOpt.add_argument('--conversion', '-co',type=str, default="default")
     parserOpt.add_argument('--directConversion', '-d',type=int, default=1)
     parserOpt.add_argument('--grid', '-g',type=int, default=0)
     parserOpt.add_argument('--windowOperation', '-wo',type=str, default="avg")
@@ -281,6 +298,12 @@ def main(args=None):
         predict(args)
     elif args.action == "predictAll":
         predictAll(args)
+    elif args.action == "trainPredictAll":
+        trainAll(args)
+        args.directConversion = 0
+        predictAll(args)
+        # args.directConversion = 1
+        # predictAll(args)
     elif args.action == "split":
         splitDataset2(args)
     elif args.action == "combine":
