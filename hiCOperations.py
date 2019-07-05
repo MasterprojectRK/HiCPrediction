@@ -29,6 +29,7 @@ np.set_printoptions(precision=3, suppress=True)
 BIN_D = "5B/"
 binSize = 5000
 DATA_D = "Data2e/"
+RESULT_D = "Data2e/Results/"
 CHROM_D = DATA_D +BIN_D+ "Chroms/"
 ARM_D = DATA_D +BIN_D+ "Arms/"
 SET_D = DATA_D + BIN_D +"Sets/"
