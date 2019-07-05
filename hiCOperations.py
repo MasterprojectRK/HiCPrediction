@@ -29,6 +29,7 @@ np.set_printoptions(precision=3, suppress=True)
 BIN_D = "5B/"
 binSize = 5000
 DATA_D = "Data2e/"
+RESULT_D = "Data2e/Results/"
 CHROM_D = DATA_D +BIN_D+ "Chroms/"
 ARM_D = DATA_D +BIN_D+ "Arms/"
 SET_D = DATA_D + BIN_D +"Sets/"
@@ -431,7 +432,7 @@ def plotDir(args):
 
 
 if __name__ == "__main__":
-    # d = PRED_D
+    d = PRED_D
     # key = "rf_n"
     # for f in os.listdir(d):
         # if len(f.split(key))>1:
@@ -442,11 +443,11 @@ if __name__ == "__main__":
             'model', 'ep', 'np', 'conversion', 'chrom','trainChroms',
             'loss', 'estimators']
     cols.extend(np.array(list(range(0,201)))/200)
-    # print(cols)
+    # # print(cols)
     df = pd.DataFrame(columns=cols)
-    # print(df)
+    # # print(df)
     df = df.set_index(['name'])
-    pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
+    pickle.dump(df, open(DATA_D+"results2.p", "wb" ) )
     
     # df = pickle.load(open(DATA_D+"results.p", "rb" ) )
     # print(len(df))

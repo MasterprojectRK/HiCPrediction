@@ -13,6 +13,10 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import auc
 import matplotlib.pyplot as plt
 
+START = 14
+END = 23
+resultName = "results"+str(START)+"_"+str(END)+".p"
+
 def predict(args):
     # ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
     # matrix = ma.matrix.todense()
@@ -107,18 +111,18 @@ def saveResults(args, y, score):
     indices = indices /(len(indices)+2)
 
     aucScore = auc(indices, values)
-    df = pickle.load(open(DATA_D+"results.p", "rb" ) )
+    df = pickle.load(open(RESULT_D+resultName, "rb" ) )
     cols = [score, r2_score(y_pred,y_true),mean_squared_error(y_pred, y_true),
             mean_absolute_error(y_pred, y_true), mean_squared_log_error(y_pred, y_true),
             aucScore, args.windowOperation, args.mergeOperation,
             args.model, args.equalizeProteins,args.normalizeProteins, args.conversion,
             args.chrom, args.chroms, args.loss , args.estimators]
+    print(cols)
     cols.extend(values)
     df.loc[tagCreator(args,"pred").split("/")[-1],:]= pd.Series(cols, index=df.columns )
-    print(df)
     df = df.sort_values(by=['trainChroms', 'chrom', 'model','conversion', 'window',
                   'merge', 'ep', 'np'])
-    pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
+    pickle.dump(df, open(RESULT_D+resultName, "wb" ) )
 
 
 def startTraining(args):
@@ -174,9 +178,14 @@ def startTraining(args):
    
 
 def trainAll(args):
-    for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
-               "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
-    # for cs in [9,11,14,17,19,"2-4", "5-10"]:
+    # for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
+               # "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
+    tcs = list(range(1,23))
+    tcs.remove(11)
+    tcs.remove(17)
+    tcs.remove(19)
+    tcs.extend(["9_11_14","10_11_12","1_2","1_3", "2_3_4", "1_3_5"])
+    for cs in tcs:
         args.chroms = str(cs)
         for me in ["avg"]:
             args.mergeOperation = me
@@ -196,14 +205,17 @@ def trainAll(args):
 
 
 def predictAll(args):
-    df = pickle.load(open(DATA_D+"results.p", "rb" ) )
+    df = pickle.load(open(RESULT_D+"results.p", "rb" ) )
     # for cs in [14]:
-    for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
-               "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
+    tcs = list(range(1,23))
+    tcs.extend(["11_14","9_11","9_14","17_19","9_11_14","10_11_12","1_2","1_3", "2_3_4", "1_3_5"])
+    # for cs in [11,17,19, 9,14,1,2,"11_14","9_11","9_14","17_19"]:
+    for cs in tcs:
         args.chroms = str(cs)
         # for c in range(1,7):
-        for c in [9,11,14,17,19,1,2,3,4]:
-        # for c in range(3,23):
+        # for c in [9,11,14,17,19,1,2,3,4]:
+        # for c in range(1,23):
+        for c in range(START,END):
                 args.chrom = str(c)
                 for w in ["avg"]:
                     args.windowOperation = w
