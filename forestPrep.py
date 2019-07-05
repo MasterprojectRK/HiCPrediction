@@ -174,8 +174,7 @@ def startTraining(args):
    
 
 def trainAll(args):
-    for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
-               "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
+    for cs in range(1,23):
     # for cs in [9,11,14,17,19,"2-4", "5-10"]:
         args.chroms = str(cs)
         for me in ["avg"]:
@@ -198,13 +197,13 @@ def trainAll(args):
 def predictAll(args):
     df = pickle.load(open(DATA_D+"results.p", "rb" ) )
     # for cs in [14]:
-    for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
-               "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
-        args.chroms = str(cs)
-        # for c in range(1,7):
-        for c in [9,11,14,17,19,1,2,3,4]:
+    for c in range(1,7):
+    # for c in [9,11,14,17,19,1,2,3,4]:
         # for c in range(3,23):
-                args.chrom = str(c)
+        args.chrom = str(c)
+        for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
+               "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
+                args.chroms = str(cs)
                 for w in ["avg"]:
                     args.windowOperation = w
                     for me in ["avg"]:

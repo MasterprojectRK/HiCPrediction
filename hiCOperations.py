@@ -431,33 +431,10 @@ def plotDir(args):
 
 
 if __name__ == "__main__":
-    # d = PRED_D
+    d = PRED_D
     # key = "rf_n"
     # for f in os.listdir(d):
         # if len(f.split(key))>1:
             # n = f.split(key)[0]
             # m = f.split(key)[1]
             # os.rename(d+f, d+n+"rf_mse_n"+m)
-    cols = ['name','modelScore','r2 score','MSE','MAE','MSLE','AUC', 'window', 'merge',
-            'model', 'ep', 'np', 'conversion', 'chrom','trainChroms',
-            'loss', 'estimators']
-    cols.extend(np.array(list(range(0,201)))/200)
-    # print(cols)
-    df = pd.DataFrame(columns=cols)
-    # print(df)
-    df = df.set_index(['name'])
-    pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
-    
-    # df = pickle.load(open(DATA_D+"results.p", "rb" ) )
-    # print(len(df))
-    # df = df[~df.chrom.str.contains("B")]
-    # print(len(df))
-    # df = pd.DataFrame(columns=['name',np.array(list(range(2,200)))/200])
-    # df = df.set_index(['name'])
-    # pickle.dump(df, open(DATA_D+"correlations.p", "wb" ) )
-
-    # df = pickle.load(open(DATA_D+"results.p", "rb" ) )
-    # df['lossFunction'] ="mse"
-    # df = df.set_index(['name'])
-    # pickle.dump(df, open(DATA_D+"results.p", "wb" ) )
-    # print(df[:40])
