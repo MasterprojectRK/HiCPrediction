@@ -22,23 +22,30 @@ def filter():
     c = "19"
     # df = df[df['chrom'] == c]
     # d1 = df[~df['trainChroms'].str.contains(c)]
+    # df = pickle.load(open(RESULT_D+name, "rb" ) )
+    # d = df[df.conversion != "log"]
+    # pickle.dump(d, open(RESULT_D+name, "wb" ) )
 
 def heatMap(name, mode=0):
     html = ""
     mode = 0
     
     if mode == 0:
-        corr = pd.DataFrame(columns=range(1,23))
         n = 22
         title = "All"
     elif mode == 1:
-        corr = pd.DataFrame(columns=[9,11,14,17,19])
+        customChroms =[9,11,14,17,19]
         n = 5
         title = "Replication"
     html += "<h1>"+title+"</h1>"
     df = pickle.load(open(RESULT_D+name, "rb" ) )
     df['chrom'] = pd.to_numeric(df['chrom'])
+    print(df)
     for co in ['default', 'log','standardLog']:
+        if mode == 0:
+            corr = pd.DataFrame(columns=range(1,23))
+        elif mode == 1:
+            corr = pd.DataFrame(columns=customChroms)
         html += "<h2>"+co+"</h2>"
         d = df[df.conversion == co]
         # print(d1['trainChroms'].head(50))
@@ -51,7 +58,7 @@ def heatMap(name, mode=0):
             for i, e in d1.iterrows():
                 x = e.trainChroms.split("_")
                 if mode == 1 and ( len(x) > 1 or int(x[0]) not in
-                                [9,11,14,17,19]):
+                                customChroms):
                     continue
                 if e.trainChroms not in corr.index:
                     corr.loc[e.trainChroms] = np.zeros(n)
@@ -62,18 +69,14 @@ def heatMap(name, mode=0):
         file.write(html)
 
 def plots(name):
-    html = ""
-    mode = 1
     n = 10
-    title = 'Plots'
-    html += "<h1>"+title+"</h1>"
     df = pickle.load(open(RESULT_D+name, "rb" ) )
     df = df.sort_values(by=['trainChroms', 'chrom', 'conversion'])
     ax = plt.gca()
     fig, axes = plt.subplots(nrows=n, ncols=n, sharex=True, sharey=True)
-    trainList = df.trainChroms.unique()[:n]
-    tcs = sorted(trainList, key=lambda x: int(x.split('_')[0]))
-    cs = sorted(df.chrom.unique()[:n], key=lambda x: int(x.split('_')[0]))
+    trainList = df.trainChroms.unique()
+    tcs = sorted(trainList, key=lambda x: int(x.split('_')[0]))[:n]
+    cs = sorted(df.chrom.unique(), key=lambda x: int(x.split('_')[0]))[:n]
     for i, row in enumerate(axes):
         for j, cell in enumerate(row):
             if i == len(axes) - 1:
@@ -83,7 +86,6 @@ def plots(name):
                 cell.set_ylabel("{0:s}".format(t))
             d1 = df[df.chrom == cs[j]][df.trainChroms == tcs[i]].iloc[:,16:]
             if len(d1) > 0:
-                print(d1)
                 ax =axes[i,j]
                 d1 =d1.T
                 d1.plot(ax=ax, legend=False,ylim=(0, 1),xlim=(0, 1))
@@ -93,11 +95,10 @@ def plots(name):
     plt.ylabel("Train Chroms")
     plt.show()
 
+
+
+
 if __name__ == "__main__":
     name = "baseResults.p"
-    df = pickle.load(open(RESULT_D+name, "rb" ) )
-    d = df[df.conversion != "log"]
-    pickle.dump(d, open(RESULT_D+name, "wb" ) )
-    print(d)
-    # heatMap(name , 1)
-    # plots(name)
+    heatMap(name , 0)
+    plots(name)
