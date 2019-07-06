@@ -1,50 +1,38 @@
 from hiCOperations import *
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.neural_network import MLPRegressor
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_squared_error
-from scipy.stats.stats import pearsonr
-from sklearn.metrics import mean_squared_log_error
-from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import auc
-import matplotlib.pyplot as plt
 
-START = 14
+START = 1
 END = 23
-resultName = "results"+str(START)+"_"+str(END)+".p"
+resultName = "part_"+str(START)+"_"+str(END)+".p"
 
-def predict(args):
-    # ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
-    # matrix = ma.matrix.todense()
-    # maxV = np.max(matrix)
-    maxV =25790
+def predict(args, model = None, setC = None):
+    if model == None:
+        model = pickle.load(open( tagCreator(args, "model"), "rb" ) )
+    if args.conversion == "log" or args.conversion == "norm":
+        ma = hm.hiCMatrix(CHROM_D +args.chrom+".cool")
+        matrix = ma.matrix.todense()
+        maxV = np.max(matrix)
     tmp = args.chroms
     args.chroms = args.chrom
     path =  tagCreator(args, "setC")
     if not os.path.isfile(path):
         createCombinedDataset(args)
-    df = pickle.load(open( tagCreator(args, "setC"), "rb" ) )
+    setC = pickle.load(open( tagCreator(args, "setC"), "rb" ) )
     args.chroms = tmp
-    model = pickle.load(open( tagCreator(args, "model"), "rb" ) )
-    df = df.fillna(value=0)
-    test_X = df[df.columns.difference(['first', 'second','chrom','reads', 'logTarget',
+    setC = setC.fillna(value=0)
+    test_X = setC[setC.columns.difference(['first', 'second','chrom','reads', 'logTarget',
                                        'normTarget'])]
-    test_y = df['reads']
-    test_y = df['chrom']
+    test_y = setC['reads']
+    test_y = setC['chrom']
     test_y = test_y.to_frame()
-    test_y['normTarget'] = df['normTarget']
-    test_y['logTarget'] = df['logTarget']
-    test_y['standardLog'] = np.log(df['reads']+1)
+    test_y['normTarget'] = setC['normTarget']
+    test_y['logTarget'] = setC['logTarget']
+    test_y['standardLog'] = np.log(setC['reads']+1)
     y_pred = model.predict(test_X)
     test_y['pred'] = y_pred
     y_pred = np.absolute(y_pred)
-    test_y['second'] = df['second']
-    test_y['first'] = df['first']
-    test_y['distance'] = df['distance']
+    test_y['second'] = setC['second']
+    test_y['first'] = setC['first']
+    test_y['distance'] = setC['distance']
     test_y['predAbs'] = y_pred
     if args.conversion == "norm":
         target = 'normTarget'
@@ -60,7 +48,7 @@ def predict(args):
         target = 'standardLog'
         reads = y_pred
         reads = np.exp(reads) - 1
-    test_y['reads'] = df['reads']
+    test_y['reads'] = setC['reads']
     test_y['predReads'] = reads
     score = model.score(test_X,test_y[target])
     print(score)
@@ -111,7 +99,7 @@ def saveResults(args, y, score):
     indices = indices /(len(indices)+2)
 
     aucScore = auc(indices, values)
-    df = pickle.load(open(RESULT_D+resultName, "rb" ) )
+    df = pickle.load(open(RESULTPART_D+resultName, "rb" ) )
     cols = [score, r2_score(y_pred,y_true),mean_squared_error(y_pred, y_true),
             mean_absolute_error(y_pred, y_true), mean_squared_log_error(y_pred, y_true),
             aucScore, args.windowOperation, args.mergeOperation,
@@ -122,7 +110,7 @@ def saveResults(args, y, score):
     df.loc[tagCreator(args,"pred").split("/")[-1],:]= pd.Series(cols, index=df.columns )
     df = df.sort_values(by=['trainChroms', 'chrom', 'model','conversion', 'window',
                   'merge', 'ep', 'np'])
-    pickle.dump(df, open(RESULT_D+resultName, "wb" ) )
+    pickle.dump(df, open(RESULTPART_D+resultName, "wb" ) )
 
 
 def startTraining(args):
@@ -180,17 +168,16 @@ def startTraining(args):
 def trainAll(args):
     # for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
                # "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
-    tcs = list(range(1,23))
-    tcs.remove(11)
-    tcs.remove(17)
-    tcs.remove(19)
-    tcs.extend(["9_11_14","10_11_12","1_2","1_3", "2_3_4", "1_3_5"])
+    # tcs = list(range(1,11))
+    tcs = []
+    tcs.extend(["2_4", "1_6","1_10_14","6_10_14","6_7_8","1_6_10"])
     for cs in tcs:
         args.chroms = str(cs)
         for me in ["avg"]:
             args.mergeOperation = me
             for w in ["avg"]:
                 args.windowOperation = w
+                # for p in ["log"]:
                 for p in ["default", "log", "standardLog"]:
                     args.conversion = p
                     for m in ["rf"]:
@@ -205,38 +192,39 @@ def trainAll(args):
 
 
 def predictAll(args):
-    df = pickle.load(open(RESULT_D+"results.p", "rb" ) )
+    mergeAndSave()
+    shutil.copy(RESULT_D+"baseResults.p",RESULTPART_D + resultName)
+    df = pickle.load(open(RESULT_D+"baseResults.p", "rb" ) )
     # for cs in [14]:
-    tcs = list(range(1,23))
-    tcs.extend(["11_14","9_11","9_14","17_19","9_11_14","10_11_12","1_2","1_3", "2_3_4", "1_3_5"])
+    # tcs = list(range(1,23))
+    # tcs.extend(["11_14","9_11","9_14","17_19","9_11_14","10_11_12","1_2","1_3", "2_3_4", "1_3_5"])
     # for cs in [11,17,19, 9,14,1,2,"11_14","9_11","9_14","17_19"]:
+    tcs = ["2_3_4", "1_3_5","1_6_10","1_10_14","6_10_14","6_7_8","8_9_10_11"]
     for cs in tcs:
         args.chroms = str(cs)
-        # for c in range(1,7):
-        # for c in [9,11,14,17,19,1,2,3,4]:
-        # for c in range(1,23):
-        for c in range(START,END):
-                args.chrom = str(c)
-                for w in ["avg"]:
-                    args.windowOperation = w
-                    for me in ["avg"]:
-                        args.mergeOperation = me
-                        for m in ["rf"]:
-                            args.model = m
-                            for p in ["log","default", "standardLog"]:
-                                args.conversion = p
-                                for n in [False]:
-                                    args.normalizeProteins = n
-                                    for e in [False]:
-                                        args.equalizeProteins = e
-                                        if  os.path.isfile(tagCreator(args,
-                                                                         "model")):
+        for w in ["avg"]:
+                args.windowOperation = w
+                for me in ["avg"]:
+                    args.mergeOperation = me
+                    for m in ["rf"]:
+                        args.model = m
+                        for p in ["log"]:
+                        # for p in ["default", "standardLog", "log"]:
+                            args.conversion = p
+                            for n in [False]:
+                                args.normalizeProteins = n
+                                for e in [False]:
+                                    args.equalizeProteins = e
+                                    if  os.path.isfile(tagCreator(args,"model")):
+                                        model = pickle.load(open( tagCreator(args, "model"), "rb" ) )
+                                        for c in range(START,END):
+                                            args.chrom = str(c)
                                             print(tagCreator(args,"pred"))
                                             if args.directConversion == 0:
                                                 if tagCreator(args,"pred").split("/")[-1] in df.index:
                                                     print("Exists")
                                                 else:
-                                                    predict(args)
+                                                    predict(args, model)
 
                                             elif  args.directConversion == 1: 
                                                 exists = True
@@ -249,56 +237,16 @@ def predictAll(args):
                                                 args.chrom = str(c)
                                                 if exists == False:
                                                     print(args.chrom)
-                                                    predict(args)
+                                                    predict(args, model)
                                                 else:
                                                     print("Both exist")
                                             else:
-                                                predict(args)
+                                                predict(args, model)
 
 def checkIfAlMetricsExist(args, key):
     if  not os.path.isfile(tagCreator(args, key)):
         return False
     return True
-            
-
-
-def parseArguments(args=None):
-    print(args)
-
-    parser = argparse.ArgumentParser(description='HiC Prediction')
-
-    parserRequired = parser.add_argument_group('Required arguments')
-
-    # define the arguments
-    parserRequired.add_argument('--action', '-a',
-                                choices=['train','allCombs',
-     'predictAll','predict','combine', 'split','trainAll', 'createAllWindows','plotAll',
-    'loadProtein','plot','plotPred','createArms','loadAllProteins','trainPredictAll',
-    'createWindows' ], help='Action to take', required=True)
-
-    parserOpt = parser.add_argument_group('Optional arguments')
-    parserOpt.add_argument('--estimators', '-e',type=int, default=10)
-    parserOpt.add_argument('--sourceFile', '-sf',type=str, default="")
-    parserOpt.add_argument('--chrom', '-c',type=str, default="4")
-    parserOpt.add_argument('--reach', '-r',type=str, default="200")
-    parserOpt.add_argument('--chroms', '-cs',type=str, default="1_2")
-    parserOpt.add_argument('--arms', '-ar',type=str, default="AB")
-    parserOpt.add_argument('--conversion', '-co',type=str, default="default")
-    parserOpt.add_argument('--directConversion', '-d',type=int, default=1)
-    parserOpt.add_argument('--grid', '-g',type=int, default=0)
-    parserOpt.add_argument('--windowOperation', '-wo',type=str, default="avg")
-    parserOpt.add_argument('--equalizeProteins', '-ep',type=bool, default=False)
-    parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='avg')
-    parserOpt.add_argument('--normalizeProteins', '-np',type=bool, default=False)
-    parserOpt.add_argument('--region', '-re',type=str, default=None)
-    parserOpt.add_argument('--log', '-l',type=bool, default=True)
-    parserOpt.add_argument('--model', '-m',type=str, default="rf")
-    parserOpt.add_argument('--loss', '-lf',type=str, default="mse")
-    parserOpt.add_argument('--regionIndex2', '-r2',type=int, default=None)
-    parserOpt.add_argument('--regionIndex1', '-r1',type=int, default=None)
-    args = parser.parse_args(args)
-    print(args)
-    return args
 
 def main(args=None):
     args = parseArguments(args)
@@ -338,11 +286,9 @@ def main(args=None):
         plotDir(args)
     elif args.action == "createArms":
         createAllArms(args)
+    elif args.action == "mergeAndSave":
+        mergeAndSave()
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-    # df = pickle.load(open( SET_D+"4_test.p", "rb" ) )
-    # print(df)
-    # df = pickle.load(open(SET_D+"1_A_avg.p", "rb" ) )
-    # print(df)

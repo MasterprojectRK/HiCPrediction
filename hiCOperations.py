@@ -1,49 +1,5 @@
-from hicmatrix import HiCMatrix as hm
-import torch
-from hicexplorer import hicPlotMatrix as hicPlot
-import numpy as np
-from scipy import sparse
-import os
-import logging as log
-import sys
-from collections import deque
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-import argparse
-import pickle
-import cooler
-from copy import copy, deepcopy
-from scipy import signal
-from scipy import misc
-import pybedtools
-import math
-import time
-import pandas as pd
+from configurations import *
 
-log.basicConfig(level=log.DEBUG)
-pd.set_option('display.float_format', lambda x: '%.3f' % x)
-np.set_printoptions(threshold=sys.maxsize)
-np.set_printoptions(precision=3, suppress=True)
-# global constants
-BIN_D = "5B/"
-binSize = 5000
-DATA_D = "Data2e/"
-RESULT_D = "Data2e/Results/"
-CHROM_D = DATA_D +BIN_D+ "Chroms/"
-ARM_D = DATA_D +BIN_D+ "Arms/"
-SET_D = DATA_D + BIN_D +"Sets/"
-SETC_D = DATA_D + BIN_D +"SetsCombined/"
-PRED_D = DATA_D +BIN_D+ "Predictions/"
-MODEL_D  = DATA_D + BIN_D+"Models/"
-IMAGE_D = DATA_D +  "Images/"
-PLOT_D = DATA_D +BIN_D +  "Plots/"
-ORIG_D = DATA_D +  "BaseData/Orig/"
-PROTEIN_D = DATA_D + BIN_D+"Proteins/"
-PROTEINORIG_D = DATA_D +"BaseData/ProteinOrig/"
-allProteins = pd.DataFrame()
-PREDTYPE = "pred.p"
-COOL = ".cool"
 def chrom_filter(feature, c):
         return feature.chrom == c
 
@@ -427,15 +383,29 @@ def plotDir(args):
                                             plotPredMatrix(args)
 
 
+def concatResults():
+    sets = []
+    for a in os.listdir(RESULTPART_D):
+        if a.split("_")[0] == "part":
+            if os.path.isfile(RESULTPART_D + a):
+                sets.append(pickle.load(open(RESULTPART_D + a, "rb" ) ))
+                print(len(pickle.load(open(RESULTPART_D + a, "rb" ) )))
+    sets.append(pickle.load(open(RESULT_D+"baseResults.p", "rb" ) ))
+    df_all = pd.concat(sets)
+    df_all = df_all.drop_duplicates()
+    print(len(df_all))
+    # df_all = df_all[~df_all.index.duplicated()]
+    print(df_all[df_all.index.duplicated()])
+    print(len(df_all))
 
+    pickle.dump(df_all, open(RESULT_D+"baseResults.p", "wb" ) )
 
+def mergeAndSave():
+    d = RESULT_D
+    now = str(datetime.datetime.now())[:19]
+    now = now.replace(":","_").replace(" ", "")
+    src_dir = d + "baseResults.p"
+    dst_dir = d + "/Old/old"+str(now)+".p"
+    shutil.copy(src_dir,dst_dir)
+    concatResults()
 
-
-if __name__ == "__main__":
-    d = PRED_D
-    # key = "rf_n"
-    # for f in os.listdir(d):
-        # if len(f.split(key))>1:
-            # n = f.split(key)[0]
-            # m = f.split(key)[1]
-            # os.rename(d+f, d+n+"rf_mse_n"+m)

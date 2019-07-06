@@ -2,7 +2,9 @@ from hiCOperations import *
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('TkAgg')
+import shutil
+import datetime
+# matplotlib.use('TkAgg')
 
 
 def createDataset(name):
@@ -91,19 +93,11 @@ def plots(name):
     plt.ylabel("Train Chroms")
     plt.show()
 
-def concatResults():
-    sets = []
-    for a in RESULT_D:
-        df = pickle.load(open(RESULT_D+a, "rb" ) )
-        sets.append(df)
-    df_all = pd.concat(sets)
-    df_all=df_all.reset_index(drop=True)
-    pickle.dump(df, open(RESULT_D+"resultsMerged.p", "wb" ) )
-
-
-
 if __name__ == "__main__":
-    concatResults()
-    name = "resultsMerged.p"
-    heatMap(name , 1)
+    name = "baseResults.p"
+    df = pickle.load(open(RESULT_D+name, "rb" ) )
+    d = df[df.conversion != "log"]
+    pickle.dump(d, open(RESULT_D+name, "wb" ) )
+    print(d)
+    # heatMap(name , 1)
     # plots(name)
