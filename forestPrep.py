@@ -1,6 +1,6 @@
 from hiCOperations import *
 
-START = 1
+START = 14
 END = 23
 resultName = "part_"+str(START)+"_"+str(END)+".p"
 
@@ -169,8 +169,7 @@ def trainAll(args):
     # for cs in [11,17,19, 9,14,1,2,"11_14", "9_11",
                # "9_14","17_19","14_17_19","11_17_19","9_11_14"]:
     # tcs = list(range(1,11))
-    tcs = []
-    tcs.extend(["2_4", "1_6","1_10_14","6_10_14","6_7_8","1_6_10"])
+    tcs = [1,9,11,14,17,19]
     for cs in tcs:
         args.chroms = str(cs)
         for me in ["avg"]:
@@ -196,10 +195,9 @@ def predictAll(args):
     shutil.copy(RESULT_D+"baseResults.p",RESULTPART_D + resultName)
     df = pickle.load(open(RESULT_D+"baseResults.p", "rb" ) )
     # for cs in [14]:
-    # tcs = list(range(1,23))
-    # tcs.extend(["11_14","9_11","9_14","17_19","9_11_14","10_11_12","1_2","1_3", "2_3_4", "1_3_5"])
-    # for cs in [11,17,19, 9,14,1,2,"11_14","9_11","9_14","17_19"]:
-    tcs = ["2_3_4", "1_3_5","1_6_10","1_10_14","6_10_14","6_7_8","8_9_10_11"]
+    # tcs.extend([])
+    tcs = ["1"]
+    # tcs.extend(["2_4", "1_6","1_10_14","6_10_14"])
     for cs in tcs:
         args.chroms = str(cs)
         for w in ["avg"]:
@@ -208,8 +206,8 @@ def predictAll(args):
                     args.mergeOperation = me
                     for m in ["rf"]:
                         args.model = m
-                        for p in ["log"]:
-                        # for p in ["default", "standardLog", "log"]:
+                        # for p in ["log"]:
+                        for p in ["default", "standardLog", "log"]:
                             args.conversion = p
                             for n in [False]:
                                 args.normalizeProteins = n
@@ -217,7 +215,8 @@ def predictAll(args):
                                     args.equalizeProteins = e
                                     if  os.path.isfile(tagCreator(args,"model")):
                                         model = pickle.load(open( tagCreator(args, "model"), "rb" ) )
-                                        for c in range(START,END):
+                                        for c in [9]:
+                                        # for c in range(START,END):
                                             args.chrom = str(c)
                                             print(tagCreator(args,"pred"))
                                             if args.directConversion == 0:

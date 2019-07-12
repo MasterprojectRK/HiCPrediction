@@ -24,13 +24,13 @@ def predictionPreparation(args, pred=1):
         else: 
             print("A exists")
         
-        args.chrom = c +"_B"
-        predB = pred.loc[pred['chrom'] == args.chrom]
-        if  os.path.isfile(ARM_D +args.chrom+".cool")\
-            and not os.path.isfile(tagCreator(args,"pred")):
-            predictionToMatrix(args, predB)
-        else: 
-            print("B exists")
+        # args.chrom = c +"_B"
+        # predB = pred.loc[pred['chrom'] == args.chrom]
+        # if  os.path.isfile(ARM_D +args.chrom+".cool")\
+            # and not os.path.isfile(tagCreator(args,"pred")):
+            # predictionToMatrix(args, predB)
+        # else: 
+            # print("B exists")
 
 
 
@@ -179,8 +179,9 @@ def tagCreator(args, mode):
     elif mode == "plot":
         return PLOT_D  + args.chrom +"_P"+csam + cowmep +".png"
 
-def createForestDataset(args):
-    allProteins = pickle.load(open(tagCreator(args, "protein"), "rb" )).values.tolist()
+def createForestDataset(args, allProteins=None):
+    if allProteins == None:
+        allProteins = pickle.load(open(tagCreator(args, "protein"), "rb" )).values.tolist()
     colNr = np.shape(allProteins)[1]
     zeroProteins = np.zeros(colNr -1)
     rows = np.shape(allProteins)[0]
@@ -333,9 +334,9 @@ def plotPredMatrix(args):
     hicPlot.main(a)
 
 def plotMatrix(args):
-    # for i in range(10):
-        # args.regionIndex1 = i*200 + 1
-        # args.regionIndex1 = (i+1)*200
+    for i in range(5):
+        args.regionIndex1 = i*500 + 1
+        args.regionIndex2 = (i+1)*500
         name = args.sourceFile.split(".")[0].split("/")[-1]
         a = ["--matrix",args.sourceFile,
                 "--dpi", "300"]
@@ -358,12 +359,11 @@ def plotMatrix(args):
 
 
 def plotDir(args):
-    for cs in [9,11,14,17,19]:
+    for cs in [1,11,14,17,"1_6"]:
         args.chroms = str(cs)
-        for c in ["9_A","9_B","11_A", "11_B","14_A", "14_B","17_A",
-                  "17_B","19_A", "19_B"]:
+        for c in ["9_A"]:
             args.chrom = str(c)
-            for p in ["default", "standardLog"]:
+            for p in ["log","default", "standardLog"]:
                 args.conversion = p
                 for w in ["avg"]:
                     args.windowOperation = w
@@ -371,15 +371,14 @@ def plotDir(args):
                         args.mergeOperation = me
                         for m in ["rf"]:
                             args.model = m
-                            for n in [False, True]:
+                            for n in [False]:
                                 args.normalizeProteins = n
-                                for n in [False, True]:
+                                for n in [False]:
                                     args.equalizeProteins = n
                                     if os.path.isfile(tagCreator(args,"pred")):
-                                        print(tagCreator(args, "pred"))
-                                        for i in range(10):
-                                            args.regionIndex1 = i*200 + 1
-                                            args.regionIndex2 = (i+1)*200
+                                        for i in range(5):
+                                            args.regionIndex1 = i*500 + 1
+                                            args.regionIndex2 = (i+1)*500
                                             plotPredMatrix(args)
 
 

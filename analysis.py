@@ -19,12 +19,10 @@ def createDataset(name):
 
 def filter():
 
-    c = "19"
-    # df = df[df['chrom'] == c]
-    # d1 = df[~df['trainChroms'].str.contains(c)]
-    # df = pickle.load(open(RESULT_D+name, "rb" ) )
+    df = pickle.load(open(RESULT_D+name, "rb" ) )
+    df = df[df['trainChroms'] != "17_19"]
     # d = df[df.conversion != "log"]
-    # pickle.dump(d, open(RESULT_D+name, "wb" ) )
+    pickle.dump(df, open(RESULT_D+name, "wb" ) )
 
 def heatMap(name, mode=0):
     html = ""
@@ -100,5 +98,7 @@ def plots(name):
 
 if __name__ == "__main__":
     name = "baseResults.p"
-    heatMap(name , 0)
-    plots(name)
+    # filter()
+    # heatMap(name , 0)
+    # plots(name)
+    # filter()
