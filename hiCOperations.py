@@ -1,16 +1,14 @@
 from configurations import *
+from proteinLoad import loadAllProteins
+from setCreator import createAllWindows, createAllCombinations
+from tagCreator import tagCreator
 
-def chrom_filter(feature, c):
-        return feature.chrom == c
-
-def peak_filter(feature, s, e):
-        peak = feature.start + int(feature[9])
-        return s <= peak and e >= peak
 
 
 def predictionPreparation(args, pred=1):
-    # if pred == 1:
-        # pred = pickle.load(open(tagCreator(args, "pred"), "rb" ) )
+    if pred == 1:
+        print(tagCreator(args, "pred"))
+        pred = pickle.load(open(tagCreator(args, "pred"), "rb" ) )
     if len(args.chrom.split("_")) > 1:
         predictionToMatrix(args, pred)
     else:
@@ -31,41 +29,63 @@ def predictionPreparation(args, pred=1):
             # predictionToMatrix(args, predB)
         # else: 
             # print("B exists")
+            
 
 
 
+#### NICE CODE SNIPPET###
+    # tqdm.pandas()
+    # pred.progress_apply(lambda row: convertEntry(new,
+                                                 # row['idx1'],row['idx2'],
+                                                 # row['predConv']), axis=1)
 def predictionToMatrix(args, pred):
+    print(pred.head())
     print("Now Converting:")
     ma = hm.hiCMatrix(ARM_D +args.chrom+".cool")
     mat = ma.matrix.todense()
     factor =  np.max(mat)
-    new = np.zeros(mat.shape)
-    cuts = ma.cut_intervals
-    l = len(cuts)
-    for j, cut in enumerate(cuts):
-        maxV = min(l - j - 1,int(args.reach)+1)
-        print(str(j+1)+"/"+str(len(cuts)),end='')
-        print('\r', end='') # use '\r' to go back
-        sys.stdout.flush()
-
-        for i in range(0,maxV):
-            # print(i)
-            # print(j)
-            # print(cut)
-            # print(cuts[j+i])
-            # print(pred[:2])
-            val = pred.loc[(cut[1], cuts[j+i][1])]['pred']
-            if args.conversion == "norm":
-                val= val  * factor
-            elif args.conversion == "log":
-                val= val  * np.log(factor)
-                val = np.exp(val) - 1
-            elif args.conversion == "standardLog":
-                val = np.exp(val) - 1
-            new[j][j+i] = val
+    if args.conversion == "norm":
+        convert = lambda val: val  * factor
+    elif args.conversion == "log":
+        convert = lambda val: np.exp(val  * np.log(factor)) - 1
+    elif args.conversion == "standardLog":
+        convert = lambda val: np.exp(val) - 1
+    elif args.conversion == "default":
+        convert = lambda val: val
     new = sparse.csr_matrix(new)
+    pred['idx1'] = pred.index.codes[0]
+    pred['idx2'] = pred.index.codes[1]
+    pred['predConv'] = convert(pred['pred'])
+    data = np.array(pred['predConv'])
+    row = np.array(pred['idx1'])
+    col = np.array(pred['idx2'])
+    new = sparse.csr_matrix((data, (row, col)), shape=mat.shape)
     ma.setMatrix(new, ma.cut_intervals)
     ma.save(tagCreator(args, "pred"))
+
+def storeMatrixAndCuts(args):
+
+    for f in os.listdir(ARM_D):
+            args.chrom = f.split(".")[0] 
+        # if  not os.path.isfile(tagCreator(args, "matrix")) or\
+            # not os.path.isfile(tagCreator(args, "cut")):
+            print(f)
+            m = hm.hiCMatrix(ARM_D+f)
+            matrix = m.matrix
+            cuts = m.cut_intervals
+            pickle.dump(cuts, open(tagCreator(args, "cut"), "wb" ) )
+            pickle.dump(matrix, open(tagCreator(args, "matrix"), "wb" ) )
+
+    for f in os.listdir(CHROM_D):
+            args.chrom = f.split(".")[0]
+        # if  not os.path.isfile(tagCreator(args, "matrix")) or\
+            # not os.path.isfile(tagCreator(args, "cut")):
+            print(f)
+            m = hm.hiCMatrix(CHROM_D+f)
+            matrix = m.matrix
+            cuts = m.cut_intervals
+            pickle.dump(cuts, open(tagCreator(args, "cut"), "wb" ) )
+            pickle.dump(matrix, open(tagCreator(args, "matrix"), "wb" ) )
 
 def divideIntoArms(args):
     ma = hm.hiCMatrix(CHROM_D +args.chrom+".cool")
@@ -117,199 +137,24 @@ def divideIntoArms(args):
 def createAllArms(args):
     for i in range(1,13):
         args.chrom = str(i)
+        start = time.time()
         divideIntoArms(args)
+        end = time.time()
+        print("Time: %d" % (end - start))
+    for i in range(13,16):
+        args.chrom = str(i)
+        copyfile(CHROM_D +args.chrom +".cool" ,ARM_D + args.chrom + "_A.cool")
     for i in range(16,22):
         args.chrom = str(i)
+        start = time.time()
         divideIntoArms(args)
-
-
-def chromStringToList(s):
-    chroms = []
-    parts = s.split("_")
-    for part in parts:
-        elems = part.split("-")
-        if len(elems) == 2:
-            chroms.extend(range(int(elems[0]), int(elems[1])+1))
-        elif len(elems) == 1:
-            chroms.append(int(elems[0]))
-        else:
-            print("FAAAAAAAAAAAAAAAAAAAAAAAAAIIIIIIIIILLLLLLLLL")
-    chroms = list(map(str, chroms))
-    return chroms
-
-def chromListToString(l):
-    return ("_").join(l)
-
-def chromsToName(s):
-    return(chromListToString(chromStringToList(s)) )
-
-
-def tagCreator(args, mode):
-    if args.equalizeProteins:
-        ep = "_E"
-    else:
-        ep = ""
-    if args.normalizeProteins:
-        nop = "_N"
-    else:
-        nop = ""
-    
-    wmep = "_"+args.windowOperation +"_M"+args.mergeOperation+ep +nop
-
-    cowmep =  "_"+args.conversion +  wmep
-    csa = chromsToName(args.chroms)+"_"+args.arms
-    csam = csa + "_"+args.model +"_" + args.loss
-
-    if mode == "set":
-        return SET_D + args.chrom + wmep +".p"
-
-    elif mode == "model":
-        return MODEL_D + csam + cowmep+".p"
-
-    elif mode == "protein":
-        return PROTEIN_D + args.chrom+ "_M"+args.mergeOperation+nop+".p"
-    elif mode == "pred":
-        return PRED_D + args.chrom + "_P"+ csam + cowmep +".cool"
-
-    elif mode == "setC":
-        return SETC_D+csa+ wmep +".p"
-
-    elif mode == "image":
-        return IMAGE_D + args.chrom +"_R" + args.region+"_P"+csam + cowmep +".png"
-    elif mode == "plot":
-        return PLOT_D  + args.chrom +"_P"+csam + cowmep +".png"
-
-def createForestDataset(args, allProteins=None):
-    if allProteins == None:
-        allProteins = pickle.load(open(tagCreator(args, "protein"), "rb" )).values.tolist()
-    colNr = np.shape(allProteins)[1]
-    zeroProteins = np.zeros(colNr -1)
-    rows = np.shape(allProteins)[0]
-    ma = hm.hiCMatrix(ARM_D+args.chrom+".cool").matrix
-    ma2 = hm.hiCMatrix(CHROM_D+args.chrom.split("_")[0]+".cool").matrix
-    reads = ma.todense()
-    logs = deepcopy(reads)
-    norms = deepcopy(reads)
-    maxValue = np.max(ma2.todense()) 
-    logs = np.log(logs+1)
-    logs /= np.log(maxValue)
-    norms =norms /  maxValue
-    print(ma.shape)
-    print(rows,colNr)
-    cols = ['first', 'second','chrom'] + list(range(3*
-         (colNr-1)))+['distance','reads','logTarget','normTarget']
-    window = []
-    if args.windowOperation == 'avg':
-        convertF = np.mean
-    elif args.windowOperation == 'sum':
-        convertF = np.sum
-    elif args.windowOperation == 'max':
-        convertF = np.max
-    for j in range(rows):
-        maxReach = min(int(args.reach)+1,rows-j)
-        firstStart = allProteins[j][0]
-        for  i in range(0,maxReach):
-            if j+1 >= j+i:
-                middleProteins = zeroProteins
-            else:
-                middleProteins = convertF(allProteins[j+1:j+i], axis=0)[1:]
-            frame = [firstStart, allProteins[j+i][0],args.chrom]
-            frame.extend(allProteins[j][1:])
-            frame.extend(middleProteins)
-            frame.extend(allProteins[j+i][1:])
-            frame.extend([i*binSize, reads[j,j+i],logs[j,j+i],norms[j,j+i]])
-            window.append(frame)
-    data = pd.DataFrame(window,columns =cols)
-    print(data.shape)
-    pickle.dump(data, open(tagCreator(args, "set"), "wb" ) )
-
-
-def createAllCombinations(args):
-    for w in ["avg"]:
-        args.windowOperation = w
-        for m in ["avg"]:
-            args.mergeOperation = m
-            for n in [False]:
-                args.normalizeProteins = n
-                for e in [False]:
-                    args.equalizeProteins = e
-                    createAllWindows(args)
-
-
-def createAllWindows(args):
-    i = 1
-    for f in os.listdir(ARM_D):
-        args.chrom = f.split(".")[0]
-        if  os.path.isfile(tagCreator(args, "protein")):
-            # if int(args.chrom.split("_")[0]) < 22:
-                # continue
-            print(args.chrom)
-            if  not os.path.isfile(tagCreator(args, "set")):
-                createForestDataset(args)
-
-def loadAllProteins(args):
-    for f in os.listdir(ARM_D):
-        args.chrom = f.split(".")[0]
-        c = int(f.split("_")[0])
-        if  not os.path.isfile(tagCreator(args, "protein")):
-            loadProtein(args)
+        end = time.time()
+        print("Time: %d" % (end - start))
+    args.chrom = str(22)
+    copyfile(CHROM_D +args.chrom +".cool" ,ARM_D + args.chrom + "_A.cool")
 
 def score(feature):
     return feature.score
-
-def loadProtein(args):
-    ma = hm.hiCMatrix(ARM_D+args.chrom+".cool")
-    fullChrom = args.chrom.split("_")[0]
-    cuts = ma.cut_intervals
-    i = 0
-    allProteins = []
-    for cut in cuts:
-        allProteins.append(np.zeros(15))
-        allProteins[i][0] = cut[1]
-        i += 1
-    i = 0
-    for f in os.listdir(PROTEINORIG_D):
-        print(f)
-        path  = PROTEINORIG_D+f
-        a = pybedtools.BedTool(path)
-        b = a.to_dataframe()
-        c = b.iloc[:,6]
-        minV = min(c)
-        maxV = max(c) - minV
-        if maxV == 0:
-            maxV = 1
-        a = a.filter(chrom_filter, c='chr'+fullChrom)
-        a = a.sort()
-        j = 0
-        for cut in cuts:    
-            print(str(j+1)+"/"+str(len(cuts)),end='')
-            print('\r', end='') # use '\r' to go back
-            tmp = a.filter(peak_filter, cut[1], cut[2])
-            if args.normalizeProteins:
-                tmp = [(float(x[6]) -minV) / maxV for x in tmp]
-            else:
-                tmp = [float(x[6]) for x in tmp]
-            if len(tmp) == 0:
-                tmp.append(0)
-            if args.mergeOperation == 'avg':
-                score = np.mean(tmp)
-            elif args.mergeOperation == 'max':
-                score = np.max(tmp)
-            elif args.mergeOperation == 'sum':
-                score = np.sum(tmp)
-            allProteins[j][i+1] = score 
-            j += 1 
-        i += 1
-    print(args.chrom)
-    if args.normalizeProteins:
-        nop = "_N"
-    else:
-        nop = ""
-    data = pd.DataFrame(allProteins,columns=['start','ctcf', 'rad21', 'smc3', 'H2az', 'H3k4me1', 'H3k4me2', 'H3k4me3',
-                              'H3k9ac', 'H3k9me3', 'H3k27ac', 'H3k27me3',
-                               'H3k36me3', 'H3k79me2', 'H4k20me1'],
-                               index=range(len(cuts)))
-    pickle.dump(data, open(tagCreator(args, "protein") , "wb" ) )
 
 def plotPredMatrix(args):
 

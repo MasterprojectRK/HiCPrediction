@@ -257,6 +257,10 @@ def main(args=None):
         predict(args)
     elif args.action == "predictAll":
         predictAll(args)
+    elif args.action == "predToM":
+        predictionPreparation(args)
+    elif args.action == "storeCM":
+        storeMatrixAndCuts(args)
     elif args.action == "trainPredictAll":
         trainAll(args)
         args.directConversion = 0

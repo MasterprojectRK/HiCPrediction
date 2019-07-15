@@ -14,11 +14,14 @@ from hicmatrix import HiCMatrix as hm
 from hicexplorer import hicPlotMatrix as hicPlot
 
 import sys
+from tqdm import tqdm
+import bisect 
 import argparse
 import math
 import time
 import datetime
 import shutil
+import operator
 import pickle
 import os
 import numpy as np
@@ -44,20 +47,23 @@ np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 
 # global constants
-BIN_D = "5B/"
+CELL_D = "Gm12878/"
+# CELL_D = "K562/"
 DATA_D = "Data2e/"
 RESULT_D = "Data2e/Results/"
 RESULTPART_D = "Data2e/Results/Part/"
-CHROM_D = DATA_D +BIN_D+ "Chroms/"
-ARM_D = DATA_D +BIN_D+ "Arms/"
-SET_D = DATA_D + BIN_D +"Sets/"
-SETC_D = DATA_D + BIN_D +"SetsCombined/"
-PRED_D = DATA_D +BIN_D+ "Predictions/"
-MODEL_D  = DATA_D + BIN_D+"Models/"
+CHROM_D = DATA_D +CELL_D+ "Chroms/"
+ARM_D = DATA_D +CELL_D+ "Arms/"
+MATRIX_D = DATA_D +CELL_D+ "Matrices/"
+CUT_D = DATA_D +CELL_D+ "Cuts/"
+SET_D = DATA_D + CELL_D +"Sets/"
+SETC_D = DATA_D + CELL_D +"SetsCombined/"
+PRED_D = DATA_D +CELL_D+ "Predictions/"
+MODEL_D  = DATA_D + CELL_D+"Models/"
 IMAGE_D = DATA_D +  "Images/"
-PLOT_D = DATA_D +BIN_D +  "Plots/"
+PLOT_D = DATA_D +CELL_D +  "Plots/"
 ORIG_D = DATA_D +  "BaseData/Orig/"
-PROTEIN_D = DATA_D + BIN_D+"Proteins/"
+PROTEIN_D = DATA_D + CELL_D+"Proteins/"
 PROTEINORIG_D = DATA_D +"BaseData/ProteinOrig/"
 
 
@@ -71,9 +77,9 @@ def parseArguments(args=None):
 
     # define the arguments
     parserRequired.add_argument('--action', '-a',
-                                choices=['train','allCombs',
+                                choices=['train','allCombs','storeCM','predToM',
      'predictAll','predict','combine', 'split','trainAll', 'createAllWindows','plotAll',
-    'loadProtein','plot','plotPred','createArms','mergeAndSave','loadAllProteins','trainPredictAll',
+    'plot','plotPred','createArms','mergeAndSave','loadAllProteins','trainPredictAll',
     'createWindows' ], help='Action to take', required=True)
 
     parserOpt = parser.add_argument_group('Optional arguments')
