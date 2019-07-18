@@ -14,12 +14,12 @@ from hicmatrix import HiCMatrix as hm
 from hicexplorer import hicPlotMatrix as hicPlot
 
 import sys
-from tqdm import tqdm
 import bisect 
 import argparse
 import math
 import time
 import datetime
+import itertools
 import shutil
 import operator
 import pickle
@@ -28,6 +28,9 @@ import numpy as np
 import logging as log
 import pandas as pd
 from copy import copy, deepcopy
+from io import StringIO
+from csv import writer
+from tqdm import tqdm
 
 import cooler
 import pybedtools
@@ -77,7 +80,7 @@ def parseArguments(args=None):
 
     # define the arguments
     parserRequired.add_argument('--action', '-a',
-                                choices=['train','allCombs','storeCM','predToM',
+        choices=['train','allCombs','storeCM','predToM','execute',
      'predictAll','predict','combine', 'split','trainAll', 'createAllWindows','plotAll',
     'plot','plotPred','createArms','mergeAndSave','loadAllProteins','trainPredictAll',
     'createWindows' ], help='Action to take', required=True)

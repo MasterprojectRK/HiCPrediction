@@ -1,7 +1,7 @@
 from configurations import *
 from proteinLoad import loadAllProteins
-from setCreator import createAllWindows, createAllCombinations
-from tagCreator import tagCreator
+from setCreator import createDataset
+from tagCreator import tagCreator, chromStringToList
 
 
 
@@ -21,15 +21,13 @@ def predictionPreparation(args, pred=1):
             predictionToMatrix(args, predA)
         else: 
             print("A exists")
-        
-        # args.chrom = c +"_B"
-        # predB = pred.loc[pred['chrom'] == args.chrom]
-        # if  os.path.isfile(ARM_D +args.chrom+".cool")\
-            # and not os.path.isfile(tagCreator(args,"pred")):
-            # predictionToMatrix(args, predB)
-        # else: 
-            # print("B exists")
-            
+        args.chrom = c +"_B"
+        predB = pred.loc[pred['chrom'] == args.chrom]
+        if  os.path.isfile(ARM_D +args.chrom+".cool")\
+            and not os.path.isfile(tagCreator(args,"pred")):
+            predictionToMatrix(args, predB)
+        else: 
+            print("B exists")
 
 
 
@@ -87,74 +85,63 @@ def storeMatrixAndCuts(args):
             pickle.dump(cuts, open(tagCreator(args, "cut"), "wb" ) )
             pickle.dump(matrix, open(tagCreator(args, "matrix"), "wb" ) )
 
-def divideIntoArms(args):
-    ma = hm.hiCMatrix(CHROM_D +args.chrom+".cool")
-
-    f=open("Data2e/BaseData/centromeres.txt", "r")
-    fl =f.readlines()
-    elems = None
-    for x in fl:
-        elems = x.split("\t")
-        if elems[1] == "chr"+args.chrom:
-            print(elems)
-            continue
-    start = int(elems[2])
-    end = int(elems[3])
-    cuts = ma.cut_intervals
-    i = 0
-    cuts1 = []
-    cuts2 = []
-    print(cuts[4510:4530])
-    firstIndex = 0
-    for cut in cuts:
-        
-        if cut[2] < start:
-            cuts1.append(cut)
-            lastIndex = i + 1
-        elif cut[1] > end:
-            cuts2.append(cut)
+def divideIntoArms(args, chromDict):
+    armDict = dict()
+    for name, chrom in tqdm(chromDict.items()):
+        if(name in ['13','14','15','22']):
+            armDict[name+"_A"] = chrom
         else:
-            firstIndex = i + 1
-        i += 1
-    if firstIndex == 0:
-        firstIndex = lastIndex
-    print(len(cuts))
-    print(len(cuts1))
-    print(len(cuts2))
-
-    m1 = ma.matrix.todense()
-    m2 = ma.matrix.todense()
-    m1 = m1[:lastIndex,:lastIndex]
-    new = sparse.csr_matrix(m1)
-    ma.setMatrix(new, cuts1)
-    ma.save(ARM_D + args.chrom + "_A.cool")
-    
-    m2 = m2[firstIndex:,firstIndex:]
-    new = sparse.csr_matrix(m2)
-    ma.setMatrix(new, cuts2)
-    ma.save(ARM_D + args.chrom + "_B.cool")
+            f=open("Data2e/BaseData/centromeres.txt", "r")
+            fl =f.readlines()
+            elems = None
+            for x in fl:
+                elems = x.split("\t")
+                if elems[1] == "chr"+name:
+                    continue
+            start = int(elems[2])
+            end = int(elems[3])
+            cuts = chrom.cut_intervals
+            i = 0
+            cuts1 = []
+            cuts2 = []
+            firstIndex = 0
+            for cut in cuts:
+                if cut[2] < start:
+                    cuts1.append(cut)
+                    lastIndex = i + 1
+                elif cut[1] > end:
+                    cuts2.append(cut)
+                else:
+                    firstIndex = i + 1
+                i += 1
+            if firstIndex == 0:
+                firstIndex = lastIndex
+            ma_a = chrom
+            ma_b = deepcopy(chrom)
+            m1 = ma_a.matrix.todense()
+            m2 = ma_b.matrix.todense()
+            m1 = m1[:lastIndex,:lastIndex]
+            new = sparse.csr_matrix(m1)
+            ma_a.setMatrix(new, cuts1)
+            m2 = m2[firstIndex:,firstIndex:]
+            new = sparse.csr_matrix(m2)
+            ma_b.setMatrix(new, cuts2)
+            armDict[name+"_A"] = ma_a
+            armDict[name+"_B"] = ma_b
+    return armDict
 
 def createAllArms(args):
     for i in range(1,13):
         args.chrom = str(i)
-        start = time.time()
         divideIntoArms(args)
-        end = time.time()
-        print("Time: %d" % (end - start))
     for i in range(13,16):
         args.chrom = str(i)
-        copyfile(CHROM_D +args.chrom +".cool" ,ARM_D + args.chrom + "_A.cool")
+        shutil.copyfile(CHROM_D +args.chrom +".cool" ,ARM_D + args.chrom + "_A.cool")
     for i in range(16,22):
         args.chrom = str(i)
-        start = time.time()
         divideIntoArms(args)
-        end = time.time()
-        print("Time: %d" % (end - start))
     args.chrom = str(22)
-    copyfile(CHROM_D +args.chrom +".cool" ,ARM_D + args.chrom + "_A.cool")
-
-def score(feature):
-    return feature.score
+    shutil.copyfile(CHROM_D +args.chrom +".cool" ,ARM_D + args.chrom + "_A.cool")
 
 def plotPredMatrix(args):
 

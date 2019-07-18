@@ -8,10 +8,11 @@ def peak_filter(feature, s, e):
         peak = feature.start + int(feature[9])
         return s <= peak and e >= peak
 
-def loadAllProteins(args):
+def loadAllProteins(args, armDict):
     proteins = dict()
-    for f in os.listdir(PROTEINORIG_D):
-        path  = PROTEINORIG_D+f
+    cell = "Gm12878/"
+    for f in os.listdir(PROTEINORIG_D + cell):
+        path  = PROTEINORIG_D+cell+f
         a = pybedtools.BedTool(path)
         b = a.to_dataframe()
         c = b.iloc[:,6]
@@ -23,18 +24,15 @@ def loadAllProteins(args):
             for row in a:
                 row[6] = (float(x[6]) - minV) / maxV
         proteins[f] = a
-    for f in os.listdir(ARM_D)[:]:
-        args.chrom = f.split(".")[0]
-        c = int(f.split("_")[0])
-        # if  not os.path.isfile(tagCreator(args, "protein")):
-        if  True:
-            loadProtein(args, proteins)
+    proteinDict = dict()
+    for name, arm in tqdm(armDict.items(), desc= 'Protein loaded for arms'):
+        proteinDict[name] = loadProtein(args, proteins, name, arm)
+    return proteinDict
 
-def loadProtein(args, proteins):
-    print(args.chrom)
-    ma = hm.hiCMatrix(ARM_D+args.chrom+".cool")
-    fullChrom = args.chrom.split("_")[0]
-    cuts = ma.cut_intervals
+
+def loadProtein(args, proteins, armName, arm):
+    chromName = armName.split("_")[0]
+    cuts = arm.cut_intervals
     i = 0
     allProteins = []
     if args.mergeOperation == 'avg':
@@ -49,10 +47,10 @@ def loadProtein(args, proteins):
         i += 1
     cutsReduced = list(map(lambda x: x[1], cuts))
     i = 0
-    for name, a in proteins.items():
-        a = a.filter(chrom_filter, c='chr'+fullChrom)
+    for name, a in tqdm(proteins.items(), desc = 'Proteins'):
+        a = a.filter(chrom_filter, c='chr'+ chromName)
         a = a.sort()
-        print(name)
+        # print(name)
         values = dict()
         for feature in a:    
             peak = feature.start + int(feature[9])
@@ -67,16 +65,17 @@ def loadProtein(args, proteins):
             allProteins[j][i+1] = score 
             j += 1 
         i += 1
-    print(args.chrom)
-    if args.normalizeProteins:
-        nop = "_N"
-    else:
-        nop = ""
+    # if args.normalizeProteins:
+        # nop = "_N"
+    # else:
+        # nop = ""
+    # print(allProteins)
     data = pd.DataFrame(allProteins,columns=['start','ctcf', 'rad21', 'smc3',\
                         'H2az', 'H3k4me1', 'H3k4me2', 'H3k4me3','H3k9ac',\
                         'H3k9me3','H3k27ac', 'H3k27me3','H3k36me3',\
                         'H3k79me2', 'H4k20me1'], index=range(len(cuts)))
-    pickle.dump(data, open(tagCreator(args, "protein") , "wb" ) )
+    return data
+    # pickle.dump(data, open(tagCreator(args, "protein") , "wb" ) )
 
 
             # # print(str(j+1)+"/"+str(len(cuts)),end='')
