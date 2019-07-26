@@ -2,11 +2,10 @@ from configurations import *
 from tagCreator import tagCreator
 
 
-def createDataset(args, name, arm, chrom, proteins):
+def createDataset(args, name, arm, proteins):
     colNr = np.shape(proteins)[1]
     rows = np.shape(proteins)[0]
     reads = arm.matrix.todense()
-    maxValue = chrom.matrix.max()
 
     cols = ['first', 'second','chrom'] + list(range(3*
          (colNr-1)))+['distance','reads']
@@ -38,17 +37,19 @@ def createDataset(args, name, arm, chrom, proteins):
     df['reads'] = np.array(reads[df['first'],df['second']])[0]
 
     proteinMatrix = np.matrix(proteins)
-    proteinFrame =  pd.DataFrame(proteins)
     starts = df['first'].values
     ends = df['second'].values + 1 
-    for i in range(14):
+    middleGenerator = getMiddle(proteins.values.transpose(), starts, ends, args)
+ 
+    for i in tqdm(range(14), desc="Converting Proteins"):
         df[i] = np.array(proteinMatrix[df['first'], i+1]).flatten()
-        df[14 + i] = getMiddle(proteinFrame, starts, ends, args)
+        df[14 + i] = next(middleGenerator) 
         df[28 + i] = np.array(proteinMatrix[df['second'], i+1]).flatten()
     return df
 
 def multiplyBin(a, b):
     return a * b * args.binSize
+
 def createAllCombinations(args):
     for w in ["avg"]:
         args.windowOperation = w

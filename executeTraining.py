@@ -1,6 +1,6 @@
 import forestPrep as fp
 from hiCOperations import *
-
+from predict import executePrediction
 
 def executeTraining(args):
     chroms = [item for item in chromStringToList(args.chroms)]
@@ -11,15 +11,16 @@ def executeTraining(args):
     for  x in tqdm(chroms):
         chromDict[x] = hm.hiCMatrix(CHROM_D+x+".cool")
     print("Chroms loaded")
-    for  name, chrom in tqdm(chromDict.items()):
-        armsDict[name] = divideIntoArms(args, chrom, name) 
+    armDict = divideIntoArms(args, chromDict) 
     print("Arms generated")
-    proteinDict = loadAllProteins(args, armsDict)
-    print("Proteins generated")
-    for  name, arm in tqdm(armsDict.items()):
-        chromName = name.split("_")[0]
-        setDict[name] = createDataset(args, name, arm, chromDict[chromName], proteinDict[name])
-    print("Sets generated")
+    proteinDict = loadAllProteins(args, armDict)
+    print("\nProteins generated")
+    for  name, arm in tqdm(armDict.items(), desc="Creating set for each arm"):
+        setDict[name] = createDataset(args, name, arm, proteinDict[name])
+    print("\nSets generated")
+    combined = createCombinedDataset(setDict)
+    print("Starting training")
+    fp.startTraining(args, combined)
 
 def main(args=None):
     args = parseArguments(args)
@@ -29,6 +30,8 @@ def main(args=None):
         trainAll(args)
     elif args.action == "execute":
         executeTraining(args)
+    elif args.action == "executePrediction":
+        executePrediction(args)
     elif args.action == "predict":
         predict(args)
     elif args.action == "predictAll":

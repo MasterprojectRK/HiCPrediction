@@ -26,33 +26,35 @@ def filter():
 
 def heatMap(name, mode=0):
     html = ""
-    mode = 0
-    
+    cl = 'Gm12878'
+    mcl = 'Gm12878'
     if mode == 0:
         n = 22
         title = "All"
     elif mode == 1:
         customChroms =[9,11,14,17,19]
         n = 5
-        title = "Replication"
+        title = "Replication_"+cl+"_trained_on_"+ mcl
     html += "<h1>"+title+"</h1>"
     df = pickle.load(open(RESULT_D+name, "rb" ) )
+    df = df[df['cellLine'] == cl]
+    df = df[df['modelCellLine'] == mcl]
     df['chrom'] = pd.to_numeric(df['chrom'])
-    print(df)
-    for co in ['default', 'log','standardLog']:
+    for co in ['default']:
         if mode == 0:
             corr = pd.DataFrame(columns=range(1,23))
         elif mode == 1:
             corr = pd.DataFrame(columns=customChroms)
-        html += "<h2>"+co+"</h2>"
+        # html += "<h2>"+co+"</h2>"
+        html += "<h3>"+"Trained on"+"</h3>"
         d = df[df.conversion == co]
-        # print(d1['trainChroms'].head(50))
-        for v in [False,True]:
+        for v in [False]:
             d1 = d[d.trainChroms.str.contains("_") == v ]
             d1 = pd.DataFrame(
                 sorted(d1.values, key=lambda x: int(x[13].split('_')[0])),
                 columns=d1.columns
             )
+            print(d1)
             for i, e in d1.iterrows():
                 x = e.trainChroms.split("_")
                 if mode == 1 and ( len(x) > 1 or int(x[0]) not in
@@ -61,6 +63,7 @@ def heatMap(name, mode=0):
                 if e.trainChroms not in corr.index:
                     corr.loc[e.trainChroms] = np.zeros(n)
                     # corr.loc[e.trainChroms] = np.zeros(22)
+                print(e.cellLine)
                 corr.loc[e.trainChroms][e.chrom] = e.AUC
         html += corr.style.background_gradient(cmap='coolwarm', axis=None).set_precision(3).render()
     with open(title + ".html", "w") as file:
@@ -98,7 +101,10 @@ def plots(name):
 
 if __name__ == "__main__":
     name = "baseResults.p"
+    df = pickle.load(open(RESULT_D+name, "rb" ) )
+    # print(df)
+    # pickle.dump(df, open(RESULT_D+name, "wb" ) )
     # filter()
-    # heatMap(name , 0)
+    heatMap(name , 1)
     # plots(name)
     # filter()

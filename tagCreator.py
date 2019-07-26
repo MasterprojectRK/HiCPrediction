@@ -14,14 +14,15 @@ def tagCreator(args, mode):
     wmep = "_"+args.windowOperation +"_M"+args.mergeOperation+ep +nop
 
     cowmep =  "_"+args.conversion +  wmep
-    csa = chromsToName(args.chroms)+"_"+args.arms
-    csam = csa + "_"+args.model +"_" + args.loss
+    csa = chromsToName(args.chroms)
+    csam = args.modelCellLine + "_"+csa+"_"+args.model +"_" + args.loss
 
     if mode == "set":
         return SET_D + args.chrom + wmep +".p"
 
     elif mode == "model":
-        return MODEL_D + csam + cowmep+".p"
+        # return MODEL_D + csam + cowmep+".p"
+        return MODEL_D + csam + cowmep+"_FalseProteins.p"
 
     elif mode == "cut":
         return CUT_D + args.chrom + ".p"
@@ -33,7 +34,9 @@ def tagCreator(args, mode):
         return PROTEIN_D + args.chrom+ "_M"+args.mergeOperation+nop+".p"
 
     elif mode == "pred":
-        return PRED_D + args.chrom + "_P"+ csam + cowmep +".cool"
+        return PRED_D + args.cellLine +"_"+ args.chrom + "_"+ csam + cowmep+\
+    "_FalseProteins.cool"
+        # return PRED_D + args.cellLine +"_"+ args.chrom + "_"+ csam + cowmep+".cool"
 
     elif mode == "setC":
         return SETC_D+csa+ wmep +".p"

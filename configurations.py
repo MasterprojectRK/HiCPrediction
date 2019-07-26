@@ -16,6 +16,7 @@ from hicexplorer import hicPlotMatrix as hicPlot
 import sys
 import bisect 
 import argparse
+import glob
 import math
 import time
 import datetime
@@ -52,9 +53,9 @@ np.set_printoptions(precision=3, suppress=True)
 # global constants
 CELL_D = "Gm12878/"
 # CELL_D = "K562/"
-DATA_D = "Data2e/"
-RESULT_D = "Data2e/Results/"
-RESULTPART_D = "Data2e/Results/Part/"
+DATA_D = "Data/"
+RESULT_D = "Data/Results/"
+RESULTPART_D = "Data/Results/Part/"
 CHROM_D = DATA_D +CELL_D+ "Chroms/"
 ARM_D = DATA_D +CELL_D+ "Arms/"
 MATRIX_D = DATA_D +CELL_D+ "Matrices/"
@@ -62,11 +63,11 @@ CUT_D = DATA_D +CELL_D+ "Cuts/"
 SET_D = DATA_D + CELL_D +"Sets/"
 SETC_D = DATA_D + CELL_D +"SetsCombined/"
 PRED_D = DATA_D +CELL_D+ "Predictions/"
-MODEL_D  = DATA_D + CELL_D+"Models/"
+MODEL_D  = DATA_D + "Models/"
 IMAGE_D = DATA_D +  "Images/"
 PLOT_D = DATA_D +CELL_D +  "Plots/"
 ORIG_D = DATA_D +  "BaseData/Orig/"
-PROTEIN_D = DATA_D + CELL_D+"Proteins/"
+PROTEIN_D = DATA_D + "Proteins/"
 PROTEINORIG_D = DATA_D +"BaseData/ProteinOrig/"
 
 
@@ -81,16 +82,18 @@ def parseArguments(args=None):
     # define the arguments
     parserRequired.add_argument('--action', '-a',
         choices=['train','allCombs','storeCM','predToM','execute',
+                 'executePrediction',
      'predictAll','predict','combine', 'split','trainAll', 'createAllWindows','plotAll',
     'plot','plotPred','createArms','mergeAndSave','loadAllProteins','trainPredictAll',
     'createWindows' ], help='Action to take', required=True)
 
     parserOpt = parser.add_argument_group('Optional arguments')
-    parserOpt.add_argument('--arms', '-ar',type=str, default="AB")
     parserOpt.add_argument('--binSize', '-bs',type=int, default=5000)
-    parserOpt.add_argument('--chrom', '-c',type=str, default="4")
-    parserOpt.add_argument('--chroms', '-cs',type=str, default="1_2")
+    parserOpt.add_argument('--cellLine', '-cl',type=str, default='Gm12878')
+    parserOpt.add_argument('--chrom', '-c',type=str, default="1")
+    parserOpt.add_argument('--chroms', '-cs',type=str, default="1")
     parserOpt.add_argument('--conversion', '-co',type=str, default="default")
+    parserOpt.add_argument('--correctProteins', '-cp',type=bool, default=True)
     parserOpt.add_argument('--directConversion', '-d',type=int, default=1)
     parserOpt.add_argument('--equalizeProteins', '-ep',type=bool, default=False)
     parserOpt.add_argument('--estimators', '-e',type=int, default=10)
@@ -99,7 +102,10 @@ def parseArguments(args=None):
     parserOpt.add_argument('--loss', '-lf',type=str, default="mse")
     parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='avg')
     parserOpt.add_argument('--model', '-m',type=str, default="rf")
+    parserOpt.add_argument('--modelChroms', '-ms',type=str, default="1")
+    parserOpt.add_argument('--modelCellLine', '-mcl',type=str, default='Gm12878')
     parserOpt.add_argument('--normalizeProteins', '-np',type=bool, default=False)
+    parserOpt.add_argument('--predChroms', '-ps',type=str, default="1")
     parserOpt.add_argument('--reach', '-r',type=str, default="200")
     parserOpt.add_argument('--region', '-re',type=str, default=None)
     parserOpt.add_argument('--regionIndex1', '-r1',type=int, default=None)
