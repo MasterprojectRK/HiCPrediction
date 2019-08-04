@@ -1,7 +1,7 @@
 from configurations import *
 from proteinLoad import loadAllProteins
 from setCreator import createDataset
-from tagCreator import tagCreator, chromStringToList
+from tagCreator import createTag, chromStringToList
 
 def createCombinedDataset(sets):
     data = pd.DataFrame() 
@@ -9,59 +9,6 @@ def createCombinedDataset(sets):
         data = data.append(df)
     return data
 
-
-
-
-#### NICE CODE SNIPPET###
-    # tqdm.pandas()
-    # pred.progress_apply(lambda row: convertEntry(new,
-                                                 # row['idx1'],row['idx2'],
-                                                 # row['predConv']), axis=1)
-
-def divideIntoArms(args, chromDict):
-    armDict = dict()
-    for name, chrom in tqdm(chromDict.items()):
-        if(name in ['13','14','15','22']):
-            armDict[name+"_A"] = chrom
-        else:
-            f=open("Data/Centromeres/centromeres.txt", "r")
-            fl =f.readlines()
-            elems = None
-            for x in fl:
-                elems = x.split("\t")
-                if elems[1] == "chr"+name:
-                    continue
-            start = int(elems[2])
-            end = int(elems[3])
-            cuts = chrom.cut_intervals
-            i = 0
-            cuts1 = []
-            cuts2 = []
-            firstIndex = 0
-            for cut in cuts:
-                if cut[2] < start:
-                    cuts1.append(cut)
-                    lastIndex = i + 1
-                elif cut[1] > end:
-                    cuts2.append(cut)
-                else:
-                    firstIndex = i + 1
-                i += 1
-            if firstIndex == 0:
-                firstIndex = lastIndex
-            ma_a = chrom
-            ma_b = deepcopy(chrom)
-            m1 = ma_a.matrix.todense()
-            m2 = ma_b.matrix.todense()
-            m1 = m1[:lastIndex,:lastIndex]
-            new = sparse.csr_matrix(m1)
-            ma_a.setMatrix(new, cuts1)
-            m2 = m2[firstIndex:,firstIndex:]
-            new = sparse.csr_matrix(m2)
-            ma_b.setMatrix(new, cuts2)
-            armDict[name+"_A"] = ma_a
-            armDict[name+"_B"] = ma_b
-    return armDict
 
 def plotPredMatrix(args):
 
