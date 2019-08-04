@@ -21,8 +21,8 @@ def cli():
 @click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']))
 @click.option('resolution', '-r', default=5000)
-@click.option('datasetdir', '-dsd', default='Data/Sets/')
-@click.option('modeldir', '-md', default='Data/Models/')
+@click.option('datasetdir', '-dsd', default='Sets/')
+@click.option('modeldir', '-md', default='Models/')
 @click.option('setfilepath', '-sfp', default=None)
 @click.option('modelfilepath', '-sfp', default=None)
 @click.argument('chromosome')

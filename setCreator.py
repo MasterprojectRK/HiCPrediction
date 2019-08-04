@@ -16,11 +16,11 @@ def cli():
               type=click.Choice(['avg', 'max']))
 @click.option('--cellline', '-cl', default='Gm12878')
 @click.option('resolution', '-r', default=5000)
-@click.option('proteinfilepath', '-pfp', default='proteins.h5')
-@click.option('chromfilepath', '-cfp', default='chroms.h5')
+@click.option('proteinfilepath', '-pfp', default='Data/proteins.h5')
+@click.option('chromfilepath', '-cfp', default='Data/chroms.h5')
 @click.option('centromeresfilepath', '-cmfp',
-              default='Data/Centromeres/centromeres.txt')
-@click.option('datasetdirectory', '-dsd', default='Sets/')
+              default='Data/centromeres.txt')
+@click.option('datasetdirectory', '-dsd', default='Data/Sets/')
 @cli.command()
 # @click.argument('proteindir')
 def createAllSets(datasetdirectory, centromeresfilepath,chromfilepath, proteinfilepath,\
@@ -32,9 +32,8 @@ def createAllSets(datasetdirectory, centromeresfilepath,chromfilepath, proteinfi
             proteinTag =createTag(resolution, cellline, chrom,\
                                   merge=mergeoperation, norm=normalize)
             setTag =createTag(resolution, cellline, chrom,\
-                                  merge=mergeoperation, norm=normalize,\
-                                  window=windowoperation, eq=equalize,
-                              ignore=ignoretransarms)
+                        merge=mergeoperation, norm=normalize,\
+                        window=windowoperation, eq=equalize,ignore=ignoretransarms)
             try:
                 proteins = pd.read_hdf(proteinfilepath ,key=proteinTag, mode='r')
             except KeyError:

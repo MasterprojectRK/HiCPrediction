@@ -1,7 +1,8 @@
 from configurations import *
 
 def createTag(resolution, cellLine,chrom, norm = None, eq = None,
-               merge = None, window = None, ignore=None, windowSize = None):
+               merge = None, window = None, ignore=None, windowSize = None,\
+             model = None, loss=None):
     tmp = 'R' + str(resolution) + "_" + cellLine 
     if norm:
         tmp += "_N"
@@ -13,6 +14,10 @@ def createTag(resolution, cellLine,chrom, norm = None, eq = None,
         tmp += "_M" +convertMethod(merge)
     if window:
         tmp += "_W" +convertMethod(window)
+    if model:
+        tmp += "_" + model
+    if loss:
+        tmp += "_L" + loss
 
     return tmp + "_chr"+str(chrom)
 

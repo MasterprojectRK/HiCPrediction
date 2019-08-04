@@ -13,8 +13,8 @@ def cli():
               type=click.Choice(['avg', 'max']))
 @click.option('--cellLine', '-cl', default='Gm12878')
 @click.option('resolution', '-r', default=5000)
-@click.option('proteinfilepath', '-pfp', default='proteins.h5')
-@click.option('chromfilepath', '-cfp', default='chroms.h5')
+@click.option('proteinfilepath', '-pfp', default='Data/proteins.h5')
+@click.option('chromfilepath', '-cfp', default='Data/chroms.h5')
 @click.argument('proteindir')
 @cli.command()
 def loadAllProteins(proteindir, chromfilepath,proteinfilepath,resolution,\

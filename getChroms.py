@@ -7,7 +7,7 @@ def cli():
 
 @click.option('--cellLine', '-cl', default='Gm12878')
 @click.option('resolution', '-r', default=5000)
-@click.option('chromfilepath', '-cfp', default='chroms.h5')
+@click.option('chromfilepath', '-cfp', default='Data/chroms.h5')
 @click.argument('sourceFile')
 @cli.command()
 def addGenome(sourcefile,chromfilepath, resolution, cellline):

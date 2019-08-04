@@ -2,6 +2,9 @@ import forestPrep as fp
 from hiCOperations import *
 from predict import executePrediction
 
+
+
+
 def executeTraining(args):
     chroms = [item for item in chromStringToList(args.chroms)]
     print(chroms)
@@ -18,6 +21,26 @@ def executeTraining(args):
     for  name, arm in tqdm(armDict.items(), desc="Creating set for each arm"):
         setDict[name] = createDataset(args, name, arm, proteinDict[name])
     print("\nSets generated")
+    for name, dataSet in setDict.items():
+        print(name)
+        start = time.time()*1000
+        dataSet.to_hdf('dataSets.h5', key=name, mode='w')
+        print("h5 bunch write: ",time.time()*1000 - start)
+        start = time.time()*1000
+        dataSet.to_hdf(name+'.h5', key=name,mode='w')
+        print("h5 write: ",time.time()*1000 - start)
+        start = time.time()*1000
+        pickle.dump(dataSet, open(name+".p", "wb" ) )
+        print("pickle write: ",time.time()*1000 - start)
+        start = time.time()*1000
+        pd.read_hdf('dataSets.h5', name)
+        print("h5 bunch load: ",time.time()*1000 - start)
+        start = time.time()*1000
+        pd.read_hdf(name+'.h5', name)
+        print("h5 load: ",time.time()*1000 - start)
+        start = time.time()*1000
+        pickle.load(open(name+".p", "rb") )
+        print("pickle load: ",time.time()*1000 - start)
     combined = createCombinedDataset(setDict)
     print("Starting training")
     fp.startTraining(args, combined)

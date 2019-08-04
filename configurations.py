@@ -13,6 +13,8 @@ from sklearn.metrics import auc
 from hicmatrix import HiCMatrix as hm
 from hicexplorer import hicPlotMatrix as hicPlot
 
+import h5py
+import joblib
 import sys
 import bisect 
 import argparse
@@ -23,6 +25,8 @@ import datetime
 import itertools
 import shutil
 import operator
+import subprocess
+import click
 import pickle
 import os
 import numpy as np
@@ -56,8 +60,8 @@ CELL_D = "Gm12878/"
 DATA_D = "Data/"
 RESULT_D = "Data/Results/"
 RESULTPART_D = "Data/Results/Part/"
-CHROM_D = DATA_D +CELL_D+ "Chroms/"
-ARM_D = DATA_D +CELL_D+ "Arms/"
+CHROM_D = DATA_D +"Chroms/"
+ARM_D = DATA_D + "Arms/"
 MATRIX_D = DATA_D +CELL_D+ "Matrices/"
 CUT_D = DATA_D +CELL_D+ "Cuts/"
 SET_D = DATA_D + CELL_D +"Sets/"
