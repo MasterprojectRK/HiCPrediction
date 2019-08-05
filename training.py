@@ -5,33 +5,25 @@ from tagCreator import createTag
 def cli():
     pass
 
-@click.option('--lossfunction', '-lf', default='mse',\
-              type=click.Choice(['mse','mae']))
-@click.option('--modeltype', '-mt', default='rf',\
-              type=click.Choice(['ada', 'rf', 'mlp']))
-@click.option('--equalize/--dont-equalize', default=False)
-@click.option('--ignoretransarms/--dont-ignoretransarms', default=True)
-@click.option('--windowoperation', '-wo', default='avg',\
-              type=click.Choice(['avg', 'max', 'sum']))
-@click.option('--windowsize', '-ws', default=200)
-@click.option('--normalize/--dont-normalize', default=False)
-@click.option('--mergeoperation', '-mo', default='avg',\
-              type=click.Choice(['avg', 'max']))
-@click.option('--cellline', '-cl', default='Gm12878')
-@click.option('--conversion', '-co', default='none',\
-              type=click.Choice(['standardLog', 'none']))
-@click.option('resolution', '-r', default=5000)
-@click.option('datasetdir', '-dsd', default='Sets/')
-@click.option('modeldir', '-md', default='Models/')
-@click.option('setfilepath', '-sfp', default=None)
-@click.option('modelfilepath', '-sfp', default=None)
+@standard_options
+@train_options
+@protein_options
+@set_options
 @click.argument('chromosome')
 @cli.command()
 
-def train(chromosome, modelfilepath, setfilepath,modeldir,  datasetdir, resolution,\
+def train(chromosome, modelfilepath, datasetfilepath,modeldir,  datasetdir, resolution,\
         conversion, cellline, mergeoperation, normalize, windowoperation,\
-        windowsize, ignoretransarms, equalize, modeltype,lossfunction):
-    
+        windowsize, ignoretransarms, equalize, modeltype,lossfunction,\
+          proteincolumn):
+
+    if setfilepath and not modelfilepath:
+                msg = 'If you set a custom file for the dataset, you must '+\
+                'also provide a custom file to store the model at. The ' +\
+                'default behavior stores and loads both files according' +\
+                ' to the used parameters'
+                print(msg)
+                sys.exit()
     if modeltype == "rf":
         model = RandomForestRegressor(max_features='sqrt',random_state=5,\
                     n_estimators =10,n_jobs=4, verbose=2,
@@ -48,7 +40,8 @@ def train(chromosome, modelfilepath, setfilepath,modeldir,  datasetdir, resoluti
     else: 
         setTag =createTag(resolution, cellline, chromosome,\
                     merge=mergeoperation, norm=normalize,\
-                    window=windowoperation, eq=equalize, ignore=ignoretransarms)
+                    window=windowoperation, eq=equalize,\
+                          ignore=ignoretransarms, pc=pc)
         fileName = datasetdir + setTag + ".brotli"
     df = pd.read_parquet(fileName)
     df.replace([np.inf, -np.inf], np.nan)
@@ -67,7 +60,8 @@ def train(chromosome, modelfilepath, setfilepath,modeldir,  datasetdir, resoluti
     else:
         modelFileName = modeldir + createTag(resolution, cellline,chromosome,merge\
             = mergeoperation,norm=normalize,model=modeltype,loss=lossfunction,\
-            window=windowoperation, eq=equalize, ignore=ignoretransarms)+ ".z"
+            window=windowoperation, eq=equalize, ignore=ignoretransarms,\
+                                             pc=proteincolumn)+ ".z"
     joblib.dump(model, modelFileName,compress=True ) 
 
 

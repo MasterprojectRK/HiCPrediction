@@ -8,18 +8,64 @@ def chrom_filter(feature, c):
 def cli():
     pass
 
-@click.option('--normalize/--dont-normalize', default=False)
-@click.option('--mergeoperation', '-mo', default='avg',\
-              type=click.Choice(['avg', 'max']))
-@click.option('--cellLine', '-cl', default='Gm12878')
-@click.option('resolution', '-r', default=5000)
-@click.option('proteinfilepath', '-pfp', default='Data/proteins.h5')
-@click.option('chromfilepath', '-cfp', default='Data/chroms.h5')
+@standard_options
+@protein_options
+@proteinfile_options
+@chromfile_options
 @click.argument('proteindir')
 @cli.command()
 def loadAllProteins(proteindir, chromfilepath,proteinfilepath,resolution,\
-                    cellline, mergeoperation, normalize):
-    column = 6
+                    cellline, mergeoperation, normalize, proteincolumn):
+
+    proteins = getProteinFiles(proteincolumn, cellline, proteindir, normalize)
+
+    with h5py.File(chromfilepath, 'a') as chromFile:
+        for chrom in tqdm(range(1,23), desc= 'Converting proteins for each chromosome'):
+            saveData(resolution, cellline, chrom, mergeoperation, normalize,
+            proteinfilepath, chromFile, chromfilepath, proteins, proteincolumn)
+
+
+@standard_options
+@protein_options
+@click.option('--chromfilepath', '-cfp', default='Data/chroms.h5',\
+                 type=click.Path(exists=True), show_default=True)
+@click.option('--proteinfilepath', '-pfp', default='Data/proteins.h5',
+              type=click.Path(exists=True), show_default=True)
+@click.argument('proteindir')
+@click.argument('chromosome')
+@cli.command()
+def loadProteinsForOneChromosome(chromosome, proteindir, chromfilepath,\
+        proteinfilepath,resolution,cellline, mergeoperation,\
+                                 normalize,proteincolumn):
+    proteins = getProteinFiles(proteincolumn, cellline, proteindir, normalize)
+
+    with h5py.File(chromfilepath, 'a') as chromFile:
+        saveData(resolution, cellline, chromosome, mergeoperation, normalize,
+                proteinfilepath, chromFile, chromfilepath, proteins,\
+                 proteincolumn)
+
+
+
+def saveData(resolution, cellline, chrom, mergeoperation, normalize,\
+        proteinfilepath, chromFile, chromfilepath, proteins, pc):
+    proteinTag =createTag(resolution, cellline, chrom,\
+                          merge=mergeoperation, norm=normalize, pc=pc)
+    chromTag =createTag(resolution, cellline, chrom)
+
+    if chromTag not in chromFile:
+        msg = 'The chromosome {} is not loaded yet. Please'\
+                +'update your chromosome file {} using the script'\
+                +'"getChroms"'
+        print(msg.format(chromTag, chromfilepath))
+        sys.exit()
+    cutPath = chromTag + "/bins/start"
+    cutsStart = chromFile[cutPath].value
+    proteinData = loadProtein(proteins, chrom,cutsStart, pc,
+                              mergeoperation) 
+    proteinData.to_hdf(proteinfilepath,key=proteinTag, mode='a')
+
+
+def getProteinFiles(column, cellline, proteindir, normalize):
     proteins = dict()
     for f in os.listdir(proteindir):
         if f.startswith(cellline):
@@ -35,24 +81,7 @@ def loadAllProteins(proteindir, chromfilepath,proteinfilepath,resolution,\
                 for row in a:
                     row[column] = (float(x[column]) - minV) / maxV
             proteins[f] = a
-    with h5py.File(chromfilepath, 'a') as chromFile:
-        for chrom in tqdm(range(1,23), desc= 'Converting proteins for each chromosome'):
-            proteinTag =createTag(resolution, cellline, chrom,\
-                                  merge=mergeoperation, norm=normalize)
-            chromTag =createTag(resolution, cellline, chrom)
-
-            if chromTag not in chromFile:
-                msg = 'The chromosome {} is not loaded yet. Please'\
-                        +'update your chromosome file {} using the script'\
-                        +'"getChroms"'
-                print(msg.format(chromTag, chromfilepath))
-                sys.exit()
-            cutPath = chromTag + "/bins/start"
-            cutsStart = chromFile[cutPath].value
-            proteinData = loadProtein(proteins, chrom,cutsStart, column,
-                                      mergeoperation) 
-            proteinData.to_hdf(proteinfilepath,key=proteinTag, mode='a')
-
+    return proteins
 
 def loadProtein(proteins, chromName, cutsStart, column, mergeOperation):
         i = 0

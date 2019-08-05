@@ -5,26 +5,18 @@ from hiCOperations import *
 def cli():
     pass
 
-@click.option('--cellLine', '-cl', default='Gm12878')
-@click.option('resolution', '-r', default=5000)
-@click.option('chromfilepath', '-cfp', default='Data/chroms.h5')
-@click.argument('sourceFile')
+# @standard_options
+# @chromfile_options
+@click.option('--chromosomesOutputFile', '-cof', type=click.Path(exists=True))
+@click.argument('matrixFile')
 @cli.command()
-def addGenome(sourcefile,chromfilepath, resolution, cellline):
-    inputFormat = sourcefile.split(".")[-1]
-    if inputFormat != "cool" and inputFormat != "h5":
-
-        sub1 = "hicConvertFormat -m "+ sourcefile+" --inputFormat "+ inputFormat +\
-            " --outputFormat h5 -o tmp/matrix.h5 --resolutions " +resolution
-        subprocess.call(sub1,shell=True)
-        tmpFile = "tmp/matrix.h5"
-    else:
-        tmpFile = sourcefile
-    with h5py.File(chromfilepath, 'a') as f:
+def addGenome(matrixFile, chromosomesOutputFile):
+    inputFormat = matrixFile.split(".")[-1]
+    with h5py.File(chromosomeOutputFile, 'a') as f:
         for i in tqdm(range(1,23)):
-            tag = createTag(resolution, cellline, chrom=i)
+            tag = createTag(matrixFile, chrom=i)
             if not tag in f:
-                sub2 = "hicAdjustMatrix -m "+tmpFile +" --action keep --chromosomes " +\
+                sub2 = "hicAdjustMatrix -m "+matrixFile +" --action keep --chromosomes " +\
                 str(i)+" -o tmp/chrom"+str(i)+".h5"
                 subprocess.call(sub2,shell=True)
                 with h5py.File('tmp/chrom'+str(i)+'.h5', 'r') as m:
@@ -33,31 +25,44 @@ def addGenome(sourcefile,chromfilepath, resolution, cellline):
         os.remove(f)
 
 
-@click.option('chromfilepath', '-cfp', default='chroms.h5')
-@click.option('--cellLine', '-cl', default='Gm12878')
-@click.option('resolution', '-r', default=5000)
+@standard_options
+@click.option('--chromtargetfilepath', '-ctp', default='Data/chroms.h5',\
+                 type=click.Path(exists=True), show_default=True)
+@click.option('--genomeFilePath','-gfp', default=None, cls=Mutex,\
+              not_required_if = ['chromsourcefilepath'])
+@click.option('--chromsourcefilepath','-csp', default=None, cls=Mutex,\
+              not_required_if = ['genomefilepath'])
 @click.argument('chromNumber')
-@click.argument('sourceFile')
 @cli.command()
-def addChrom(sourceFile,chromnumber, resolution, cellline, chromfilepath):
-    inputFormat = sourcefile.split(".")[-1]
+def addChrom(genomefilepath,chromnumber,chromsourcefilepath, resolution,\
+             cellline, chromtargetfilepath):
+    if genomefilepath:
+        inputFormat = genomefile.split(".")[-1]
+        with h5py.File(chromtargetfilepath, 'a') as f:
+            sub1 = "hicConvertFormat -m "+ genomefile+" --inputFormat "+ inputFormat +\
+                " --outputFormat h5 -o tmp/chrom"+str(chromnumber)+".h5"
+            subprocess.call(sub1,shell=True)
+            fileName = 'tmp/chrom'+str(chromnumber)+'.h5'
+    elif chromsourcefilepath:
+        fileName = chromsourcefilepath
+    else: 
+                msg = 'You have to set either(xor) a whole genome file to load from '+\
+                'or a single chromosome file.'
+                print(msg)
+                sys.exit()
     tag = createTag(resolution, cellline, chrom=chromnumber)
-    with h5py.File(chromfilepath, 'a') as f:
-        sub1 = "hicConvertFormat -m "+ sourcefile+" --inputFormat "+ inputFormat +\
-            " --outputFormat h5 -o tmp/chrom"+str(chromNumber)+".h5"
-        subprocess.call(sub1,shell=True)
-        with h5py.File('tmp/chrom'+str(chromNumber)+'.h5','r') as m:
-            del f[tag]
-            m.copy('/', f,name=tag)
+    with h5py.File(fileName ,'r') as m:
+        del f[tag]
+        m.copy('/', f,name=tag)
     for f in os.files("tmp/"):
         os.remove(f)
 
+
+@click.argument('filename', type=click.Path(exists=True))
 @cli.command()
-def showChroms():
-    with h5py.File('chroms.h5', 'a') as f:
+def showH5(filename):
+    with h5py.File(filename, 'r') as f:
         f.visit(printName)
-        # df = pd.read_hdf('proteins.h5', key = '5000/Gm12878/chr9')
-        # print(df.head(100))
 
 
 def printName(name):

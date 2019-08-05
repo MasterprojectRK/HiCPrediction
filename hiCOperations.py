@@ -1,7 +1,4 @@
 from configurations import *
-from proteinLoad import loadAllProteins
-from setCreator import createDataset
-from tagCreator import createTag, chromStringToList
 
 def createCombinedDataset(sets):
     data = pd.DataFrame() 

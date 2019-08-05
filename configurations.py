@@ -54,70 +54,115 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 
-# global constants
-CELL_D = "Gm12878/"
-# CELL_D = "K562/"
-DATA_D = "Data/"
-RESULT_D = "Data/Results/"
-RESULTPART_D = "Data/Results/Part/"
-CHROM_D = DATA_D +"Chroms/"
-ARM_D = DATA_D + "Arms/"
-MATRIX_D = DATA_D +CELL_D+ "Matrices/"
-CUT_D = DATA_D +CELL_D+ "Cuts/"
-SET_D = DATA_D + CELL_D +"Sets/"
-SETC_D = DATA_D + CELL_D +"SetsCombined/"
-PRED_D = DATA_D +CELL_D+ "Predictions/"
-MODEL_D  = DATA_D + "Models/"
-IMAGE_D = DATA_D +  "Images/"
-PLOT_D = DATA_D +CELL_D +  "Plots/"
-ORIG_D = DATA_D +  "BaseData/Orig/"
-PROTEIN_D = DATA_D + "Proteins/"
-PROTEINORIG_D = DATA_D +"BaseData/ProteinOrig/"
+class Mutex(click.Option):
+    def __init__(self, *args, **kwargs):
+        self.not_required_if:list = kwargs.pop("not_required_if")
 
+        assert self.not_required_if, "'not_required_if' parameter required"
+        kwargs["help"] = (kwargs.get("help", "") + "Option is mutually exclusive with " + ", ".join(self.not_required_if) + ".").strip()
+        super(Mutex, self).__init__(*args, **kwargs)
 
+    def handle_parse_result(self, ctx, opts, args):
+        current_opt:bool = self.name in opts
+        for mutex_opt in self.not_required_if:
+            if mutex_opt in opts:
+                if current_opt:
+                    raise click.UsageError("Illegal usage: '" + str(self.name) + "' is mutually exclusive with " + str(mutex_opt) + ".")
+                else:
+                    self.prompt = None
+        return super(Mutex, self).handle_parse_result(ctx, opts, args)
 
-def parseArguments(args=None):
-    print(args)
+_standard_options = [
+    click.option('--cellline', '-cl', default='Gm12878', show_default=True, \
+                help='the cellline you want to train with'),
+    click.option('--resolution', '-r', default=5000, show_default=True,\
+                 help='The resolution you want to use, common resolutions '+\
+                 'are 5000, 10000 and 20000'),
+]
+_chromfile =[
+    click.option('--chromfilepath', '-cfp', default='Data/chroms.h5',\
+                 type=click.Path(exists=True), show_default=True)
+]
+_proteinfile = [
+    click.option('--proteinfilepath', '-pfp', default='Data/proteins.h5',
+              type=click.Path(exists=True), show_default=True)
+]
 
-    parser = argparse.ArgumentParser(description='HiC Prediction')
+_protein_options = [
+    click.option('--mergeoperation','-mo',default='avg',\
+                 type=click.Choice(['avg', 'max']),show_default=True,\
+                 help='This parameter defines how the proteins are binned'),
+    click.option('--normalize/--dont-normalize', default=False,\
+                 show_default=True,\
+                 help='Should the proteins be normalized to a 0-1 range'),
+    click.option('--proteincolumn' ,'-pc', default=6,hidden=True),
+]
 
-    parserRequired = parser.add_argument_group('Required arguments')
+_set_options = [
+    click.option('--equalize/--dont-equalize', default=False,
+                 show_default=True,
+                help='If either of the basepairs has no peak at a specific '+\
+                'protein, set both values to 0'),
+    click.option('--ignoretransarms/--dont-ignoretransarms', default=True,\
+                 show_default=True,help='Cut out the trans arms for training'),
+    click.option('--windowoperation', '-wo', default='avg',\
+              type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
+                help='How should the proteins in between two base pairs be summed up'),
+    click.option('--windowsize', '-ws', default=200, show_default=True,\
+                help='Maximum distance between two basepairs'),
+    click.option('--datasetdir', '-dsd', default='Data/Sets/',
+                 type=click.Path(exists=True), show_default=True,\
+                help='Where to store/load the training sets'),
+    click.option('--datasetfilepath', '-sfp', default=None,\
+                 type=click.Path(exists=True), show_default=True),
+]
+_train_options = [
+    click.option('--lossfunction', '-lf', default='mse',\
+              type=click.Choice(['mse','mae']), show_default=True, \
+                help='Which loss function should be used for training'),
+    click.option('--modeltype', '-mt', default='rf',\
+              type=click.Choice(['ada', 'rf', 'mlp']), show_default=True, \
+                help='Which algorithm should be used for training'),
+    click.option('--conversion', '-co', default='none',\
+              type=click.Choice(['standardLog', 'none']), show_default=True,\
+                help='Define a conversion function for the read values'),
+    click.option('--modelfilepath', '-sfp', default=None,\
+                 type=click.Path(exists=True), show_default=True, \
+                help='Exact filename where to store/load the model'),
+    click.option('--modeldir', '-md', default='Data/Models/',\
+                 type=click.Path(exists=True), cls=Mutex,\
+                not_required_if = ['modelfilepath'], show_default=True,\
+                help='Directory where to store/load the model according to '+\
+                'naming convention'),
 
-    # define the arguments
-    parserRequired.add_argument('--action', '-a',
-        choices=['train','allCombs','storeCM','predToM','execute',
-                 'executePrediction',
-     'predictAll','predict','combine', 'split','trainAll', 'createAllWindows','plotAll',
-    'plot','plotPred','createArms','mergeAndSave','loadAllProteins','trainPredictAll',
-    'createWindows' ], help='Action to take', required=True)
+]
 
-    parserOpt = parser.add_argument_group('Optional arguments')
-    parserOpt.add_argument('--binSize', '-bs',type=int, default=5000)
-    parserOpt.add_argument('--cellLine', '-cl',type=str, default='Gm12878')
-    parserOpt.add_argument('--chrom', '-c',type=str, default="1")
-    parserOpt.add_argument('--chroms', '-cs',type=str, default="1")
-    parserOpt.add_argument('--conversion', '-co',type=str, default="default")
-    parserOpt.add_argument('--correctProteins', '-cp',type=bool, default=True)
-    parserOpt.add_argument('--directConversion', '-d',type=int, default=1)
-    parserOpt.add_argument('--equalizeProteins', '-ep',type=bool, default=False)
-    parserOpt.add_argument('--estimators', '-e',type=int, default=10)
-    parserOpt.add_argument('--grid', '-g',type=int, default=0)
-    parserOpt.add_argument('--log', '-l',type=bool, default=True)
-    parserOpt.add_argument('--loss', '-lf',type=str, default="mse")
-    parserOpt.add_argument('--mergeOperation', '-mo',type=str, default='avg')
-    parserOpt.add_argument('--model', '-m',type=str, default="rf")
-    parserOpt.add_argument('--modelChroms', '-ms',type=str, default="1")
-    parserOpt.add_argument('--modelCellLine', '-mcl',type=str, default='Gm12878')
-    parserOpt.add_argument('--normalizeProteins', '-np',type=bool, default=False)
-    parserOpt.add_argument('--predChroms', '-ps',type=str, default="1")
-    parserOpt.add_argument('--reach', '-r',type=str, default="200")
-    parserOpt.add_argument('--region', '-re',type=str, default=None)
-    parserOpt.add_argument('--regionIndex1', '-r1',type=int, default=None)
-    parserOpt.add_argument('--regionIndex2', '-r2',type=int, default=None)
-    parserOpt.add_argument('--sourceFile', '-sf',type=str, default="")
-    parserOpt.add_argument('--windowOperation', '-wo',type=str, default="avg")
-    args = parser.parse_args(args)
-    print(args)
-    return args
+def proteinfile_options(func):
+    for option in reversed(_proteinfile):
+        func = option(func)
+    return func
 
+def chromfile_options(func):
+    for option in reversed(_chromfile):
+        func = option(func)
+    return func
+def standard_options(func):
+    for option in reversed(_standard_options):
+        func = option(func)
+    return func
+
+def protein_options(func):
+    for option in reversed(_protein_options):
+        func = option(func)
+    return func
+
+def set_options(func):
+    for option in reversed(_set_options):
+        func = option(func)
+    return func
+
+def train_options(func):
+    for option in reversed(_train_options):
+        func = option(func)
+    return func
 

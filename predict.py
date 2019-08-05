@@ -3,6 +3,18 @@ START =7
 END = 23
 resultName = "part_"+str(START)+"_"+str(END)+".p"
 
+@click.group()
+def cli():
+    pass
+
+@standard_options
+@train_options
+@protein_options
+@set_options
+@click.option('setfilepath', '-sfp', default=None)
+@click.argument('trainchromosome')
+@click.argument('predictchromosome')
+@cli.command()
 def executePrediction(args):
     c = args.chrom
     chroms = [item for item in chromStringToList(args.chrom)]

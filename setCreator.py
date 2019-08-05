@@ -6,34 +6,47 @@ from scipy.sparse import coo_matrix
 def cli():
     pass
 
-@click.option('--equalize/--dont-equalize', default=False)
-@click.option('--ignoretransarms/--dont-ignoretransarms', default=True)
-@click.option('windowsize', '-ws', default=200)
-@click.option('--windowoperation', '-wo', default='avg',\
-              type=click.Choice(['avg', 'max', 'sum']))
-@click.option('--normalize/--dont-normalize', default=False)
-@click.option('--mergeoperation', '-mo', default='avg',\
-              type=click.Choice(['avg', 'max']))
-@click.option('--cellline', '-cl', default='Gm12878')
-@click.option('resolution', '-r', default=5000)
-@click.option('proteinfilepath', '-pfp', default='Data/proteins.h5')
-@click.option('chromfilepath', '-cfp', default='Data/chroms.h5')
-@click.option('centromeresfilepath', '-cmfp',
-              default='Data/centromeres.txt')
-@click.option('datasetdirectory', '-dsd', default='Data/Sets/')
+@standard_options
+@protein_options
+@set_options
+@proteinfile_options
+@chromfile_options
+@click.option('--centromeresfilepath', '-cmfp',default='Data/centromeres.txt',\
+              type=click.Path(exists=True), show_default=True)
 @cli.command()
-# @click.argument('proteindir')
-def createAllSets(datasetdirectory, centromeresfilepath,chromfilepath, proteinfilepath,\
+def createSetsForGenome(datasetdir, centromeresfilepath,chromfilepath, proteinfilepath,\
                   resolution, cellline, mergeoperation, normalize, windowoperation,\
-                  windowsize, ignoretransarms, equalize):
+                  windowsize, ignoretransarms, equalize, proteincolumn):
 
-    with h5py.File(chromfilepath, 'a') as chromFile:
-        for chrom in tqdm(range(1,23), desc= 'Creating sets for each chromosome'):
+    for chrom in tqdm(range(1,23), desc= 'Creating sets for each chromosome'):
+        createSingleSet(datasetdir, centromeresfilepath,chromfilepath, proteinfilepath,\
+                  resolution, cellline, mergeoperation, normalize, windowoperation,\
+                  windowsize, ignoretransarms, equalize, proteincolumn, chrom)
+        
+@standard_options
+@protein_options
+@set_options
+@click.option('--proteinfilepath', '-pfp', default='Data/proteins.h5',\
+              type=click.Path(exists=True), show_default=True)
+@click.option('--centromeresfilepath', '-cmfp',default='Data/centromeres.txt',\
+              type=click.Path(exists=True), show_default=True)
+@click.option('--chromfilepath', '-cfp', default='Data/chroms.h5',\
+                 type=click.Path(exists=True), show_default=True)
+@click.argument('trainchromosome')
+@cli.command()
+def createSingleSet(datasetdir, centromeresfilepath,chromfilepath, proteinfilepath,\
+                  resolution, cellline, mergeoperation, normalize, windowoperation,\
+                  windowsize, ignoretransarms, equalize, proteincolumn, chrom):
+
+        with h5py.File(chromfilepath, 'a') as chromFile:
             proteinTag =createTag(resolution, cellline, chrom,\
-                                  merge=mergeoperation, norm=normalize)
+                                  merge=mergeoperation,\
+                                  norm=normalize,pc=proteincolumn)
+
             setTag =createTag(resolution, cellline, chrom,\
-                        merge=mergeoperation, norm=normalize,\
-                        window=windowoperation, eq=equalize,ignore=ignoretransarms)
+                    merge=mergeoperation,norm=normalize,window=\
+                    windowoperation,eq=equalize,ignore=ignoretransarms,\
+                              pc=proteincolumn)
             try:
                 proteins = pd.read_hdf(proteinfilepath ,key=proteinTag, mode='r')
             except KeyError:
@@ -75,8 +88,11 @@ def createAllSets(datasetdirectory, centromeresfilepath,chromfilepath, proteinfi
             else:
                 df = createDataset(proteins, reads, resolution, windowoperation, windowsize,
                                equalize, chrom, start=0, end =len(cuts))
-            df.to_parquet( datasetdirectory +setTag+'.brotli', engine='auto',\
-                          compression='brotli')
+            if datasetfilepath:
+                fileName = datasetfilepath
+            else:
+                fileName = datasetdir +setTag+'.brotli'
+            df.to_parquet(fileName, engine='auto')
 
 def getTransArmPositions(centromeresfilepath, chrom, cuts):
         f=open(centromeresfilepath, "r")

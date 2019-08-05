@@ -2,7 +2,7 @@ from configurations import *
 
 def createTag(resolution, cellLine,chrom, norm = None, eq = None,
                merge = None, window = None, ignore=None, windowSize = None,\
-             model = None, loss=None):
+             model = None, loss=None, pc=None):
     tmp = 'R' + str(resolution) + "_" + cellLine 
     if norm:
         tmp += "_N"
@@ -14,10 +14,13 @@ def createTag(resolution, cellLine,chrom, norm = None, eq = None,
         tmp += "_M" +convertMethod(merge)
     if window:
         tmp += "_W" +convertMethod(window)
+    if pc and pc != 6:
+        tmp += "_PC" + str(pc)
     if model:
         tmp += "_" + model
     if loss:
         tmp += "_L" + loss
+
 
     return tmp + "_chr"+str(chrom)
 
@@ -28,51 +31,6 @@ def convertMethod(method):
         return "1"
     elif method == "sum":
         return "2"
-
-# def tagCreator(args, mode):
-    # if args.equalizeProteins:
-        # ep = "_E"
-    # else:
-        # ep = ""
-    # if args.normalizeProteins:
-        # nop = "_N"
-    # else:
-        # nop = ""
-    # wmep = "_"+args.windowOperation +"_M"+args.mergeOperation+ep +nop
-
-    # cowmep =  "_"+args.conversion +  wmep
-    # csa = chromsToName(args.chroms)
-    # csam = args.modelCellLine + "_"+csa+"_"+args.model +"_" + args.loss
-
-    # if mode == "set":
-        # return SET_D + args.chrom + wmep +".p"
-
-    # elif mode == "model":
-        # # return MODEL_D + csam + cowmep+".p"
-        # return MODEL_D + csam + cowmep+"_FalseProteins.p"
-
-    # elif mode == "cut":
-        # return CUT_D + args.chrom + ".p"
-
-    # elif mode == "matrix":
-        # return MATRIX_D + args.chrom + ".p"
-
-    # elif mode == "protein":
-        # return PROTEIN_D + args.chrom+ "_M"+args.mergeOperation+nop+".p"
-
-    # elif mode == "pred":
-        # return PRED_D + args.cellLine +"_"+ args.chrom + "_"+ csam + cowmep+\
-    # "_FalseProteins.cool"
-        # # return PRED_D + args.cellLine +"_"+ args.chrom + "_"+ csam + cowmep+".cool"
-
-    # elif mode == "setC":
-        # return SETC_D+csa+ wmep +".p"
-
-    # elif mode == "image":
-        # return IMAGE_D + args.chrom +"_R" + args.region+"_P"+csam + cowmep +".png"
-
-    # elif mode == "plot":
-        # return PLOT_D  + args.chrom +"_P"+csam + cowmep +".png"
 
 def chromsToName(s):
     return(chromListToString(chromStringToList(s)) )
