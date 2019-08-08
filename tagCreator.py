@@ -1,28 +1,35 @@
 from configurations import *
 
-def createTag(resolution, cellLine,chrom, norm = None, eq = None,
-               merge = None, window = None, ignore=None, windowSize = None,\
-             model = None, loss=None, pc=None):
-    tmp = 'R' + str(resolution) + "_" + cellLine 
-    if norm:
+def createTag(matrixFile,chrom, eq = None,
+             window = None, ignore=None, windowSize = None,\
+             model = None, loss=None, params = None):
+    tmp = matrixFile.split("/")[-1].split(".")[0] 
+    if params and params['normalize']:
         tmp += "_N"
     if eq:
         tmp += "_E"
     if ignore:
         tmp += "_A"
-    if merge:
-        tmp += "_M" +convertMethod(merge)
+    if params and params['mergeOperation']:
+        tmp += "_M" +convertMethod(params['mergeOperation'])
     if window:
         tmp += "_W" +convertMethod(window)
-    if pc and pc != 6:
+    if params and params['peakColumn'] and params['peakColumn']  != 6:
         tmp += "_PC" + str(pc)
     if model:
         tmp += "_" + model
     if loss:
         tmp += "_L" + loss
 
+def createProteinTag(matrixFile,params):
+    tmp = matrixFile.split("/")[-1].split(".")[0] 
+    if params['normalize']:
+        tmp += "_N"
+    tmp += "_M" +params['mergeOperation']
+    if params['peakColumn']  != 6:
+        tmp += "_PC" + str(pc)
+    return tmp
 
-    return tmp + "_chr"+str(chrom)
 
 def convertMethod(method):
     if method == "avg":

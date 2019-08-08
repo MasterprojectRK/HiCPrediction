@@ -89,13 +89,13 @@ _proteinfile = [
 ]
 
 _protein_options = [
-    click.option('--mergeoperation','-mo',default='avg',\
+    click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
-    click.option('--normalize/--dont-normalize', default=False,\
+    click.option('--normalize', default=False,\
                  show_default=True,\
                  help='Should the proteins be normalized to a 0-1 range'),
-    click.option('--proteincolumn' ,'-pc', default=6,hidden=True),
+    click.option('--peakColumn' ,'-pc', default=6,hidden=True),
 ]
 
 _set_options = [
@@ -110,11 +110,8 @@ _set_options = [
                 help='How should the proteins in between two base pairs be summed up'),
     click.option('--windowsize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
-    click.option('--datasetdir', '-dsd', default='Data/Sets/',
-                 type=click.Path(exists=True), show_default=True,\
+    click.option('--datasetOutputDirectory', '-dod',type=click.Path(exists=True),\
                 help='Where to store/load the training sets'),
-    click.option('--datasetfilepath', '-sfp', default=None,\
-                 type=click.Path(exists=True), show_default=True),
 ]
 _train_options = [
     click.option('--lossfunction', '-lf', default='mse',\
@@ -166,3 +163,16 @@ def train_options(func):
         func = option(func)
     return func
 
+from itertools import product
+
+def getCombinations():
+    params = {
+        'mergeOperation': ["avg", "max"],
+        'normalize': [True, False],
+        'peakColumn': [4, 6],
+    }
+
+    keys = list(params)
+    paramDict =  product(*params.values())
+    for val in tqdm(list(paramDict), desc= 'Compute all parameter combinations' ):
+        yield dict(zip(params, val))

@@ -1,5 +1,6 @@
 from configurations import *
-from tagCreator import createTag
+from tagCreator import createProteinTag, createChromTag
+from convertChroms import addGenome
 
 def chrom_filter(feature, c):
         return feature.chrom == c
@@ -7,88 +8,55 @@ def chrom_filter(feature, c):
 @click.group()
 def cli():
     pass
-
-@standard_options
+@click.argument('proteinInputFiles', nargs=-1)
 @protein_options
-@proteinfile_options
-@chromfile_options
-@click.argument('proteindir')
+@click.option('--experimentOutputDirectory','-eod', required=True,\
+              help='Outputfile', type=click.Path(exists=True))
+@click.option('--matrixFile', '-mf', required=True,help='Input file',\
+              type=click.Path(exists=True))
 @cli.command()
-def loadAllProteins(proteindir, chromfilepath,proteinfilepath,resolution,\
-                    cellline, mergeoperation, normalize, proteincolumn):
+def loadAllProteins(proteininputfiles, experimentoutputdirectory,
+                   matrixfile,normalize, peakcolumn, mergeoperation):
+    addGenome(matrixfile, experimentoutputdirectory)
+    inputName = matrixfile.split(".")[0].split("/")[-1]
+    chromosomeFileName = experimentoutputdirectory + '/' + inputName + 'chromh5'
+    params = dict()
+    params['peakColumn'] = peakcolumn
+    params['normalize'] = normalize
+    params['mergeOperation'] = mergeoperation
+    with h5py.File(chromosomeFileName, 'a') as chromFile:
+        proteins = getProteinFiles(proteininputfiles, params)
+        proteinTag =createProteinTag(inputName ,params)
+        for chromosome in tqdm(range(1,23), desc= 'Converting proteins for each chromosome'):
+            chromTag = "chr" +str(chromsome)
+            cutPath = chromTag + "/bins/start"
+            cutsStart = chromFile[cutPath].value
+            proteinData = loadProtein(proteins, chromosome,cutsStart,params)
+            fileName = experimentoutputdirectory + "/" +proteinTag + ".proteinh5"
+            proteinData.to_hdf(fileName,key=chromTag, mode='a')
 
-    proteins = getProteinFiles(proteincolumn, cellline, proteindir, normalize)
-
-    with h5py.File(chromfilepath, 'a') as chromFile:
-        for chrom in tqdm(range(1,23), desc= 'Converting proteins for each chromosome'):
-            saveData(resolution, cellline, chrom, mergeoperation, normalize,
-            proteinfilepath, chromFile, chromfilepath, proteins, proteincolumn)
-
-
-@standard_options
-@protein_options
-@click.option('--chromfilepath', '-cfp', default='Data/chroms.h5',\
-                 type=click.Path(exists=True), show_default=True)
-@click.option('--proteinfilepath', '-pfp', default='Data/proteins.h5',
-              type=click.Path(exists=True), show_default=True)
-@click.argument('proteindir')
-@click.argument('chromosome')
-@cli.command()
-def loadProteinsForOneChromosome(chromosome, proteindir, chromfilepath,\
-        proteinfilepath,resolution,cellline, mergeoperation,\
-                                 normalize,proteincolumn):
-    proteins = getProteinFiles(proteincolumn, cellline, proteindir, normalize)
-
-    with h5py.File(chromfilepath, 'a') as chromFile:
-        saveData(resolution, cellline, chromosome, mergeoperation, normalize,
-                proteinfilepath, chromFile, chromfilepath, proteins,\
-                 proteincolumn)
-
-
-
-def saveData(resolution, cellline, chrom, mergeoperation, normalize,\
-        proteinfilepath, chromFile, chromfilepath, proteins, pc):
-    proteinTag =createTag(resolution, cellline, chrom,\
-                          merge=mergeoperation, norm=normalize, pc=pc)
-    chromTag =createTag(resolution, cellline, chrom)
-
-    if chromTag not in chromFile:
-        msg = 'The chromosome {} is not loaded yet. Please'\
-                +'update your chromosome file {} using the script'\
-                +'"getChroms"'
-        print(msg.format(chromTag, chromfilepath))
-        sys.exit()
-    cutPath = chromTag + "/bins/start"
-    cutsStart = chromFile[cutPath].value
-    proteinData = loadProtein(proteins, chrom,cutsStart, pc,
-                              mergeoperation) 
-    proteinData.to_hdf(proteinfilepath,key=proteinTag, mode='a')
-
-
-def getProteinFiles(column, cellline, proteindir, normalize):
+def getProteinFiles(proteinInputFiles, params):
     proteins = dict()
-    for f in os.listdir(proteindir):
-        if f.startswith(cellline):
-            path  = proteindir+f
-            a = pybedtools.BedTool(path)
-            b = a.to_dataframe()
-            c = b.iloc[:,column]
-            minV = min(c)
-            maxV = max(c) - minV
-            if maxV == 0:
-                maxV = 1
-            if normalize:
-                for row in a:
-                    row[column] = (float(x[column]) - minV) / maxV
-            proteins[f] = a
+    for path in proteinInputFiles:
+        a = pybedtools.BedTool(path)
+        b = a.to_dataframe()
+        c = b.iloc[:,params['peakColumn']]
+        minV = min(c)
+        maxV = max(c) - minV
+        if maxV == 0:
+            maxV = 1.0
+        if params['normalize']:
+            for row in a:
+                row[params['peakColumn']] = str((float(row[params['peakColumn']]) - minV) / maxV)
+        proteins[path] = a
     return proteins
 
-def loadProtein(proteins, chromName, cutsStart, column, mergeOperation):
+def loadProtein(proteins, chromName, cutsStart, params):
         i = 0
         allProteins = []
-        if mergeOperation == 'avg':
+        if params['mergeOperation'] == 'avg':
             merge = np.mean
-        elif mergeOperation == 'max':
+        elif params['mergeOperation'] == 'max':
             merge = np.max
         for cut in cutsStart:
             allProteins.append(np.zeros(15))
@@ -106,9 +74,9 @@ def loadProtein(proteins, chromName, cutsStart, column, mergeOperation):
                 peak = feature.start + int(feature[9])
                 pos = bisect.bisect_right(cutsStart, peak)
                 if pos in values:
-                    values[pos].append(float(feature[column]))
+                    values[pos].append(float(feature[params['peakColumn']]))
                 else:
-                    values[pos] = [float(feature[column])]
+                    values[pos] = [float(feature[params['peakColumn']])]
             j = 0
             for key, val in values.items():
                 score = merge(val)

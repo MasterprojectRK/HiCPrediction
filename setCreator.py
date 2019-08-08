@@ -6,65 +6,33 @@ from scipy.sparse import coo_matrix
 def cli():
     pass
 
-@standard_options
-@protein_options
 @set_options
-@proteinfile_options
-@chromfile_options
-@click.option('--centromeresfilepath', '-cmfp',default='Data/centromeres.txt',\
+@click.option('--centromeresFile', '-cmf',default='Data/centromeres.txt',\
               type=click.Path(exists=True), show_default=True)
+@click.option('--proteinInputFile', '-pif', required=True,\
+              type=click.Path(exists=True))
+@click.option('--chromosomeInputFile', '-cif', required=True,\
+                 type=click.Path(exists=True))
+@click.argument('trainChromosome')
 @cli.command()
-def createSetsForGenome(datasetdir, centromeresfilepath,chromfilepath, proteinfilepath,\
-                  resolution, cellline, mergeoperation, normalize, windowoperation,\
-                  windowsize, ignoretransarms, equalize, proteincolumn):
-
-    for chrom in tqdm(range(1,23), desc= 'Creating sets for each chromosome'):
-        createSingleSet(datasetdir, centromeresfilepath,chromfilepath, proteinfilepath,\
-                  resolution, cellline, mergeoperation, normalize, windowoperation,\
-                  windowsize, ignoretransarms, equalize, proteincolumn, chrom)
-        
-@standard_options
-@protein_options
-@set_options
-@click.option('--proteinfilepath', '-pfp', default='Data/proteins.h5',\
-              type=click.Path(exists=True), show_default=True)
-@click.option('--centromeresfilepath', '-cmfp',default='Data/centromeres.txt',\
-              type=click.Path(exists=True), show_default=True)
-@click.option('--chromfilepath', '-cfp', default='Data/chroms.h5',\
-                 type=click.Path(exists=True), show_default=True)
-@click.argument('trainchromosome')
-@cli.command()
-def createSingleSet(datasetdir, centromeresfilepath,chromfilepath, proteinfilepath,\
-                  resolution, cellline, mergeoperation, normalize, windowoperation,\
-                  windowsize, ignoretransarms, equalize, proteincolumn, chrom):
-
-        with h5py.File(chromfilepath, 'a') as chromFile:
-            proteinTag =createTag(resolution, cellline, chrom,\
-                                  merge=mergeoperation,\
-                                  norm=normalize,pc=proteincolumn)
-
-            setTag =createTag(resolution, cellline, chrom,\
-                    merge=mergeoperation,norm=normalize,window=\
-                    windowoperation,eq=equalize,ignore=ignoretransarms,\
-                              pc=proteincolumn)
+def createSingleSet(centromeresfile,chromosomeinputfile, proteininputfile,\
+                    datasetoutputdirectory,windowoperation,windowsize,\
+                    ignoretransarms, equalize, trainchromosome):
+        proteinTag = proteininputfile.split("/")[-1].split(".")[0]
+        with h5py.File(chromosomeinputfile, 'a') as chromFile:
+            setTag =createSetTag(proteinTag,trainingchromosome, window=\
+                    windowoperation,eq=equalize,ignore=ignoretransarms)
             try:
-                proteins = pd.read_hdf(proteinfilepath ,key=proteinTag, mode='r')
+                proteins = pd.read_hdf(proteininputfile\
+                                       ,key='chr'+str(trainchromsome, mode='r')
             except KeyError:
                 msg = 'Key {} does not exist in Protein file {}. Please' +\
                         'execute the script "proteinLoad" with the correct ' +\
                         'parameters'
-                print(msg.format(proteinTag, proteinfilepath))
+                print(msg.format('chr'+str(trainchromsome), proteininputfile))
                 sys.exit()
-            except FileNotFoundError:
-                msg = 'Given or default protein file {} does not exist. Please' +\
-                        ' execute the script "proteinLoad" with the correct ' +\
-                        'parameters or set the correct file name'
-                print(msg.format(proteinfilepath))
-                sys.exit()
-
-
             rows = np.shape(proteins)[0]
-            chromTag =createTag(resolution, cellline, chrom)
+            chromTag = "chr" +str(trainchromsome)
             if chromTag not in chromFile:
                 msg = 'The chromosome {} is not loaded yet. Please'\
                         +'update your chromosome file {} using the script'\
@@ -82,16 +50,13 @@ def createSingleSet(datasetdir, centromeresfilepath,chromfilepath, proteinfilepa
                 start, end = getTransArmPositions(centromeresfilepath,
                                                   chrom,cuts)
                 df = createDataset(proteins, reads, resolution, windowoperation, windowsize,
-                               equalize, chrom, start=0, end=start)
+                               equalize, trainingchromosome, start=0, end=start)
                 df.append(createDataset(proteins, reads, resolution, windowoperation, windowsize,
-                               equalize, chrom, start=end + 1, end=len(cuts)))
+                               equalize, trainingchromosome, start=end + 1, end=len(cuts)))
             else:
                 df = createDataset(proteins, reads, resolution, windowoperation, windowsize,
-                               equalize, chrom, start=0, end =len(cuts))
-            if datasetfilepath:
-                fileName = datasetfilepath
-            else:
-                fileName = datasetdir +setTag+'.brotli'
+                               equalize, trainingchromosome, start=0, end =len(cuts))
+            fileName = datasetoutputdirectory +'/' +setTag+'.brotli'
             df.to_parquet(fileName, engine='auto')
 
 def getTransArmPositions(centromeresfilepath, chrom, cuts):
