@@ -48,6 +48,7 @@ from scipy import sparse
 from scipy import signal
 from scipy import misc
 from scipy.stats.stats import pearsonr
+from scipy.sparse import coo_matrix
 
 log.basicConfig(level=log.DEBUG)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
@@ -73,19 +74,9 @@ class Mutex(click.Option):
         return super(Mutex, self).handle_parse_result(ctx, opts, args)
 
 _standard_options = [
-    click.option('--cellline', '-cl', default='Gm12878', show_default=True, \
-                help='the cellline you want to train with'),
-    click.option('--resolution', '-r', default=5000, show_default=True,\
-                 help='The resolution you want to use, common resolutions '+\
-                 'are 5000, 10000 and 20000'),
-]
-_chromfile =[
-    click.option('--chromfilepath', '-cfp', default='Data/chroms.h5',\
-                 type=click.Path(exists=True), show_default=True)
-]
-_proteinfile = [
-    click.option('--proteinfilepath', '-pfp', default='Data/proteins.h5',
-              type=click.Path(exists=True), show_default=True)
+    click.option('--experimentOutputDirectory','-eod', required=True,\
+              help='Outputfile'),
+    click.option('--chromosomes', '-tc', default=None),
 ]
 
 _protein_options = [
@@ -96,42 +87,32 @@ _protein_options = [
                  show_default=True,\
                  help='Should the proteins be normalized to a 0-1 range'),
     click.option('--peakColumn' ,'-pc', default=6,hidden=True),
+    click.option('--matrixFile', '-mf', required=True,help='Input file',\
+              type=click.Path(exists=True))
 ]
 
 _set_options = [
-    click.option('--equalize/--dont-equalize', default=False,
+    click.option('--equalize', default=False,
                  show_default=True,
                 help='If either of the basepairs has no peak at a specific '+\
                 'protein, set both values to 0'),
-    click.option('--ignoretransarms/--dont-ignoretransarms', default=True,\
+    click.option('--ignorecentroids', default=True,\
                  show_default=True,help='Cut out the trans arms for training'),
     click.option('--windowoperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
     click.option('--windowsize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
-    click.option('--datasetOutputDirectory', '-dod',type=click.Path(exists=True),\
-                help='Where to store/load the training sets'),
+    click.option('--centromeresFile', '-cmf',default='Data/centromeres.txt',\
+              type=click.Path(exists=True), show_default=True)
 ]
 _train_options = [
     click.option('--lossfunction', '-lf', default='mse',\
               type=click.Choice(['mse','mae']), show_default=True, \
                 help='Which loss function should be used for training'),
-    click.option('--modeltype', '-mt', default='rf',\
-              type=click.Choice(['ada', 'rf', 'mlp']), show_default=True, \
-                help='Which algorithm should be used for training'),
     click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']), show_default=True,\
                 help='Define a conversion function for the read values'),
-    click.option('--modelfilepath', '-sfp', default=None,\
-                 type=click.Path(exists=True), show_default=True, \
-                help='Exact filename where to store/load the model'),
-    click.option('--modeldir', '-md', default='Data/Models/',\
-                 type=click.Path(exists=True), cls=Mutex,\
-                not_required_if = ['modelfilepath'], show_default=True,\
-                help='Directory where to store/load the model according to '+\
-                'naming convention'),
-
 ]
 
 def proteinfile_options(func):

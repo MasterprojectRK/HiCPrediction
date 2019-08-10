@@ -7,13 +7,9 @@ resultName = "part_"+str(START)+"_"+str(END)+".p"
 def cli():
     pass
 
-@standard_options
-@train_options
-@protein_options
-@set_options
-@click.option('setfilepath', '-sfp', default=None)
-@click.argument('trainchromosome')
-@click.argument('predictchromosome')
+@click.option('--modelFilePath', '-mfp', required=True,\
+              help='Choose model on which to predict')
+@click.argument('predictionSets', nargs=-1)
 @cli.command()
 def executePrediction(args):
     c = args.chrom
