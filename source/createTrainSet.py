@@ -1,71 +1,75 @@
 #!/usr/bin/env python3
 
 from configurations import *
-from tagCreator import createSetTag
+from tagCreator import createSetTag, createProteinTag
 
-@standard_options
-@click.argument('proteinInputFiles',nargs=-1)
+@set_options
 @click.command()
-def createTrainSet(centromeresfile, proteininputfiles,\
-                    experimentoutputdirectory,windowoperation,windowsize,\
-                    ignorecentroids, equalize, chromosomes):
+def createTrainSet(centromeresfile,normalize, peakcolumn,
+                   datasetoutputdirectory,basefile,windowoperation,windowsize ,\
+                    ignorecentromeres, equalize, chromosomes , mergeoperation ):
+    checkExtension(basefile, 'ph5')
     if chromosomes:
         chromosomeList = chromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
-    for proteinFile in tqdm(proteininputfiles):
-        chromosomeFileName = experimentoutputdirectory + '/chromosomes.ch5'
-        if not os.path.isdir(experimentoutputdirectory + "/Sets"):
-            os.mkdir(experimentoutputdirectory + "/Sets")
-        if not os.path.isfile(chromosomeFileName):
-            addGenome(matrixfile, chromosomeFileName)
-        proteinTag = proteinFile.split("/")[-1].split(".")[0]
-        with h5py.File(chromosomeFileName, 'a') as chromFile:
-            for chromosome in tqdm(chromosomeList):
-                chromosome = int(chromosome)
-                if not chromosome in range(1,23):
-                    msg = 'Chromosome {} is not in the range of 1 to 22. Please' +\
-                            'provide correct chromosomes'
-                    print(msg.format(str(chromosome)))
-                    sys.exit()
-                chromTag = "chr" +str(chromosome)
-                setTag =createSetTag(proteinTag,chromTag, window=\
-                        windowoperation,eq=equalize,ignore=ignorecentroids,
-                                    windowSize=windowsize)
-                try:
-                    proteins = pd.read_hdf(proteinFile,key=chromTag, mode='r')
-                except KeyError:
-                    msg = 'Key {} does not exist in Protein file {}. Please' +\
-                            'execute the script "proteinLoad" with the correct ' +\
-                            'parameters'
-                    print(msg.format(chromTag, proteinFile))
-                    sys.exit()
-                rows = np.shape(proteins)[0]
-                if chromTag not in chromFile:
-                    msg = 'The chromosome {} is not loaded yet. Please'\
-                            +'update your chromosome file {} using the script'\
-                            +'"getChroms"'
-                    sys.exit()
-                readPath = chromTag+"/pixels/"
-                bin1_id = chromFile[readPath+"bin1_id"].value
-                bin2_id = chromFile[readPath+"bin2_id"].value
-                counts = chromFile[readPath+"count"].value
-                cuts = chromFile[chromTag + "/bins/start"].value
-                reads = coo_matrix((counts, (bin1_id, bin2_id)), shape=(rows, rows))
+    with h5py.File(basefile, 'a') as baseFile:
+        for chromosome in tqdm(chromosomeList, desc="Iterating chromosomes"):
+            chromosome = int(chromosome)
+            chromTag = "chr" +str(chromosome)
+            if not chromosome in range(1,23):
+                msg = 'Chromosome {} is not in the range of 1 to 22. Please' +\
+                        'provide correct chromosomes'
+                print(msg.format(str(chromosome)))
+                sys.exit()
+            params = dict()
+            params['chrom'] = chromTag
+            params['windowOperation'] = windowoperation
+            params['mergeOperation'] = mergeoperation
+            params['equalize'] = equalize
+            params['normalize'] = normalize
+            params['ignoreCentromeres'] = ignorecentromeres
+            params['peakColumn'] = peakcolumn
+            params['windowSize'] = windowsize
+            proteinTag =createProteinTag(params)
+            proteinChromTag = proteinTag + "_" + chromTag
+            with pd.HDFStore(basefile) as store:
+                proteins = store[proteinChromTag]
+                params2 = store.get_storer(proteinChromTag).attrs.metadata
+            params = {**params, **params2}
+            setTag =createSetTag(params)
+            rows = np.shape(proteins)[0]
+            if chromTag not in baseFile:
+                msg = 'The chromosome {} is not loaded yet. Please'\
+                        +'update your chromosome file {} using the script'\
+                        +'"getChroms"'
+                sys.exit()
+            readPath = chromTag+'/pixels/'
+            bins = baseFile[chromTag+"/bins/start"].value
+            bin1_id = baseFile[readPath+"bin1_id"].value
+            bin2_id = baseFile[readPath+"bin2_id"].value
+            counts = baseFile[readPath+"count"].value
+            reads = coo_matrix((counts, (bin1_id, bin2_id)), shape=(rows,
+                                                                    rows))
+            cuts = baseFile[chromTag + "/bins/start"].value
+            if ignorecentromeres and chromosome not in [13,14,15,22]:
+                start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
+                logging.info("Loading p arm of the chromosome") 
+                df = createDataset(proteins, reads, windowoperation, windowsize,
+                               equalize, chromosome, start=0, end=start)
+                print("\n")
+                logging.info("Loading q arm of the chromosome") 
+                df = df.append(createDataset(proteins, reads, windowoperation, windowsize,
+                               equalize, chromosome, start=end + 1, end=len(cuts)))
+            else:
+                df = createDataset(proteins, reads, windowoperation, windowsize,
+                               equalize, chromosome, start=0, end =len(cuts))
+            datasetFileName = datasetoutputdirectory  + setTag + ".z"
+            print(datasetFileName)
+            joblib.dump((df, params), datasetFileName,compress=True ) 
+    print("\n")
 
-                if ignorecentroids and chromosome not in [13,14,15,22]:
-                    start, end = getTransArmPositions(centromeresfile, chromTag,cuts)
-                    df = createDataset(proteins, reads, windowoperation, windowsize,
-                                   equalize, chromosome, start=0, end=start)
-                    df = df.append(createDataset(proteins, reads, windowoperation, windowsize,
-                                   equalize, chromosome, start=end + 1, end=len(cuts)))
-                else:
-                    df = createDataset(proteins, reads, windowoperation, windowsize,
-                                   equalize, chromosome, start=0, end =len(cuts))
-                fileName = experimentoutputdirectory +'/Sets/' +setTag+'.brotli'
-                df.to_parquet(fileName, engine='auto')
-
-def getTransArmPositions(centromeresfilepath, chromTag, cuts):
+def getCentromerePositions(centromeresfilepath, chromTag, cuts):
         f=open(centromeresfilepath, "r")
         fl =f.readlines()
         elems = None
@@ -175,3 +179,4 @@ def getMiddle(proteins,starts,ends, windowOperation):
 
 if __name__ == '__main__':
     createTrainSet()
+    tqdm.close()

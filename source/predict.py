@@ -1,69 +1,68 @@
+#!/usr/bin/python3
+
 from hiCOperations import *
 START =7
 END = 23
 resultName = "part_"+str(START)+"_"+str(END)+".p"
 
-@click.group()
-def cli():
-    pass
 
+@click.option('--conversion', '-co', required=True, default='none')
 @click.option('--modelFilePath', '-mfp', required=True,\
               help='Choose model on which to predict')
 @click.argument('predictionSets', nargs=-1)
-@cli.command()
-def executePrediction(args):
-    c = args.chrom
-    chroms = [item for item in chromStringToList(args.chrom)]
-    modelChroms = [item for item in chromStringToList(args.modelChroms)]
-    print(modelChroms)
-    chromDict = dict()
-    armsDict = dict()
-    setDict = dict()
-    for  x in tqdm(chroms):
-        chromDict[x] = hm.hiCMatrix(CHROM_D+x+".cool")
-    print("Chroms loaded")
-    armDict = divideIntoArms(args, chromDict)
-    print("Arms generated")
-    proteinDict = loadAllProteins(args, armDict)
-    print("\nProteins generated")
-    for  name, arm in tqdm(armDict.items(), desc="Creating set for each arm"):
-        setDict[name] = createDataset(args, name, arm, proteinDict[name])
-    print("\nSets generated")
-    for modelChrom in modelChroms:
-        args.chrom = c
-        args.chroms = modelChrom
-        model = pickle.load(open(tagCreator(args, "model"), "rb" ) ) 
-        combined = createCombinedDataset(setDict)
-        prediction, score = predict(args, model, combined)
-        saveResults(args, prediction, score)
-        predictionPreparation(args, prediction, armDict)
+@click.command()
+def executePrediction(modelfilepath, predictionsets, conversion):
+    model, params = joblib.load(modelfilepath) 
+    print(chrom)
+    for fileName in predictionsets:
+        testSet, _ = pd.read_parquet(fileName)
+        prediction, score = predict(model, testSet, conversion)
+        print(score)
+        # saveResults(args, prediction, score)
+        # predictionPreparation(args, prediction, armDict)
 
 
-def predictionPreparation(args, pred, armDict):
-        print(args.chrom)
-        c = args.chrom
-        args.chrom = c +"_A"
-        predA = pred.loc[pred['chrom'] == args.chrom]
-        predictionToMatrix(args, predA, armDict[args.chrom])
-        if  c not in ['13','14','15','22']:
-            args.chrom = c +"_B"
-            predB = pred.loc[pred['chrom'] == args.chrom]
-            predictionToMatrix(args, predB, armDict[args.chrom])
 
 
-def predict(args, model = None, setC = None):
-    setC = setC.fillna(value=0)
-    test_X = setC[setC.columns.difference(['first', 'second','chrom','reads'])]
-    test_y = setC['reads']
-    test_y = setC['chrom']
+    # c = args.chrom
+    # chroms = [item for item in chromStringToList(args.chrom)]
+    # modelChroms = [item for item in chromStringToList(args.modelChroms)]
+    # print(modelChroms)
+    # chromDict = dict()
+    # armsDict = dict()
+    # setDict = dict()
+    # for  x in tqdm(chroms):
+        # chromDict[x] = hm.hiCMatrix(CHROM_D+x+".cool")
+    # print("Chroms loaded")
+    # armDict = divideIntoArms(args, chromDict)
+    # print("Arms generated")
+    # proteinDict = loadAllProteins(args, armDict)
+    # print("\nProteins generated")
+    # for  name, arm in tqdm(armDict.items(), desc="Creating set for each arm"):
+        # setDict[name] = createDataset(args, name, arm, proteinDict[name])
+    # print("\nSets generated")
+    # for modelChrom in modelChroms:
+        # args.chrom = c
+        # args.chroms = modelChrom
+        # model = pickle.load(open(tagCreator(args, "model"), "rb" ) ) 
+        # combined = createCombinedDataset(setDict)
+        # prediction, score = predict(args, model, combined)
+        # saveResults(args, prediction, score)
+        # predictionPreparation(args, prediction, armDict)
+
+def predict(model, testSet, conversion):
+    testSet = testSet.fillna(value=0)
+    test_X = testSet[testSet.columns.difference(['first', 'second','chrom','reads'])]
+    test_y = testSet['reads']
+    test_y = testSet['chrom']
     test_y = test_y.to_frame()
-    test_y['standardLog'] = np.log(setC['reads']+1)
+    test_y['standardLog'] = np.log(testSet['reads']+1)
     y_pred = model.predict(test_X)
     test_y['pred'] = y_pred
     y_pred = np.absolute(y_pred)
-    test_y['second'] = setC['second']
-    test_y['first'] = setC['first']
-    test_y['distance'] = setC['distance']
+    test_y['second'] = testSet['second']
+    test_y['first'] = testSet['first']
+    test_y['distance'] = testSet['distance']
     test_y['predAbs'] = y_pred
     # if args.conversion == "norm":
         # target = 'normTarget'
@@ -72,14 +71,14 @@ def predict(args, model = None, setC = None):
         # target = 'logTarget'
         # reads = y_pred * np.log(maxV)
         # reads = np.exp(reads) - 1
-    if args.conversion == 'default':
+    if conversion == 'none':
         target = 'reads'
         reads = y_pred
-    elif args.conversion == 'standardLog':
+    elif conversion == 'standardLog':
         target = 'standardLog'
         reads = y_pred
         reads = np.exp(reads) - 1
-    test_y['reads'] = setC['reads']
+    test_y['reads'] = testSet['reads']
     test_y['predReads'] = reads
     score = model.score(test_X,test_y[target])
     test_y = test_y.set_index(['first','second'])
@@ -135,3 +134,6 @@ def saveResults(args, y, score):
                             'chrom', 'model','conversion', 'window',\
                   'merge', 'ep', 'np'])
     pickle.dump(df, open(RESULT_D + "baseResults.p", "wb" ) )
+
+if __name__ == '__main__':
+    executePrediction()

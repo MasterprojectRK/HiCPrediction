@@ -5,41 +5,50 @@ from tagCreator import createProteinTag
 
 
 @protein_options
-@standard_options
-@click.argument('proteinInputFiles', nargs=-1)
-@cli.command()
-def loadAllProteins(proteininputfiles, experimentoutputdirectory,chromosomes,
-                   matrixfile,normalize, peakcolumn, mergeoperation):
+@click.argument('proteinFiles', nargs=-1)#, help='Pass all of the protein'\
+               # +' files you want to use for the prediction. They should be '+\
+               # 'defined for the whole genome or at least, for the chromosomes'\
+               # + ' you defined in thee options. Format must be "narrowPeak"')
+@click.command()
+def loadAllProteins(proteinfiles, basefile,chromosomes,
+                   matrixfile,celltype,resolution):
+    checkExtension(matrixfile, 'cool', option='h5')
+    checkExtension(basefile, 'ph5')
+    for fileName in proteinfiles:
+        checkExtension(fileName, 'narrowPeak')
+    inputName = matrixfile.split(".")[0].split("/")[-1]
+    params = dict()
+    params['originName'] = inputName
+    params['resolution'] = resolution
+    params['cellType'] = celltype
     if chromosomes:
         chromosomeList = chromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
-    chromosomeFileName = experimentoutputdirectory + '/chromosomes.ch5'
-    if not os.path.isdir(experimentoutputdirectory):
-        os.mkdir(experimentoutputdirectory)
-    if not os.path.isdir(experimentoutputdirectory + "/Proteins"):
-        os.mkdir(experimentoutputdirectory + "/Proteins")
-    if not os.path.isfile(chromosomeFileName):
-        addGenome(matrixfile, chromosomeFileName, chromosomeList)
-    inputName = matrixfile.split(".")[0].split("/")[-1]
-    params = dict()
-    params['peakColumn'] = peakcolumn
-    params['normalize'] = normalize
-    params['mergeOperation'] = mergeoperation
-    with h5py.File(chromosomeFileName, 'a') as chromFile:
-        proteins = getProteinFiles(proteininputfiles, params)
-        proteinTag =createProteinTag(params)
-        for chromosome in tqdm(chromosomeList, desc= 'Converting proteins for each chromosome'):
-            chromTag = "chr" +str(chromosome)
-            cutPath = chromTag + "/bins/start"
-            cutsStart = chromFile[cutPath].value
-            proteinData = loadProtein(proteins, chromosome,cutsStart,params)
-            fileName = experimentoutputdirectory + "/Proteins/" +proteinTag +".ph5"
-            proteinData.to_hdf(fileName,key=chromTag, mode='a')
+    addGenome(matrixfile, basefile, chromosomeList, params)
+    for setting in getCombinations():
+        with h5py.File(basefile, 'a') as baseFile:
+            params['peakColumn'] = setting['peakColumn']
+            params['normalize'] = setting['normalize']
+            params['mergeOperation'] = setting['mergeOperation']
+            proteins = getProteinFiles(proteinfiles, params)
+            proteinTag =createProteinTag(params)
+            tqdmIter = tqdm(chromosomeList, desc= 'Iterate chromosomes')
+            for chromosome in tqdmIter:
+                chromTag = "chr" +str(chromosome)
+                cutPath = chromTag + "/bins/start"
+                cutsStart = baseFile[cutPath].value
+                proteinData = loadProtein(proteins, chromosome,cutsStart,params)
+                proteinChromTag = proteinTag + "_" + chromTag
+                store = pd.HDFStore(basefile)
+                store.put(proteinChromTag, proteinData)
+                store.get_storer(proteinChromTag).attrs.metadata = params
+                store.close()
+    print("\n")
 
-def getProteinFiles(proteinInputFiles, params):
+def getProteinFiles(proteinFiles, params):
     proteins = dict()
-    for path in proteinInputFiles:
+    for path in proteinFiles:
         a = pybedtools.BedTool(path)
         b = a.to_dataframe()
         c = b.iloc[:,params['peakColumn']]
@@ -87,7 +96,7 @@ def loadProtein(proteins, chromName, cutsStart, params):
         data = pd.DataFrame(allProteins,columns=columns, index=range(len(cutsStart)))
         return data
 
-def addGenome(matrixFile, chromosomeOutputFile, chromosomeList):
+def addGenome(matrixFile, chromosomeOutputFile, chromosomeList, params):
     with h5py.File(chromosomeOutputFile, 'a') as f:
         for i in tqdm(chromosomeList,desc='Converting chromosomes'):
             tag = "chr" + str(i)
@@ -97,11 +106,12 @@ def addGenome(matrixFile, chromosomeOutputFile, chromosomeList):
                 subprocess.call(sub2,shell=True)
                 with h5py.File('tmp/chrom'+str(i)+'.h5', 'r') as m:
                     m.copy('/', f,name=tag)
-    for f in os.listdi("tmp/"):
-        os.remove(f)
+    for f in os.listdir("tmp/"):
+        os.remove('tmp/'+f)
 
 def chrom_filter(feature, c):
         return feature.chrom == c
 
 if __name__ == '__main__':
     loadAllProteins()
+

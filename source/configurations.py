@@ -36,6 +36,7 @@ from copy import copy, deepcopy
 from io import StringIO
 from csv import writer
 from tqdm import tqdm
+import logging
 
 import cooler
 import pybedtools
@@ -68,43 +69,53 @@ class Mutex(click.Option):
         for mutex_opt in self.not_required_if:
             if mutex_opt in opts:
                 if current_opt:
-                    raise click.UsageError("Illegal usage: '" + str(self.name) + "' is mutually exclusive with " + str(mutex_opt) + ".")
+                    raise click.UsageError("Illegal usage: '" + str(self.name)\
+                                           +"' is mutually exclusive with " + str(mutex_opt) + ".")
                 else:
                     self.prompt = None
         return super(Mutex, self).handle_parse_result(ctx, opts, args)
 
-_standard_options = [
-    click.option('--experimentOutputDirectory','-eod', required=True,\
-              help='Outputfile'),
-    click.option('--chromosomes', '-tc', default=None),
+_setAndProtein_options = [
+    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
+        help='Base file where to store proteins and chromosomes for later use.'),
+    click.option('--chromosomes', '-chs', default=None, help=\
+                "If set, sets are only calculated for these chromosomes instead of all"),
+]
+_setAndTrain_options = [
 ]
 
 _protein_options = [
+    click.option('--resolution' ,'-r', required=True,\
+                help = "Store resolution for analys and documentation"),
+    click.option('--cellType' ,'-ct', required=True, \
+                help="Store cell type for analysis and documentation"),
+    click.option('--matrixFile', '-mf',required=True,type=click.Path(exists=True),\
+                 help='Input file with the whole HiC-matrix ')
+]
+
+_set_options = [
+    click.option('--peakColumn' ,'-pc', default=6,hidden=True),
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
     click.option('--normalize', default=False,\
                  show_default=True,\
                  help='Should the proteins be normalized to a 0-1 range'),
-    click.option('--peakColumn' ,'-pc', default=6,hidden=True),
-    click.option('--matrixFile', '-mf', required=True,help='Input file',\
-              type=click.Path(exists=True))
-]
-
-_set_options = [
     click.option('--equalize', default=False,
-                 show_default=True,
+                 show_default=True,hidden=True,
                 help='If either of the basepairs has no peak at a specific '+\
                 'protein, set both values to 0'),
-    click.option('--ignorecentroids', default=True,\
-                 show_default=True,help='Cut out the trans arms for training'),
-    click.option('--windowoperation', '-wo', default='avg',\
+    click.option('--ignoreCentromeres', default=True,\
+                 show_default=True,help='Cut out the centroid arms for training'),
+    click.option('--windowOperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
-    click.option('--windowsize', '-ws', default=200, show_default=True,\
+    click.option('--windowSize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
     click.option('--centromeresFile', '-cmf',default='Data/centromeres.txt',\
-              type=click.Path(exists=True), show_default=True)
+              type=click.Path(exists=True), hidden=True),
+    click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
+                 help='Output directory for training set files')
 ]
 _train_options = [
     click.option('--lossfunction', '-lf', default='mse',\
@@ -113,34 +124,35 @@ _train_options = [
     click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']), show_default=True,\
                 help='Define a conversion function for the read values'),
+    click.option('--trainDatasetFile', '-sof',\
+                 required=True,\
+                 help='File from which training is loaded'\
+                 ,type=click.Path(writable=True)),
+    click.option('--modelOutputDirectory', '-mod',required=True,type=click.Path(exists=True),\
+                 help='Output directory for model files')
 ]
 
-def proteinfile_options(func):
-    for option in reversed(_proteinfile):
-        func = option(func)
-    return func
-
-def chromfile_options(func):
-    for option in reversed(_chromfile):
-        func = option(func)
-    return func
-def standard_options(func):
-    for option in reversed(_standard_options):
-        func = option(func)
-    return func
 
 def protein_options(func):
     for option in reversed(_protein_options):
+        func = option(func)
+    for option in reversed(_setAndProtein_options):
         func = option(func)
     return func
 
 def set_options(func):
     for option in reversed(_set_options):
         func = option(func)
+    for option in reversed(_setAndProtein_options):
+        func = option(func)
+    for option in reversed(_setAndTrain_options):
+        func = option(func)
     return func
 
 def train_options(func):
     for option in reversed(_train_options):
+        func = option(func)
+    for option in reversed(_setAndTrain_options):
         func = option(func)
     return func
 
@@ -150,10 +162,22 @@ def getCombinations():
     params = {
         'mergeOperation': ["avg", "max"],
         'normalize': [True, False],
-        'peakColumn': [4, 6],
+        'peakColumn': [6],
     }
 
     keys = list(params)
     paramDict =  product(*params.values())
-    for val in tqdm(list(paramDict), desc= 'Compute all parameter combinations' ):
+    for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
         yield dict(zip(params, val))
+
+
+def checkExtension(fileName, extension, option=None):
+    if fileName.split(".")[-1] != extension:
+        if option and fileName.split(".")[-1] == option:
+            return
+        else:
+            msg = 'The file {} has the wrong extension. Ensure to '\
+                    +'pass a file with .{} extension'
+            print(msg.format(str(fileName), extension))
+            sys.exit()
+

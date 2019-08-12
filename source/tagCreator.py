@@ -1,23 +1,29 @@
 from configurations import *
 
-def createSetTag(proteinTag,chromTag, window,\
-                 ignore=None, eq = None,windowSize = None):
-    tmp = proteinTag 
-    tmp += "_W" + window +str(windowSize)
-    if eq:
-        tmp += "_E"
-    if ignore:
-        tmp += "_A"
-    return tmp + chromTag
+def createSetTag(params):
+    tmp = params['cellType'] + '_' + params['resolution']
+    tmp +='_'+ createProteinTag(params)
+    tmp += '_W' + params['windowOperation']
+    tmp += str(params['windowSize'])
+
+    if params['equalize']:
+        tmp += '_E'
+    if params['ignoreCentromeres']:
+        tmp += '_A'
+    return tmp + params['chrom']
 
 def createProteinTag(params):
-    tmp = "M" +params['mergeOperation']
+    tmp = ''
+    tmp += 'M' +params['mergeOperation']
     if params['normalize']:
-        tmp += "_N"
+        tmp += '_N'
     if params['peakColumn']  != 6:
-        tmp += "_PC" + str(pc)
+        tmp += '_PC' + str(params['peakColumn'])
     return tmp
 
 
-def createModelTag(setTag, conversion, lossfunction):
-    return setTag + "_C" + conversion + "_L" + lossfunction
+def createModelTag(params):
+    tmp = createSetTag(params)
+    tmp +=  '_C' + params['conversion']
+    tmp +=  '_L' + params['lossfunction']
+    return tmp

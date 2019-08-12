@@ -1,11 +1,5 @@
 from configurations import *
 
-def createCombinedDataset(sets):
-    data = pd.DataFrame() 
-    for df in sets.values():
-        data = data.append(df)
-    return data
-
 
 def plotPredMatrix(args):
 
