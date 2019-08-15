@@ -27,3 +27,8 @@ def createModelTag(params):
     tmp +=  '_C' + params['conversion']
     tmp +=  '_L' + params['lossfunction']
     return tmp
+
+def createPredictionTag(params, chromosome):
+    tmp = 'Model_' + createModelTag(params)
+    tmp += '_PredictionOn_' + str(chromosome)
+    return tmp

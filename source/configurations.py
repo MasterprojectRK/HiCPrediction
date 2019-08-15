@@ -81,7 +81,13 @@ _setAndProtein_options = [
     click.option('--chromosomes', '-chs', default=None, help=\
                 "If set, sets are only calculated for these chromosomes instead of all"),
 ]
-_setAndTrain_options = [
+_predict_options = [
+    click.option('--predictionOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
+                 help='Output directory for training set files'),
+    click.option('--modelFilePath', '-mfp', required=True,\
+              help='Choose model on which to predict'),
+    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
+        help='Base file from where to load chromosomes.'),
 ]
 
 _protein_options = [
@@ -113,7 +119,7 @@ _set_options = [
     click.option('--windowSize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
     click.option('--centromeresFile', '-cmf',default='Data/centromeres.txt',\
-              type=click.Path(exists=True), hidden=True),
+              type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files')
 ]
@@ -145,14 +151,14 @@ def set_options(func):
         func = option(func)
     for option in reversed(_setAndProtein_options):
         func = option(func)
-    for option in reversed(_setAndTrain_options):
-        func = option(func)
     return func
 
+def predict_options(func):
+    for option in reversed(_predict_options):
+        func = option(func)
+    return func
 def train_options(func):
     for option in reversed(_train_options):
-        func = option(func)
-    for option in reversed(_setAndTrain_options):
         func = option(func)
     return func
 
@@ -162,7 +168,7 @@ def getCombinations():
     params = {
         'mergeOperation': ["avg", "max"],
         'normalize': [True, False],
-        'peakColumn': [6],
+        'peakColumn': [4, 6],
     }
 
     keys = list(params)

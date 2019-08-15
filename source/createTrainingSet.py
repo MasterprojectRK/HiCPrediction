@@ -8,7 +8,7 @@ from tagCreator import createSetTag, createProteinTag
 def createTrainSet(centromeresfile,normalize, peakcolumn,
                    datasetoutputdirectory,basefile,windowoperation,windowsize ,\
                     ignorecentromeres, equalize, chromosomes , mergeoperation ):
-    checkExtension(basefile, 'ph5')
+    checkExtension(basefile, 'procool')
     if chromosomes:
         chromosomeList = chromosomes.split(',')
     else:
@@ -45,7 +45,6 @@ def createTrainSet(centromeresfile,normalize, peakcolumn,
                         +'"getChroms"'
                 sys.exit()
             readPath = chromTag+'/pixels/'
-            bins = baseFile[chromTag+"/bins/start"].value
             bin1_id = baseFile[readPath+"bin1_id"].value
             bin2_id = baseFile[readPath+"bin2_id"].value
             counts = baseFile[readPath+"count"].value
@@ -132,18 +131,6 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
     df['second'] += start
     return df
 
-def createAllCombinations(args):
-    for w in ["avg"]:
-        args.windowOperation = w
-        for m in ["avg"]:
-            args.mergeOperation = m
-            for n in [False]:
-                args.normalizeProteins = n
-                for e in [False]:
-                    args.equalizeProteins = e
-                    createAllWindows(args)
-
-
 def get_ranges_arr(starts,ends):
     counts = ends - starts
     counts[counts< 0] = 0
@@ -179,4 +166,3 @@ def getMiddle(proteins,starts,ends, windowOperation):
 
 if __name__ == '__main__':
     createTrainSet()
-    tqdm.close()

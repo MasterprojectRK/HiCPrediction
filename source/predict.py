@@ -1,25 +1,27 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
-from hiCOperations import *
+from configurations import *
+from tagCreator import createPredictionTag
 START =7
 END = 23
 resultName = "part_"+str(START)+"_"+str(END)+".p"
 
-
-@click.option('--conversion', '-co', required=True, default='none')
-@click.option('--modelFilePath', '-mfp', required=True,\
-              help='Choose model on which to predict')
+@predict_options
 @click.argument('predictionSets', nargs=-1)
 @click.command()
-def executePrediction(modelfilepath, predictionsets, conversion):
-    model, params = joblib.load(modelfilepath) 
-    print(chrom)
+def executePrediction(modelfilepath, basefile,predictionsets, 
+                      predictionoutputdirectory):
+    checkExtension(modelfilepath, 'z')
+    checkExtension(basefile, 'procool')
+    model, modelParams = joblib.load(modelfilepath)
     for fileName in predictionsets:
-        testSet, _ = pd.read_parquet(fileName)
-        prediction, score = predict(model, testSet, conversion)
+        testSet, setParams = joblib.load(fileName)
+        prediction, score = predict(model, testSet, modelParams['conversion'])
         print(score)
+        predictionTag = createPredictionTag(modelParams, setParams['chrom'])
+        predictionFile =  predictionoutputdirectory + predictionTag + ".precool"
+        predictionToMatrix(prediction, basefile,modelParams['conversion'], setParams['chrom'], predictionFile)
         # saveResults(args, prediction, score)
-        # predictionPreparation(args, prediction, armDict)
 
 
 
@@ -84,26 +86,30 @@ def predict(model, testSet, conversion):
     test_y = test_y.set_index(['first','second'])
     return test_y, score
 
-def predictionToMatrix(args, pred, arm):
-    mat = arm.matrix.todense()
-    factor =  np.max(mat)
-    # if args.conversion == "norm":
-        # convert = lambda val: val  * factor
-    # elif args.conversion == "log":
-        # convert = lambda val: np.exp(val  * np.log(factor)) - 1
-    if args.conversion == "standardLog":
-        convert = lambda val: np.exp(val) - 1
-    elif args.conversion == "default":
-        convert = lambda val: val
-    pred['idx1'] = pred.index.codes[0]
-    pred['idx2'] = pred.index.codes[1]
-    pred['predConv'] = convert(pred['pred'])
-    data = np.array(pred['predConv'])
-    row = np.array(pred['idx1'])
-    col = np.array(pred['idx2'])
-    new = sparse.csr_matrix((data, (row, col)), shape=mat.shape)
-    arm.setMatrix(new, arm.cut_intervals)
-    arm.save(tagCreator(args, "pred"))
+def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFilePath):
+    with h5py.File(baseFilePath, 'a') as baseFile:
+        if os.path.isfile(predictionFilePath):
+            os.remove(predictionFilePath)
+        with h5py.File(predictionFilePath, 'a') as predictionFile:
+            baseFile.copy(chromosome+'/pixels', predictionFile, name="pixels/") 
+            baseFile.copy(chromosome+'/bins', predictionFile, name="bins/") 
+            baseFile.copy(chromosome+'/chroms', predictionFile, name="chroms/") 
+            baseFile.copy(chromosome+'/indexes', predictionFile, name="indexes/") 
+            if conversion == "standardLog":
+                convert = lambda val: np.exp(val) - 1
+            elif conversion == "none":
+                convert = lambda val: val
+            pred['idx1'] = pred.index.codes[0]
+            pred['idx2'] = pred.index.codes[1]
+            pred['predConv'] = convert(pred['pred'])
+            readPath = '/pixels/'
+            del predictionFile[readPath+"bin1_id"]
+            del predictionFile[readPath+"bin2_id"]
+            del predictionFile[readPath+"count"]
+            predictionFile[readPath+"bin1_id"] = np.array(pred['predConv'])
+            predictionFile[readPath+"bin2_id"] = np.array(pred['idx1'])
+            predictionFile[readPath+"count"] = np.array(pred['idx2'])
+            
 
 
 def saveResults(args, y, score):

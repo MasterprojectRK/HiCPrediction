@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from configurations import *
 from tagCreator import createProteinTag
@@ -12,8 +12,8 @@ from tagCreator import createProteinTag
 @click.command()
 def loadAllProteins(proteinfiles, basefile,chromosomes,
                    matrixfile,celltype,resolution):
-    checkExtension(matrixfile, 'cool', option='h5')
-    checkExtension(basefile, 'ph5')
+    checkExtension(matrixfile, 'cool')
+    checkExtension(basefile, 'procool')
     for fileName in proteinfiles:
         checkExtension(fileName, 'narrowPeak')
     inputName = matrixfile.split(".")[0].split("/")[-1]
@@ -102,9 +102,9 @@ def addGenome(matrixFile, chromosomeOutputFile, chromosomeList, params):
             tag = "chr" + str(i)
             if not tag in f:
                 sub2 = "hicAdjustMatrix -m "+matrixFile +" --action keep --chromosomes " +\
-                str(i)+" -o tmp/chrom"+str(i)+".h5"
+                str(i)+" -o tmp/chrom"+str(i)+".cool"
                 subprocess.call(sub2,shell=True)
-                with h5py.File('tmp/chrom'+str(i)+'.h5', 'r') as m:
+                with h5py.File('tmp/chrom'+str(i)+'.cool', 'r') as m:
                     m.copy('/', f,name=tag)
     for f in os.listdir("tmp/"):
         os.remove('tmp/'+f)

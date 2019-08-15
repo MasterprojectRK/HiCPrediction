@@ -1,26 +1,23 @@
 from configurations import *
 
+@click.argument('filename', type=click.Path(exists=True))
+@click.command()
+def plotPredMatrix(filename):
+    chrom = 1
+    regionIndex1 = 1
+    regionIndex2 = 201
+    a = ["--matrix",filename,"--dpi", "300"]
+    a.extend(["--log1p", "--vMin" ,"1"])
+    # if region:
+        # a.extend(["--region", args.region])
+    # elif args.regionIndex1 and args.regionIndex2:
+    ma = hm.hiCMatrix(filename)
+    cuts = ma.cut_intervals
+    region = chrom +":"+str(cuts[regionIndex1][1])+"-"+ str(cuts[regionIndex2][1])
+    a.extend(["--region", region])
 
-def plotPredMatrix(args):
-
-    name = tagCreator(args, "pred")  
-    a = ["--matrix",name,
-            "--dpi", "300"]
-    if args.log:
-        a.extend(["--log1p", "--vMin" ,"1"])
-    else:
-        a.extend(["--vMax" ,"1","--vMin" ,"0"])
-    if args.region:
-        a.extend(["--region", args.region])
-    elif args.regionIndex1 and args.regionIndex2:
-        ma = hm.hiCMatrix(name)
-        cuts = ma.cut_intervals
-        args.region = args.chrom.split("_")[0] +":"+str(cuts[args.regionIndex1][1])+"-"+ str(cuts[args.regionIndex2][1])
-        a.extend(["--region", args.region])
-
-    a.extend( ["-out",tagCreator(args, "image")])
+    a.extend( ["-out","1.png"])
     print(a)
-    args.region = None
     hicPlot.main(a)
 
 def plotMatrix(args):
@@ -99,3 +96,5 @@ def mergeAndSave():
     shutil.copy(src_dir,dst_dir)
     concatResults()
 
+if __name__ == '__main__':
+    plotPredMatrix()
