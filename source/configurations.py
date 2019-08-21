@@ -21,6 +21,7 @@ import argparse
 import glob
 import math
 import time
+from itertools import product
 import datetime
 import itertools
 import shutil
@@ -78,16 +79,22 @@ class Mutex(click.Option):
 _setAndProtein_options = [
     click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
         help='Base file where to store proteins and chromosomes for later use.'),
-    click.option('--chromosomes', '-chs', default=None, help=\
+    click.option('--chromosomes', '-chs', default=None, show_default=True,help=\
                 "If set, sets are only calculated for these chromosomes instead of all"),
 ]
 _predict_options = [
-    click.option('--predictionOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
-                 help='Output directory for training set files'),
+    click.option('--predictionOutputDirectory', '-dod',required=True,\
+                 type=click.Path(exists=True),help='Output directory for'\
+                 +' prediction files'),
     click.option('--modelFilePath', '-mfp', required=True,\
               help='Choose model on which to predict'),
-    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
+    click.option('--resultsFilePath', '-rfp', default=None,show_default=True,\
+              help='File where to store evaluation metrics. If not set'\
+                +' no evaluation is executed'),
+    click.option('--baseFilePath','-bfp', required=True,type=click.Path(writable=True),
         help='Base file from where to load chromosomes.'),
+    click.option('--predictionSetPath','-psp', required=True,type=click.Path(writable=True),
+        help='Data set that is to be predicted.'),
 ]
 
 _protein_options = [
@@ -99,6 +106,16 @@ _protein_options = [
                  help='Input file with the whole HiC-matrix ')
 ]
 
+_allset_options = [
+    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
+        help='Base file where to store proteins and chromosomes for later use.'),
+    click.option('--windowSize', '-ws', default=200, show_default=True,\
+                help='Maximum distance between two basepairs'),
+    click.option('--centromeresFile', '-cmf',show_default=True, default='Data/centromeres.txt',\
+              type=click.Path(exists=True)),
+    click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
+                 help='Output directory for training set files')
+]
 _set_options = [
     click.option('--peakColumn' ,'-pc', default=6,hidden=True),
     click.option('--mergeOperation','-mo',default='avg',\
@@ -157,21 +174,27 @@ def predict_options(func):
     for option in reversed(_predict_options):
         func = option(func)
     return func
+
 def train_options(func):
     for option in reversed(_train_options):
         func = option(func)
     return func
 
-from itertools import product
+def allset_options(func):
+    for option in reversed(_allset_options):
+        func = option(func)
+    return func
+
 
 def getCombinations():
     params = {
+        # 'mergeOperation': ["avg"],
+        # 'normalize': [False],
         'mergeOperation': ["avg", "max"],
         'normalize': [True, False],
-        'peakColumn': [4, 6],
+        'peakColumn': [4,6],
     }
 
-    keys = list(params)
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
         yield dict(zip(params, val))

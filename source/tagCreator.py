@@ -28,7 +28,8 @@ def createModelTag(params):
     tmp +=  '_L' + params['lossfunction']
     return tmp
 
-def createPredictionTag(params, chromosome):
+def createPredictionTag(params, setParams):
     tmp = 'Model_' + createModelTag(params)
-    tmp += '_PredictionOn_' + str(chromosome)
+    tmp += '_PredictionOn_' + setParams['cellType']
+    tmp += "_" + setParams['chrom']
     return tmp

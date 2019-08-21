@@ -24,4 +24,5 @@ def printName(name):
     print(name)
 
 if __name__ == '__main__':
-    showH5()
+    df = pd.read_csv('results.csv')
+    print(df.iloc[:,:22].head())

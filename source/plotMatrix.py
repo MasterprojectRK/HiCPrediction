@@ -2,10 +2,10 @@ from configurations import *
 
 @click.option('--regionIndex1', '-r1',default=1, show_default=True, required=True)
 @click.option('--regionIndex2','-r2', default=400, show_default=True, required=True)
-@click.option('--matrixinputfile','-mif', type=click.Path(exists=True), required=True)
-@click.option('--imageoutputfile', '-iof',default=None)
+@click.option('--matrixinputfile', '-mif',type=click.Path(exists=True), required=True)
+@click.option('--imageoutputfile','-iof', default=None)
 @click.command()
-def plotMatrix(matrixinputfile,imageoutputfile,  regionindex1, regionindex2):
+def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2):
         if not imageoutputfile:
             imageoutputfile = matrixinputfile.split('.')[0] +'.png'
         checkExtension(matrixinputfile, 'cool')
@@ -99,4 +99,4 @@ def plotMatrix(matrixinputfile,imageoutputfile,  regionindex1, regionindex2):
     # concatResults()
 
 if __name__ == '__main__':
-    plotPredMatrix()
+    plotMatrix()
