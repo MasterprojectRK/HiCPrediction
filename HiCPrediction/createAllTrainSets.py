@@ -19,8 +19,8 @@ def getSetCombinations():
         'windowOperation': ["avg", "max"],
         'normalize': [True, False],
         'ignoreCentromeres': [True, False],
-        'equalize': [True, False],
-        'peakColumn': [4,6],
+        'equalize': [False],
+        'peakColumn': [6],
     }
 
     paramDict =  product(*params.values())

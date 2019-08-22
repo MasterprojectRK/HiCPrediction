@@ -1,0 +1,50 @@
+{% set version = "1.1.0" %}
+
+package:
+  name: hicprediction-abajorat
+  version: {{ version }}
+
+source:
+    url: https://github.com/abajorat/MasterProjekt
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install .
+
+requirements:
+  host:
+    - python
+    - pip
+    #- zlib1g-dev 
+    - git
+  run:
+    - python
+    #- joblib
+    #- matplotlib
+    #- pyarrow
+    #- pandas
+    #- future
+    #- intervaltree
+    #- multiprocess
+    #- scikit-learn
+    #- unidecode
+    #- tk
+    #- cooler
+    #- pybedtools
+    #- pyBigWig
+    ##- tables
+    #- hicmatrix
+    #- hicexplorer
+
+
+#test:
+  #imports:
+    #- imagesize
+
+about:
+  home: https://github.com/abajorat/MasterProjekt
+  license: MIT
+  summary: 'Predict HiC matrices with protein levels'
+  description: |
+    this module allows prediction of HiC matrices based on protein levels

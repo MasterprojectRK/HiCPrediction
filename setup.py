@@ -20,4 +20,8 @@ setuptools.setup(
     scripts=['HiCPrediction/createBaseFile.py', 'HiCPrediction/predict',
              'HiCPrediction/training.py', 'HiCPrediction/createTrainingSet.py',
             'HiCPrediction/plotMatrix.py'],
+     install_requires=[
+          'joblib', 'intervaltree', 'multiprocess', 'pandas', 'future',
+         'scikit-learn', 'unidecode','matplotlib', 'pyarrow', 'cooler', 
+     'pybedtools', 'pyBigWig', 'hicmatrix', 'hicexplorer'],
 )

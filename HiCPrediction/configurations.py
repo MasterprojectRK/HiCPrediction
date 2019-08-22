@@ -113,7 +113,8 @@ _allset_options = [
         help='Base file where to store proteins and chromosomes for later use.'),
     click.option('--windowSize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
-    click.option('--centromeresFile', '-cmf',show_default=True, default='Data/centromeres.txt',\
+    click.option('--centromeresFile', '-cmf',show_default=True,
+                 default='InternalStorage/centromeres.txt',\
               type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files')
@@ -137,7 +138,7 @@ _set_options = [
                 help='How should the proteins in between two base pairs be summed up'),
     click.option('--windowSize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
-    click.option('--centromeresFile', '-cmf',default='Data/centromeres.txt',\
+    click.option('--centromeresFile', '-cmf', default='InternalStorage/centromeres.txt',\
               type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files')
