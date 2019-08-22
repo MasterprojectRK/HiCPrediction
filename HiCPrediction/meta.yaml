@@ -10,7 +10,6 @@ source:
 build:
   noarch: python
   number: 0
-  script: python -m pip install .
 
 requirements:
   host:
