@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from pkg_resources import resource_filename, Requirement
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestRegressor
@@ -114,7 +115,7 @@ _allset_options = [
     click.option('--windowSize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
     click.option('--centromeresFile', '-cmf',show_default=True,
-                 default='InternalStorage/centromeres.txt',\
+                 default=None,\
               type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files')
@@ -138,7 +139,7 @@ _set_options = [
                 help='How should the proteins in between two base pairs be summed up'),
     click.option('--windowSize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
-    click.option('--centromeresFile', '-cmf', default='InternalStorage/centromeres.txt',\
+    click.option('--centromeresFile', '-cmf', default=None,\
               type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files')

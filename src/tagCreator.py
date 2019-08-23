@@ -1,4 +1,4 @@
-from HiCPrediction.configurations import *
+from src.configurations import *
 
 def createSetTag(params):
     tmp = params['cellType'] + '_' + params['resolution']

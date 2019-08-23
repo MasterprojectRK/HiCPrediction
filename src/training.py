@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from HiCPrediction.configurations import *
-from HiCPrediction.tagCreator import createModelTag
+from src.configurations import *
+from src.tagCreator import createModelTag
 
 """ Module responsible for the training of the regressor with data sets.
 """

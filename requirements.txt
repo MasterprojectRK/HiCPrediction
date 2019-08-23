@@ -1,6 +1,5 @@
-sudo apt-get install zlib1g-dev
-conda install -c conda-forge intervaltree multiprocess  pandas future scikit-learn unidecode matplotlib
-conda install -c bioconda cooler pybedtools pyBigWig
-conda install -c ska tables 
-conda install pyarrow -c conda-forge
-pip install joblib
+conda install python=3.6 -y
+conda install -c conda-forge -c bioconda -c ska hic2cool
+conda install -c conda-forge -c bioconda -c ska pybedtools pybigwig
+conda install -c conda-forge -c bioconda -c ska hicmatrix hicexplorer
+

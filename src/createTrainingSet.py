@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from HiCPrediction.configurations import *
-from HiCPrediction.tagCreator import createSetTag, createProteinTag
+from src.configurations import *
+from src.tagCreator import createSetTag, createProteinTag
 
 """
 Module responsible for creating the training sets
@@ -46,9 +46,12 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             mergeoperation --  bin operations for protein binning
             windowsize --  maximal genomic distance
             peakcolumn -- Column in bed file tha contains peak values
-            
     """
     ### check extensions
+    if not centromeresfile:
+        centromeresfile =  os.path.dirname(__file__) +\
+        "/InternalStorage/centromeres.txt"
+
     checkExtension(basefile, 'ph5')
     ### convert chromosomes to list
     if chromosomes:

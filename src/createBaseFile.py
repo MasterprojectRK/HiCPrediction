@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-
-from HiCPrediction.configurations import *
-from HiCPrediction.tagCreator import createProteinTag
+from src.configurations import *
+from src.tagCreator import createProteinTag
 
 """ Module responsible for the binning of proteins and the cutting of
     the genome HiC matrix into the chromosomes for easier access.
@@ -47,7 +46,8 @@ def loadAllProteins(proteinfiles, basefile,chromosomes,
         chromosomeList = chromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
-    outDirectory = "InternalStorage/"
+    outDirectory = os.path.dirname(__file__) + "/InternalStorage/"
+    print(outDirectory)
     ### call of function responsible for cutting and storing the chromosomes
     chromosomeDict = addGenome(matrixfile, basefile, chromosomeList,
                                outDirectory)

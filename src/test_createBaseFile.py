@@ -1,6 +1,6 @@
 import pytest
-from configurations import *
-from createBaseFile import loadAllProteins, getProteinFiles, loadProtein,\
+from source.configurations import *
+from source.createBaseFile import loadAllProteins, getProteinFiles, loadProtein,\
         addGenome
 from pybedtools.featurefuncs import TSS
 

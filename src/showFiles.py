@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from configurations import *
+from src.configurations import *
 
 
 @click.argument('filename', type=click.Path(exists=True))
@@ -24,5 +24,6 @@ def printName(name):
     print(name)
 
 if __name__ == '__main__':
-    df = pd.read_csv('results.csv')
-    print(df.iloc[:,:22].head())
+    showH5()
+    # df = pd.read_csv('results.csv')
+    # print(df.iloc[:,:22].head())

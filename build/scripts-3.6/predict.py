@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+#!/home/ubuntu/anaconda3/bin/python
 
-from HiCPrediction.configurations import *
-from HiCPrediction.tagCreator import createPredictionTag
+from source.configurations import *
+from source.tagCreator import createPredictionTag
 
 """
 Module responsible for the prediction of test set, their evaluation and the

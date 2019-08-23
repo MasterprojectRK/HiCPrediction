@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from createTrainingSet import createTrainSet
-from configurations import *
+from src.createTrainingSet import createTrainSet
+from src.configurations import *
 
 @allset_options
 @click.command()
@@ -16,9 +16,9 @@ def createAllSets(basefile, centromeresfile, windowsize, datasetoutputdirectory)
 def getSetCombinations():
     params = {
         'mergeOperation': ["avg", "max"],
-        'windowOperation': ["avg", "max"],
+        'windowOperation': ["avg"],
         'normalize': [True, False],
-        'ignoreCentromeres': [True, False],
+        'ignoreCentromeres': [True],
         'equalize': [False],
         'peakColumn': [6],
     }

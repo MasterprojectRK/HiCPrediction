@@ -1,4 +1,4 @@
-name = "hiCPrediction"
+name = "source"
 from . import createBaseFile
 from . import createTrainingSet
 from . import training

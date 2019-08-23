@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from HiCPrediction.configurations import *
+from src.configurations import *
 
 @click.option('--regionIndex1', '-r1',default=1, show_default=True, required=True)
 @click.option('--regionIndex2','-r2', default=400, show_default=True, required=True)
