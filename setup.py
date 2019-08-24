@@ -1,29 +1,42 @@
-import setuptools
+from setuptools import setup
+import versioneer
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+requirements = [
+            'joblib', 
+            'pandas',
+            'future',
+            'scikit-learn',
+            'unidecode',
+            'matplotlib',
+            'pyarrow',  
+            # 'hic2cool >=0.7',
+            # 'pybedtools',
+            # 'pybigwig',
+            # 'hicmatrix >= 11',
+            # 'hicexplorer',
+]
 
-setuptools.setup(
-    name="hiCPrediction",
+setup(
+    name='HiCPrediction',
     version="0.0.1",
+    cmdclass=versioneer.get_cmdclass(),
+    description="HiCMatrix Prediction via protein levels",
     author="Andre Bajorat",
-    author_email="abajorat@posteo.de",
-    description="Package to predict HiC-matrices based on proteins",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/abajorat/MasterProjekt",
-    packages=['InternalStorage','src'],
-    package_data={'InternalStorage': ['centromeres.txt']},
+    author_email='abajorat@posteo.de',
+    url='https://github.com/abajorat/HiCPrediction',
+    packages=['hicprediction'],
+    package_data={'hicprediction': ['InternalStorage/centromeres.txt']},
+    # entry_points={
+        # 'console_scripts': [
+            # 'src=src.cli:cli'
+        # ]
+    # },
+    scripts=['hicprediction/createBaseFile.py', 'hicprediction/predict.py',
+             'hicprediction/training.py', 'hicprediction/createTrainingSet.py',
+            'hicprediction/createAllTrainSets.py','hicprediction/plotMatrix.py'],
+    install_requires=requirements,
+    keywords='HiCPrediction',
     classifiers=[
-        "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
+        'Programming Language :: Python :: 3.6',
     ],
-    scripts=['src/createBaseFile.py', 'src/predict.py',
-             'src/training.py', 'src/createTrainingSet.py',
-            'src/createAllTrainSets.py','src/plotMatrix.py'],
-     install_requires=[
-          'joblib', 'pandas', 'future',
-         'scikit-learn', 'unidecode','matplotlib', 'pyarrow'],
-
-
 )

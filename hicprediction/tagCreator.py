@@ -1,4 +1,4 @@
-from src.configurations import *
+from hicprediction.configurations import *
 
 def createSetTag(params):
     tmp = params['cellType'] + '_' + params['resolution']

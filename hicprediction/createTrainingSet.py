@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from src.configurations import *
-from src.tagCreator import createSetTag, createProteinTag
+from hicprediction.configurations import *
+from hicprediction.tagCreator import createSetTag, createProteinTag
 
 """
 Module responsible for creating the training sets

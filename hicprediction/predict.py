@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from src.configurations import *
-from src.tagCreator import createPredictionTag
+from hicprediction.configurations import *
+from hicprediction.tagCreator import createPredictionTag
 
 """
 Module responsible for the prediction of test set, their evaluation and the

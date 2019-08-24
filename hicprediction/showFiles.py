@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from src.configurations import *
+from hicprediction.configurations import *
 
 
 @click.argument('filename', type=click.Path(exists=True))

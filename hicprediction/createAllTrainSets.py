@@ -1,27 +1,24 @@
 #!/usr/bin/env python3
 
-from src.createTrainingSet import createTrainSet
-from src.configurations import *
+from hicprediction.createTrainingSet import createTrainSet
+from  hicprediction.configurations import *
+import json
 
 @allset_options
 @click.command()
-def createAllSets(basefile, centromeresfile, windowsize, datasetoutputdirectory):
-    for setting in getSetCombinations():
+def createAllSets(basefile, centromeresfile, windowsize,
+                  datasetoutputdirectory, setparamsfile):
+    for setting in getSetCombinations(setparamsfile):
         createTrainSet(None, datasetoutputdirectory,basefile,\
                     centromeresfile, setting['ignoreCentromeres'],
                     setting['normalize'], setting['equalize'],
                     setting['windowOperation'], setting['mergeOperation'],
                     windowsize, setting['peakColumn'])
 
-def getSetCombinations():
-    params = {
-        'mergeOperation': ["avg", "max"],
-        'windowOperation': ["avg"],
-        'normalize': [True, False],
-        'ignoreCentromeres': [True],
-        'equalize': [False],
-        'peakColumn': [6],
-    }
+def getSetCombinations(setparamsfile):
+    with open(setparamsfile) as f:
+       d = json.load(f)
+       params = json.loads(d)
 
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):

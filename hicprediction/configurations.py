@@ -119,6 +119,8 @@ _allset_options = [
               type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files')
+    click.option('--setParamsFile', '-spf', required=True,\
+              type=click.Path(exists=True)),
 ]
 _set_options = [
     click.option('--peakColumn' ,'-pc', default=6,hidden=True),
