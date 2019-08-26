@@ -118,7 +118,7 @@ _allset_options = [
                  default=None,\
               type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
-                 help='Output directory for training set files')
+                 help='Output directory for training set files'),
     click.option('--setParamsFile', '-spf', required=True,\
               type=click.Path(exists=True)),
 ]
@@ -160,7 +160,19 @@ _train_options = [
     click.option('--modelOutputDirectory', '-mod',required=True,type=click.Path(exists=True),\
                  help='Output directory for model files')
 ]
+_alltrain_options = [
+    click.option('--setDirectory', '-sd',required=True,type=click.Path(exists=True),\
+                 help='Input directory for training files'),
+    click.option('--modelOutputDirectory', '-mod',type=click.Path(exists=True),\
+                 help='Output directory for model files'),
+    click.option('--lossfunction', '-lf', default='mse',\
+              type=click.Choice(['mse','mae']), show_default=True, \
+                help='Which loss function should be used for training'),
+    click.option('--conversion', '-co', default='none',\
+              type=click.Choice(['standardLog', 'none']), show_default=True,\
+                help='Define a conversion function for the read values')
 
+]
 
 def protein_options(func):
     for option in reversed(_protein_options):
@@ -186,21 +198,45 @@ def train_options(func):
         func = option(func)
     return func
 
+def alltrain_options(func):
+    for option in reversed(_alltrain_options):
+        func = option(func)
+    return func
+
 def allset_options(func):
     for option in reversed(_allset_options):
         func = option(func)
     return func
 
 
-def getCombinations():
-    params = {
-        # 'mergeOperation': ["avg"],
-        # 'normalize': [False],
-        'mergeOperation': ["avg", "max"],
-        'normalize': [True, False],
-        'peakColumn': [4,6],
-    }
+def getCombinations(paramsfile):
+    with open(paramsfile) as f:
+       params = json.load(f)
+    paramDict =  product(*params.values())
+    for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
+        yield dict(zip(params, val))
 
+
+def checkExtension(fileName, extension, option=None):
+    if fileName.split(".")[-1] != extension:
+        if option and fileName.split(".")[-1] == option:
+            return
+        else:
+            msg = 'The file {} has the wrong extension. Ensure to '\
+                    +'pass a file with .{} extension'
+            print(msg.format(str(fileName), extension))
+            sys.exit()
+
+
+def allset_options(func):
+    for option in reversed(_allset_options):
+        func = option(func)
+    return func
+
+
+def getCombinations(paramsfile):
+    with open(paramsfile) as f:
+       params = json.load(f)
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
         yield dict(zip(params, val))

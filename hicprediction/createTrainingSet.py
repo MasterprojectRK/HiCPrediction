@@ -87,39 +87,42 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         ### join parameters
         params = {**params, **params2}
         setTag =createSetTag(params)
-        rows = np.shape(proteins)[0]
-        with h5py.File(basefile, 'r') as baseFile:
-            if chromTag not in baseFile:
-                msg = 'The chromosome {} is not loaded yet. Please'\
-                        +'update your chromosome file {} using the script'\
-                        +'"getChroms"'
-                sys.exit()
-            ### load HiC matrix
-            hiCMatrix = hm.hiCMatrix(baseFile[chromTag].value)
-        ### load reads and bins
-        reads = hiCMatrix.matrix
-        cuts = hiCMatrix.cut_intervals
-        cuts = np.array([cut[1] for cut in cuts])
-        ### if user decided to cut out centromeres and if the chromosome
-        ### has one, create datasets for both chromatids and join them
-        if ignorecentromeres and chromosome not in [13,14,15,22]:
-            start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
-            for i in tqdm(range(2), desc = "Loading chromatids separately"):
-                if i == 0:
-                    df = createDataset(proteins, reads, windowoperation, windowsize,
-                           equalize, chromosome, start=0, end=start)
-                elif i == 1:
-                    df = df.append(createDataset(proteins, reads,\
-                            windowoperation, windowsize,\
-                           equalize, chromosome, start=end + 1, end=len(cuts)))
-        else:
-            df = createDataset(proteins, reads, windowoperation, windowsize,
-                           equalize, chromosome, start=0, end =len(cuts))
-        ### add average contact read stratified by distance to dataset
-        for i in range(int(windowsize)):
-            df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
         datasetFileName = datasetoutputdirectory  + setTag + ".z"
-        joblib.dump((df, params), datasetFileName,compress=True ) 
+        if not os.path.isfile(datasetFileName):
+            rows = np.shape(proteins)[0]
+            with h5py.File(basefile, 'r') as baseFile:
+                if chromTag not in baseFile:
+                    msg = 'The chromosome {} is not loaded yet. Please'\
+                            +'update your chromosome file {} using the script'\
+                            +'"getChroms"'
+                    sys.exit()
+                ### load HiC matrix
+                hiCMatrix = hm.hiCMatrix(baseFile[chromTag].value)
+            ### load reads and bins
+            reads = hiCMatrix.matrix
+            cuts = hiCMatrix.cut_intervals
+            cuts = np.array([cut[1] for cut in cuts])
+            ### if user decided to cut out centromeres and if the chromosome
+            ### has one, create datasets for both chromatids and join them
+            if ignorecentromeres and chromosome not in [13,14,15,22]:
+                start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
+                for i in tqdm(range(2), desc = "Loading chromatids separately"):
+                    if i == 0:
+                        df = createDataset(proteins, reads, windowoperation, windowsize,
+                               equalize, chromosome, start=0, end=start)
+                    elif i == 1:
+                        df = df.append(createDataset(proteins, reads,\
+                                windowoperation, windowsize,\
+                               equalize, chromosome, start=end + 1, end=len(cuts)))
+            else:
+                df = createDataset(proteins, reads, windowoperation, windowsize,
+                               equalize, chromosome, start=0, end =len(cuts))
+            ### add average contact read stratified by distance to dataset
+            for i in range(int(windowsize)):
+                df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
+            joblib.dump((df, params), datasetFileName,compress=True ) 
+        else:
+            print("Skipped creating file that already existed: " + datasetFileName)
     print("\n")
 
 def getCentromerePositions(centromeresfilepath, chromTag, cuts):
@@ -266,6 +269,8 @@ def getMiddle(proteins,starts,ends, windowOperation):
             yield bin_count/grp_counts
         elif windowOperation == "sum":
             yield bin_count
+        # elif windowOperation == "max":
+            # yield bin_count
 
 
 if __name__ == '__main__':

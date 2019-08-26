@@ -17,13 +17,11 @@ def createAllSets(basefile, centromeresfile, windowsize,
 
 def getSetCombinations(setparamsfile):
     with open(setparamsfile) as f:
-       d = json.load(f)
-       params = json.loads(d)
+       params = json.load(f)
 
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
         yield dict(zip(params, val))
-
 
 if __name__ == '__main__':
     createAllSets()

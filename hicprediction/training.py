@@ -24,24 +24,26 @@ def train(modeloutputdirectory, conversion, lossfunction, traindatasetfile):
     params['conversion'] = conversion
     params['lossfunction'] = lossfunction
     modelTag = createModelTag(params)
-    ### create model with desired parameters
-    model = RandomForestRegressor(max_features='sqrt',random_state=5,\
-                n_estimators =10,n_jobs=4, verbose=2, criterion=lossfunction)
-    df.replace([np.inf, -np.inf], np.nan)
-    df = df.fillna(value=0)
-    ### eliminate columns that should not be used for training
-    X = df[df.columns.difference(['first', 'second','chrom', 'reads', 'avgRead'])]
-    ### apply conversion
-    if conversion == 'none':
-        y = df['reads']
-    elif conversion == 'standardLog':
-        y = np.log(df['reads']+1)
-
-    ## train model and store it
-    model.fit(X, y)
     modelFileName = modeloutputdirectory + "/" + modelTag + ".z"
-    joblib.dump((model, params), modelFileName,compress=True ) 
-    print("\n")
+    if not os.path.isfile(modelFileName):
+        ### create model with desired parameters
+        model = RandomForestRegressor(max_features='sqrt',random_state=5,\
+                    n_estimators =10,n_jobs=4, verbose=2, criterion=lossfunction)
+        df.replace([np.inf, -np.inf], np.nan)
+        df = df.fillna(value=0)
+        ### eliminate columns that should not be used for training
+        X = df[df.columns.difference(['first', 'second','chrom', 'reads', 'avgRead'])]
+        ### apply conversion
+        if conversion == 'none':
+            y = df['reads']
+        elif conversion == 'standardLog':
+            y = np.log(df['reads']+1)
+
+        ## train model and store it
+        model.fit(X, y)
+        joblib.dump((model, params), modelFileName,compress=True ) 
+        print("\n")
+    print("Skipped creating model that already existed: " + modelFileName)
 
 if __name__ == '__main__':
     train()
