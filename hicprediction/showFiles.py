@@ -6,6 +6,8 @@ from hicprediction.configurations import *
 @click.argument('filename', type=click.Path(exists=True))
 @click.command()
 def showH5(filename):
+    # df = pd.read_csv(filename)
+    # print(df.iloc[:,:26].head(50))
     with h5py.File(filename, 'r') as f:
         f.visit(printName)
 
@@ -25,5 +27,3 @@ def printName(name):
 
 if __name__ == '__main__':
     showH5()
-    # df = pd.read_csv('results.csv')
-    # print(df.iloc[:,:22].head())

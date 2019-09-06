@@ -47,14 +47,14 @@ def loadAllProteins(proteinfiles, basefile,chromosomes,
     else:
         chromosomeList = range(1, 23)
     outDirectory = resource_filename('hicprediction',
-                                               'InternalStorage')
+                                               'InternalStorage') +"/"
     print(outDirectory)
     ### call of function responsible for cutting and storing the chromosomes
     chromosomeDict = addGenome(matrixfile, basefile, chromosomeList,
                                outDirectory)
     with h5py.File(basefile, 'a') as baseFile:
         ### iterate over possible combinations for protein settings
-        for setting in getCombinations():
+        for setting in getBaseCombinations():
             params['peakColumn'] = setting['peakColumn']
             params['normalize'] = setting['normalize']
             params['mergeOperation'] = setting['mergeOperation']

@@ -85,21 +85,32 @@ _setAndProtein_options = [
     click.option('--chromosomes', '-chs', default=None, show_default=True,help=\
                 "If set, sets are only calculated for these chromosomes instead of all"),
 ]
-_predict_options = [
-    click.option('--predictionOutputDirectory', '-dod',required=True,\
+_predict_base_options = [
+    click.option('--predictionOutputDirectory', '-dod',default=None,\
                  type=click.Path(exists=True),help='Output directory for'\
                  +' prediction files'),
-    click.option('--modelFilePath', '-mfp', required=True,\
-              help='Choose model on which to predict'),
     click.option('--resultsFilePath', '-rfp', default=None,show_default=True,\
               help='File where to store evaluation metrics. If not set'\
                 +' no evaluation is executed'),
-    click.option('--baseFilePath','-bfp', required=True,type=click.Path(writable=True),
-        help='Base file from where to load chromosomes.'),
+    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
+        help='Base file where to store proteins and chromosomes for later use.'),
+
+]
+_predict_options = [
+    click.option('--modelFilePath', '-mfp', required=True,\
+              help='Choose model on which to predict'),
     click.option('--predictionSetPath','-psp', required=True,type=click.Path(writable=True),
         help='Data set that is to be predicted.'),
 ]
 
+_allpredict_options = [
+    click.option('--modelDirectory', '-md', required=True,\
+              help='Choose model directory'),
+    click.option('--testSetDirectory','-tsd', required=True,type=click.Path(writable=True),
+        help='Data set directory'),
+    click.option('--chromosomes', '-chs', default=None, show_default=True,help=\
+                "If set, sets are only calculated for these chromosomes instead of all"),
+]
 _protein_options = [
     click.option('--resolution' ,'-r', required=True,\
                 help = "Store resolution for analys and documentation"),
@@ -109,9 +120,7 @@ _protein_options = [
                  help='Input file with the whole HiC-matrix ')
 ]
 
-_allset_options = [
-    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
-        help='Base file where to store proteins and chromosomes for later use.'),
+_set_base_options = [
     click.option('--windowSize', '-ws', default=200, show_default=True,\
                 help='Maximum distance between two basepairs'),
     click.option('--centromeresFile', '-cmf',show_default=True,
@@ -119,6 +128,10 @@ _allset_options = [
               type=click.Path(exists=True)),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files'),
+]
+_allset_options = [
+    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
+        help='Base file where to store proteins and chromosomes for later use.'),
     click.option('--setParamsFile', '-spf', required=True,\
               type=click.Path(exists=True)),
 ]
@@ -130,50 +143,30 @@ _set_options = [
     click.option('--normalize', default=False,\
                  show_default=True,\
                  help='Should the proteins be normalized to a 0-1 range'),
-    click.option('--equalize', default=False,
-                 show_default=True,hidden=True,
-                help='If either of the basepairs has no peak at a specific '+\
-                'protein, set both values to 0'),
     click.option('--ignoreCentromeres', default=True,\
                  show_default=True,help='Cut out the centroid arms for training'),
     click.option('--windowOperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
-    click.option('--windowSize', '-ws', default=200, show_default=True,\
-                help='Maximum distance between two basepairs'),
-    click.option('--centromeresFile', '-cmf', default=None,\
-              type=click.Path(exists=True)),
-    click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
-                 help='Output directory for training set files')
 ]
 _train_options = [
-    click.option('--lossfunction', '-lf', default='mse',\
-              type=click.Choice(['mse','mae']), show_default=True, \
-                help='Which loss function should be used for training'),
-    click.option('--conversion', '-co', default='none',\
-              type=click.Choice(['standardLog', 'none']), show_default=True,\
-                help='Define a conversion function for the read values'),
     click.option('--trainDatasetFile', '-sof',\
                  required=True,\
                  help='File from which training is loaded'\
                  ,type=click.Path(writable=True)),
-    click.option('--modelOutputDirectory', '-mod',required=True,type=click.Path(exists=True),\
-                 help='Output directory for model files')
 ]
 _alltrain_options = [
-    click.option('--setDirectory', '-sd',required=True,type=click.Path(exists=True),\
-                 help='Input directory for training files'),
+    click.option('--setDirectory', '-sd',type=click.Path(exists=True),\
+                 help='Input directory for training files', required=True,),
+]
+_train_base_options = [
     click.option('--modelOutputDirectory', '-mod',type=click.Path(exists=True),\
-                 help='Output directory for model files'),
-    click.option('--lossfunction', '-lf', default='mse',\
-              type=click.Choice(['mse','mae']), show_default=True, \
-                help='Which loss function should be used for training'),
+                 help='Output directory for model files', required=True,),
     click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']), show_default=True,\
                 help='Define a conversion function for the read values')
 
 ]
-
 def protein_options(func):
     for option in reversed(_protein_options):
         func = option(func)
@@ -186,36 +179,57 @@ def set_options(func):
         func = option(func)
     for option in reversed(_setAndProtein_options):
         func = option(func)
+    for option in reversed(_set_base_options):
+        func = option(func)
     return func
 
 def predict_options(func):
+    for option in reversed(_predict_base_options):
+        func = option(func)
     for option in reversed(_predict_options):
+        func = option(func)
+    return func
+
+def allpredict_options(func):
+    for option in reversed(_predict_base_options):
+        func = option(func)
+    for option in reversed(_allpredict_options):
         func = option(func)
     return func
 
 def train_options(func):
     for option in reversed(_train_options):
         func = option(func)
+    for option in reversed(_train_base_options):
+        func = option(func)
     return func
 
 def alltrain_options(func):
     for option in reversed(_alltrain_options):
         func = option(func)
+    for option in reversed(_train_base_options):
+        func = option(func)
     return func
 
 def allset_options(func):
+    for option in reversed(_set_base_options):
+        func = option(func)
+    for option in reversed(_setAndProtein_options):
+        func = option(func)
     for option in reversed(_allset_options):
         func = option(func)
     return func
 
 
-def getCombinations(paramsfile):
-    with open(paramsfile) as f:
-       params = json.load(f)
+def getBaseCombinations():
+    params = {
+        'mergeOperation': ["avg", "max"],
+        'normalize': [True, False],
+        'peakColumn': [4,6],
+    }
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
         yield dict(zip(params, val))
-
 
 def checkExtension(fileName, extension, option=None):
     if fileName.split(".")[-1] != extension:
@@ -227,13 +241,6 @@ def checkExtension(fileName, extension, option=None):
             print(msg.format(str(fileName), extension))
             sys.exit()
 
-
-def allset_options(func):
-    for option in reversed(_allset_options):
-        func = option(func)
-    return func
-
-
 def getCombinations(paramsfile):
     with open(paramsfile) as f:
        params = json.load(f)
@@ -241,14 +248,4 @@ def getCombinations(paramsfile):
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
         yield dict(zip(params, val))
 
-
-def checkExtension(fileName, extension, option=None):
-    if fileName.split(".")[-1] != extension:
-        if option and fileName.split(".")[-1] == option:
-            return
-        else:
-            msg = 'The file {} has the wrong extension. Ensure to '\
-                    +'pass a file with .{} extension'
-            print(msg.format(str(fileName), extension))
-            sys.exit()
 

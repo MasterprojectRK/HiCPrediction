@@ -1,5 +1,0 @@
-conda install python=3.6 -y
-conda install -c conda-forge -c bioconda -c ska hic2cool
-conda install -c conda-forge -c bioconda -c ska pybedtools pybigwig
-conda install -c conda-forge -c bioconda -c ska hicmatrix hicexplorer
-

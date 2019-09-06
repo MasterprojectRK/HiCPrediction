@@ -10,35 +10,69 @@ conversion of prediction to HiC matrices
 
 @predict_options
 @click.command()
-def executePrediction(modelfilepath, basefilepath, predictionsetpath, 
+def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
+                      predictionoutputdirectory, resultsfilepath):
+    """
+    Wrapper function for Cli
+    """
+
+    checkExtension(modelfilepath, 'z')
+    checkExtension(predictionsetpath, 'z')
+    model, modelParams = joblib.load(modelfilepath)
+    testSet, setParams = joblib.load(predictionsetpath)
+    executePrediction(model, modelParams, basefile, testSet, setParams,
+                      predictionoutputdirectory, resultsfilepath)
+
+def executePrediction(model,modelParams, basefile, testSet, setParams,
                       predictionoutputdirectory, resultsfilepath):
     """ 
     Main function
     calls prediction, evaluation and conversion methods and stores everything
     Attributes:
-        modelfilepath -- path to model that is to be used
-        basefilepath -- path to basefile of test set
+        model -- regression model
+        modelParams -- parameters of model and set the model was trained with
+        basefile-- path to basefile of test set
         predictionsetpath -- path to data set that is to be predicted
         predictionoutputdirectory -- path to store prediction
         resultsfilepath --  path to results file for evaluation storage
     """
     ### check extensions
-    checkExtension(modelfilepath, 'z')
-    checkExtension(predictionsetpath, 'z')
-    checkExtension(basefilepath, 'ph5')
-    checkExtension(resultsfilepath, 'csv')
-    ### load model and set and predict
-    model, modelParams = joblib.load(modelfilepath)
-    testSet, setParams = joblib.load(predictionsetpath)
-    prediction, score = predict(model, testSet, modelParams['conversion'])
+    checkExtension(basefile, 'ph5')
     predictionTag = createPredictionTag(modelParams, setParams)
-    predictionFilePath =  predictionoutputdirectory + predictionTag + ".cool"
-    ### call function to convert prediction to HiC matrix
-    predictionToMatrix(prediction, basefilepath,modelParams['conversion'],\
-                       setParams['chrom'], predictionFilePath)
-    ### call function to store evaluation metrics
     if resultsfilepath:
-        saveResults(resultsfilepath, modelParams, setParams, prediction, score)
+        checkExtension(resultsfilepath, 'csv')
+        columns = [ 'Score', 'R2','MSE', 'MAE', 'MSLE',
+                       'AUC_OP_S','AUC_OP_P', 'S_OP', 'S_OA', 'S_PA',
+                       'P_OP','P_OA','P_PA',
+                       'Window', 'Merge','equalize','normalize',
+                       'ignoreCentromeres','conversion', 'Loss', 'Peak',
+                       'resolution','modelChromosome', 'modelCellType',
+                       'predictionChromosome', 'predictionCellType']
+        columns.extend(list(range(modelParams['windowSize'])))
+        columns.append('Tag')
+        if os.path.isfile(resultsfilepath):
+            df = pd.read_csv(resultsfilepath, index_col=0)
+        else:
+            df = pd.DataFrame(columns=columns)
+            df = df.set_index('Tag')
+        exists = predictionTag in df.index
+    else:
+        exists =False
+    ### load model and set and predict
+    if not exists:
+        prediction, score = predict(model, testSet, modelParams['conversion'])
+        if predictionoutputdirectory:
+            predictionFilePath =  predictionoutputdirectory +"/" predictionTag + ".cool"
+        ### call function to convert prediction to HiC matrix
+            predictionToMatrix(prediction, basefile,modelParams['conversion'],\
+                           setParams['chrom'], predictionFilePath)
+        ### call function to store evaluation metrics
+        if resultsfilepath:
+
+            df = saveResults(predictionTag, df, modelParams, setParams, prediction,\
+                        score, columns)
+            df.to_csv(resultsfilepath)
+
 
 def predict(model, testSet, conversion):
     """
@@ -48,11 +82,17 @@ def predict(model, testSet, conversion):
         testSet -- testSet to be predicted
         conversion -- conversion function used when training the model
     """
+    ### Eliminate NaNs
     testSet = testSet.fillna(value=0)
-    test_X = testSet[testSet.columns.difference(['first', 'second','chrom','reads'])]
+    ### Hide Columns that are not needed for prediction
+    test_X = testSet[testSet.columns.difference(['first',
+                                                 'second','chrom','reads',
+                                                 'avgRead'])]
     test_y = testSet['chrom']
     test_y = test_y.to_frame()
+    ### convert reads to log reads
     test_y['standardLog'] = np.log(testSet['reads']+1)
+    ### predict
     y_pred = model.predict(test_X)
     test_y['pred'] = y_pred
     y_pred = np.absolute(y_pred)
@@ -60,13 +100,7 @@ def predict(model, testSet, conversion):
     test_y['first'] = testSet['first']
     test_y['distance'] = testSet['distance']
     test_y['predAbs'] = y_pred
-    # if args.conversion == "norm":
-        # target = 'normTarget'
-        # reads = y_pred * maxV
-    # elif args.conversion == "log":
-        # target = 'logTarget'
-        # reads = y_pred * np.log(maxV)
-        # reads = np.exp(reads) - 1
+    ### convert back if necessary
     if conversion == 'none':
         target = 'reads'
         reads = y_pred
@@ -74,6 +108,7 @@ def predict(model, testSet, conversion):
         target = 'standardLog'
         reads = y_pred
         reads = np.exp(reads) - 1
+    ### store into new dataframe
     test_y['reads'] = testSet['reads']
     test_y['avgRead'] = testSet['avgRead']
     test_y['predReads'] = reads
@@ -82,23 +117,59 @@ def predict(model, testSet, conversion):
     return test_y, score
 
 def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFilePath):
+
+    """
+    Function to convert prediction to Hi-C matrix
+    Attributes:
+            pred -- prediction dataframe
+            baseFilePath --  base file
+            conversion -- conversion technique that was used
+            chromosome -- chromosome that wwas predicted
+            predictionFilePath -- where to store the new matrix
+    """
     with h5py.File(baseFilePath, 'r') as baseFile:
+        ### store conversion function
         if conversion == "standardLog":
             convert = lambda val: np.exp(val) - 1
         elif conversion == "none":
             convert = lambda val: val
+        ### get rows and columns
         rows = pred.index.codes[0]
         cols = pred.index.codes[1]
         data = convert(pred['pred'])
+        ### convert back 
+        # data2 = np.absolute(pred['avgRead'] - pred['reads'])
+        # data3 = np.absolute(data - pred['reads'])
+        # data4 = pred['reads']
+        ### create matrix with new values and overwrite original
         originalMatrix = hm.hiCMatrix(baseFile[chromosome].value)
         new = sparse.csr_matrix((data, (rows, cols)),\
                                 shape=originalMatrix.matrix.shape)
+        # new2 = sparse.csr_matrix((data2, (rows, cols)),\
+                                # shape=originalMatrix.matrix.shape)
+        # new3 = sparse.csr_matrix((data3, (rows, cols)),\
+                                # shape=originalMatrix.matrix.shape)
+        # new4 = sparse.csr_matrix((data4, (rows, cols)),\
+                                # shape=originalMatrix.matrix.shape)
+        # predictionFilePath2 = predictionFilePath[:-5] + "avgOrig.cool"
+        # predictionFilePath3 = predictionFilePath[:-5] + "predOrig.cool"
+        # predictionFilePath4 = predictionFilePath[:-5] + "orig.cool"
         originalMatrix.setMatrix(new, originalMatrix.cut_intervals)
         originalMatrix.save(predictionFilePath)
+        # originalMatrix.setMatrix(new2, originalMatrix.cut_intervals)
+        # originalMatrix.save(predictionFilePath2)
+        # originalMatrix.setMatrix(new3, originalMatrix.cut_intervals)
+        # originalMatrix.save(predictionFilePath3)
+        # originalMatrix.setMatrix(new4, originalMatrix.cut_intervals)
+        # originalMatrix.save(predictionFilePath4)
 
-def getPearson(data, field1, field2,  resolution):
+def getCorrelation(data, field1, field2,  resolution, method):
+    """
+    Helper method to calculate correlation
+    """
+
     new = data.groupby('distance', group_keys=False)[[field1,
-        field2]].corr(method='spearman')
+        field2]].corr(method=method)
     new = new.iloc[0::2,-1]
     values = new.values
     indices = new.index.tolist()
@@ -108,47 +179,40 @@ def getPearson(data, field1, field2,  resolution):
     indices = indices / div 
     return indices, values
 
-def saveResults(resultsfilepath, params, setParams, y, score):
+def saveResults(tag, df, params, setParams, y, score, columns):
+    """
+    Function to calculate metrics and store them intoo a file
+    """
     y_pred = y['predReads']
     y_true = y['reads']
-    indicesOP, valuesOP = getPearson(y,'reads', 'predReads', params['resolution'])
-    aucScoreOPS = auc(indicesOP, valuesOP)
-    aucScoreOP = y[['reads','predReads']].corr(method= \
+    indicesOPP, valuesOPP= getCorrelation(y,'reads', 'predReads',
+                                     params['resolution'], 'pearson')
+    ### calculate AUC
+    aucScoreOPP = auc(indicesOPP, valuesOPP)
+    corrScoreOP_P = y[['reads','predReads']].corr(method= \
+                'pearson').iloc[0::2,-1].values[0]
+    corrScoreOA_P = y[['reads', 'avgRead']].corr(method= \
+                'pearson').iloc[0::2,-1].values[0]
+    corrScoreOP_S= y[['reads','predReads']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
-    aucScoreOA = y[['reads', 'avgRead']].corr(method= \
+    corrScoreOA_S= y[['reads', 'avgRead']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
-    aucScorePA = y[['predReads', 'avgRead']].corr(method=\
-                'spearman').iloc[0::2,-1].values[0]
-    print(aucScoreOP, aucScorePA, aucScoreOA)
-    columns = ['Score', 'R2','MSE', 'MAE', 'MSLE',
-                   'AUC_OP_S',
-                   'P_OP','P_OA','P_PA',
-                   'Window', 'Merge','equalize','normalize',
-                   'ignoreCentromeres','conversion', 'Loss', 'Peak',
-                   'resolution','modelChromosome', 'modelCellType',
-                   'predictionChromosome', 'predictionCellType']
-    columns.extend(list(range(params['windowSize'])))
-    if os.path.isfile(resultsfilepath):
-        df = pd.read_csv(resultsfilepath)
-    else:
-        df = pd.DataFrame(columns=columns)
-    cols = [score, r2_score(y_pred,y_true),mean_squared_error(y_pred, y_true),
-            mean_absolute_error(y_pred, y_true), mean_squared_log_error(y_pred, y_true),
-            aucScoreOPS, aucScoreOP, aucScoreOA, aucScorePA, params['windowOperation'],
+    cols = [score, r2_score(y_true, y_pred),mean_squared_error( y_true, y_pred),
+            mean_absolute_error( y_true, y_pred),
+            mean_squared_log_error(y_true, y_pred),
+            0, aucScoreOPP, corrScoreOP_S, corrScoreOA_S,
+            0, corrScoreOP_P, corrScoreOA_P,
+            0, params['windowOperation'],
             params['mergeOperation'],
             params['equalize'], params['normalize'], params['ignoreCentromeres'],
             params['conversion'], params['lossfunction'], params['peakColumn'],
             params['resolution'], params['chrom'], params['cellType'],
             setParams['chrom'], setParams['cellType']]
-    cols.extend(valuesOP)
-    s = pd.Series(cols, index=columns)
-    df = df.append(s, ignore_index=True)
+    cols.extend(valuesOPP)
+    df.loc[tag] = cols
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\
                             'Window','Merge', 'equalize', 'normalize'])
-    df.drop(list(df.filter(regex = 'Unnamed*')), axis = 1, inplace = True)
-    print(df.iloc[:,:22].head())
-    df.to_csv(resultsfilepath)
-
+    return df
 if __name__ == '__main__':
-    executePrediction()
+    executePredictionWrapper()

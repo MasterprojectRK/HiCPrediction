@@ -6,7 +6,7 @@ from hicprediction.tagCreator import createSetTag, createProteinTag
 """
 Module responsible for creating the training sets
 Is given an optional path to a centromere file, boolean parameters for
-normalization, equalization, and the elimination of centromeres. Furthermore
+normalization,  and the elimination of centromeres. Furthermore
 parameter that determine the general bin operation and the bin operation for
 the window proteins. The maximum genomic distance can be set as well as an
 output directory for the training sets and the chromosomes that should be
@@ -17,18 +17,18 @@ used for the training sets. The base file from the former script
 @set_options
 @click.command()
 def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,ignorecentromeres,normalize,equalize,
+                   centromeresfile,ignorecentromeres,normalize,
                    windowoperation, mergeoperation, windowsize, peakcolumn):
     """
     Wrapper function
     calls function and can be called by click
     """
     createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,ignorecentromeres,normalize,equalize,
+                   centromeresfile,ignorecentromeres,normalize,
                    windowoperation, mergeoperation, windowsize, peakcolumn)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,ignorecentromeres,normalize,equalize,
+                   centromeresfile,ignorecentromeres,normalize,
                    windowoperation, mergeoperation, windowsize, peakcolumn):
     """
     Main function
@@ -40,8 +40,6 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             centromeresfile --  file path  with the positions of the centromeres
             ignorecentromeres --  Boolean to decide if centromeres are cut out
             normalize -- Boolean to decide if proteins are normalized
-            equalize -- Boolean to decide if proteins are set to 0 when either
-                is 0
             windowoperation -- bin operation for windows
             mergeoperation --  bin operations for protein binning
             windowsize --  maximal genomic distance
@@ -73,7 +71,6 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         params['chrom'] = chromTag
         params['windowOperation'] = windowoperation
         params['mergeOperation'] = mergeoperation
-        params['equalize'] = equalize
         params['normalize'] = normalize
         params['ignoreCentromeres'] = ignorecentromeres
         params['peakColumn'] = peakcolumn
@@ -87,8 +84,13 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         ### join parameters
         params = {**params, **params2}
         setTag =createSetTag(params)
-        datasetFileName = datasetoutputdirectory  + setTag + ".z"
-        if not os.path.isfile(datasetFileName):
+        datasetFileName = datasetoutputdirectory +"/" + setTag + ".z"
+        fileExists = os.path.isfile(datasetFileName)
+        dir_list = next(os.walk(datasetoutputdirectory))[1]
+        for path in dir_list:
+            tmpPath = datasetoutputdirectory +"/"+path+"/" + setTag + ".z"
+            fileExists = fileExists or os.path.isfile(tmpPath)
+        if not fileExists:
             rows = np.shape(proteins)[0]
             with h5py.File(basefile, 'r') as baseFile:
                 if chromTag not in baseFile:
@@ -104,19 +106,19 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             cuts = np.array([cut[1] for cut in cuts])
             ### if user decided to cut out centromeres and if the chromosome
             ### has one, create datasets for both chromatids and join them
-            if ignorecentromeres and chromosome not in [13,14,15,22]:
+            if ignorecentromeres :
                 start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
                 for i in tqdm(range(2), desc = "Loading chromatids separately"):
                     if i == 0:
                         df = createDataset(proteins, reads, windowoperation, windowsize,
-                               equalize, chromosome, start=0, end=start)
+                                chromosome, start=0, end=start)
                     elif i == 1:
                         df = df.append(createDataset(proteins, reads,\
                                 windowoperation, windowsize,\
-                               equalize, chromosome, start=end + 1, end=len(cuts)))
+                                chromosome, start=end + 1, end=len(cuts)))
             else:
                 df = createDataset(proteins, reads, windowoperation, windowsize,
-                               equalize, chromosome, start=0, end =len(cuts))
+                               chromosome, start=0, end =len(cuts))
             ### add average contact read stratified by distance to dataset
             for i in range(int(windowsize)):
                 df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
@@ -148,7 +150,7 @@ def getCentromerePositions(centromeresfilepath, chromTag, cuts):
     return  len(toStart), len(toEnd)
 
 def createDataset(proteins, fullReads, windowOperation, windowSize,
-                  equalize, chrom, start, end):
+                   chrom, start, end):
     """
     function that creates the actual dataset for a specific
     chromosome/chromatid
@@ -157,7 +159,6 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
             fullReads --  array with read values
             windowOperation --  window bin operation
             windowsize -- maximal genomic distance
-            equalize -- Boolean to decide if proteins are equalized
             chrom -- specific chromosome index
             start -- start position of interval to be processed
             end -- end  position of interval to be processed
@@ -210,6 +211,11 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
                                 windowOperation)
     ### iterate over all the proteins and fill the data frame
     for i in tqdm(range(proteinNr), desc="Converting Proteins to dataset"):
+        # print(i)
+        # start = time.time()*1000
+        # print(start - time.time()*1000)
+        ### Could maybe iterate genomic distance instead of middleGenerator to speed
+        ### things up
         df[str(i)] = np.array(proteinMatrix[df['first'], i+1]).flatten()
         df[str(proteinNr + i)] = next(middleGenerator) 
         df[str(proteinNr * 2 + i)] = np.array(proteinMatrix[df['second'], i+1]).flatten()

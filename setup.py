@@ -31,7 +31,8 @@ setup(
             # 'src=src.cli:cli'
         # ]
     # },
-    scripts=['hicprediction/createBaseFile.py', 'hicprediction/trainAll.py','hicprediction/predict.py',
+    scripts=['hicprediction/predictAll.py', 'hicprediction/createBaseFile.py',
+             'hicprediction/trainAll.py','hicprediction/predict.py',
              'hicprediction/training.py', 'hicprediction/createTrainingSet.py',
             'hicprediction/createAllTrainSets.py','hicprediction/plotMatrix.py'],
     install_requires=requirements,
