@@ -8,29 +8,31 @@ Unordered lists can be started using the toolbar or by typing `* `, `- `, or `+ 
 ### 1. createBaseFile'
 This script creates bins the proteins for the given cell line and creates a base file that is needed for the consecutive steps. This step has to be executed for each cell line or resolution with the according protein files.
 The following arguments can be passed
-* -bf, --basefile(required) --
-                              output path for base file  (ph5)
-* -mf,  --matrixfile(required) -- 
-                              path to input HiC matrix (cool)                                                        
-* -ct, --celltype(required) -- 
-                              cell line of the input matrix                                                
-* -r, --resolution(required) -- 
-                              resolution of the input matrix                                          
-* -chs, --chromosomes(optional) -- 
-                              comma separated list of chromosomes to be processed, if not set all chromosomes will be choosen
-* proteinfiles(required) -- 
-                              list of paths of the protein files to be processed  (narrowpeak)      
+Options:
+  -mf, --matrixFile PATH    Input file with the whole HiC-matrix   [required]
+  -ct, --cellType TEXT      Store cell type for analysis and documentation
+                            [required]
+  -r, --resolution TEXT     Store resolution for analys and documentation
+                            [required]
+  -chs, --chromosomes TEXT  If set, sets are only calculated for these
+                            chromosomes instead of all
+  -bf, --baseFile PATH      Base file where to store proteins and chromosomes
+                            for later use.  [required]
+  --help                    Show this message and exit.
+  
+Arguments:
+                            List of proteinfiles (narrowpeak format)
 
 
 Example:
 ```
-$ createBaseFile -mf hic.cool -bf basefile.ph5 -ct Gm12878 -r 5000 Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowpeak -chs 1,2,3
+$ createBaseFile -mf hic.cool -bf basefile.ph5 -ct Gm12878 -r  -chs 1,2,3 5000 Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowpeak
 ```
 ### 2. createTrainingSet.py'
 This script creates bins the proteins for the given cell line and creates a base file that is needed for the consecutive steps. This step has to be executed for each cell line or resolution with the according protein files.
 The following arguments can be passed
 
- * -wo, --windowOperation [avg|max|sum] --
+ * -wo, --windowOperation [avg|max|sum] 
                                   How should the proteins in between two base
                                   pairs be summed up  [default: avg]
  * --ignoreCentromeres TEXT        Cut out the centroid arms for training
