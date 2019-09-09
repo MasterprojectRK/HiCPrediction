@@ -12,6 +12,7 @@ def predictAll(chromosomes, basefile, predictionoutputdirectory, resultsfilepath
         chromosomeList = chromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
+    chromosomeList = [str(s) for s in chromosomeList]
     sets = dict()
     params = dict()
     for setPath in tqdm(os.listdir(testsetdirectory), desc="Load data sets once"):
@@ -26,7 +27,7 @@ def predictAll(chromosomes, basefile, predictionoutputdirectory, resultsfilepath
         if modelParams['chrom'][3:] in chromosomeList:
             model.set_params(verbose=1)
             for setPath in tqdm(os.listdir(testsetdirectory), desc="Iterate data sets"):
-                # print(params[setPath]['chrom'][3:])
+                # print(params[setPath]['chrom'])
                 if params[setPath]['chrom'][3:] in chromosomeList:
                     executePrediction(model, modelParams,basefile,\
                     sets[setPath], params[setPath],predictionoutputdirectory, resultsfilepath)

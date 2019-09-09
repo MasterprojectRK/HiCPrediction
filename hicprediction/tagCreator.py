@@ -25,7 +25,6 @@ def createProteinTag(params):
 def createModelTag(params):
     tmp = createSetTag(params)
     tmp +=  '_C' + params['conversion']
-    tmp +=  '_L' + params['lossfunction']
     return tmp
 
 def createPredictionTag(params, setParams):

@@ -62,7 +62,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
     if not exists:
         prediction, score = predict(model, testSet, modelParams['conversion'])
         if predictionoutputdirectory:
-            predictionFilePath =  predictionoutputdirectory +"/" predictionTag + ".cool"
+            predictionFilePath =  predictionoutputdirectory +"/"+ predictionTag + ".cool"
         ### call function to convert prediction to HiC matrix
             predictionToMatrix(prediction, basefile,modelParams['conversion'],\
                            setParams['chrom'], predictionFilePath)
@@ -138,30 +138,12 @@ def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFile
         cols = pred.index.codes[1]
         data = convert(pred['pred'])
         ### convert back 
-        # data2 = np.absolute(pred['avgRead'] - pred['reads'])
-        # data3 = np.absolute(data - pred['reads'])
-        # data4 = pred['reads']
         ### create matrix with new values and overwrite original
         originalMatrix = hm.hiCMatrix(baseFile[chromosome].value)
         new = sparse.csr_matrix((data, (rows, cols)),\
                                 shape=originalMatrix.matrix.shape)
-        # new2 = sparse.csr_matrix((data2, (rows, cols)),\
-                                # shape=originalMatrix.matrix.shape)
-        # new3 = sparse.csr_matrix((data3, (rows, cols)),\
-                                # shape=originalMatrix.matrix.shape)
-        # new4 = sparse.csr_matrix((data4, (rows, cols)),\
-                                # shape=originalMatrix.matrix.shape)
-        # predictionFilePath2 = predictionFilePath[:-5] + "avgOrig.cool"
-        # predictionFilePath3 = predictionFilePath[:-5] + "predOrig.cool"
-        # predictionFilePath4 = predictionFilePath[:-5] + "orig.cool"
         originalMatrix.setMatrix(new, originalMatrix.cut_intervals)
         originalMatrix.save(predictionFilePath)
-        # originalMatrix.setMatrix(new2, originalMatrix.cut_intervals)
-        # originalMatrix.save(predictionFilePath2)
-        # originalMatrix.setMatrix(new3, originalMatrix.cut_intervals)
-        # originalMatrix.save(predictionFilePath3)
-        # originalMatrix.setMatrix(new4, originalMatrix.cut_intervals)
-        # originalMatrix.save(predictionFilePath4)
 
 def getCorrelation(data, field1, field2,  resolution, method):
     """
@@ -205,9 +187,9 @@ def saveResults(tag, df, params, setParams, y, score, columns):
             0, params['windowOperation'],
             params['mergeOperation'],
             params['equalize'], params['normalize'], params['ignoreCentromeres'],
-            params['conversion'], params['lossfunction'], params['peakColumn'],
-            params['resolution'], params['chrom'], params['cellType'],
-            setParams['chrom'], setParams['cellType']]
+            params['conversion'], 'MSE', params['peakColumn'],
+            params['resolution'],setParams['chrom'], setParams['cellType'],
+            params['chrom'], params['cellType']]
     cols.extend(valuesOPP)
     df.loc[tag] = cols
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
