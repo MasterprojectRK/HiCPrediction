@@ -17,4 +17,6 @@ The following arguments can be passed
 
 
 Example:
+'''
 $ createBaseFile -mf hic.cool -bf basefile.ph5 -ct Gm12878 -r 5000 Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowpeak
+'''
