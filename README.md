@@ -8,12 +8,18 @@ Unordered lists can be started using the toolbar or by typing `* `, `- `, or `+ 
 ### 1. createBaseFile'
 This script creates bins the proteins for the given cell line and creates a base file that is needed for the consecutive steps. This step has to be executed for each cell line or resolution with the according protein files.
 The following arguments can be passed
-* -bf, --basefile(required) --  output path for base file  (ph5)
-* -mf,  --matrixfile(required) -- path to input HiC matrix (cool)                                                        
-* -ct, --celltype(required) -- cell line of the input matrix                                                
-* -r, --resolution(required) -- resolution of the input matrix                                          
-* -chs, --chromosomes(optional) -- comma separated list of chromosomes to be processed, if not set all chromosomes will be choosen
-* proteinfiles(required) -- list of paths of the protein files to be processed  (narrowpeak)      
+* -bf, --basefile(required) --
+                              output path for base file  (ph5)
+* -mf,  --matrixfile(required) -- 
+                              path to input HiC matrix (cool)                                                        
+* -ct, --celltype(required) -- 
+                              cell line of the input matrix                                                
+* -r, --resolution(required) -- 
+                              resolution of the input matrix                                          
+* -chs, --chromosomes(optional) -- 
+                              comma separated list of chromosomes to be processed, if not set all chromosomes will be choosen
+* proteinfiles(required) -- 
+                              list of paths of the protein files to be processed  (narrowpeak)      
 
 
 Example:
