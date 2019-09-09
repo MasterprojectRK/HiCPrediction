@@ -9,16 +9,16 @@ Unordered lists can be started using the toolbar or by typing `* `, `- `, or `+ 
 This script creates bins the proteins for the given cell line and creates a base file that is needed for the consecutive steps. This step has to be executed for each cell line or resolution with the according protein files.
 The following arguments can be passed
 Options:
-  -mf, --matrixFile PATH    Input file with the whole HiC-matrix   [required]
-  -ct, --cellType TEXT      Store cell type for analysis and documentation
+ * -mf, --matrixFile PATH  //  Input file with the whole HiC-matrix   [required]
+ * -ct, --cellType TEXT      Store cell type for analysis and documentation
                             [required]
-  -r, --resolution TEXT     Store resolution for analys and documentation
+ * -r, --resolution TEXT     Store resolution for analys and documentation
                             [required]
-  -chs, --chromosomes TEXT  If set, sets are only calculated for these
+ * -chs, --chromosomes TEXT  If set, sets are only calculated for these
                             chromosomes instead of all
-  -bf, --baseFile PATH      Base file where to store proteins and chromosomes
+ * -bf, --baseFile PATH      Base file where to store proteins and chromosomes
                             for later use.  [required]
-  --help                    Show this message and exit.
+ * --help                    Show this message and exit.
   
 Arguments:
                             List of proteinfiles (narrowpeak format)
