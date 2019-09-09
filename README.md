@@ -29,8 +29,7 @@ Example:
 $ createBaseFile -mf hic.cool -bf basefile.ph5 -ct Gm12878 -r  -chs 1,2,3 5000 Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowpeak
 ```
 ### 2. createTrainingSet.py'
-This script creates bins the proteins for the given cell line and creates a base file that is needed for the consecutive steps. This step has to be executed for each cell line or resolution with the according protein files.
-The following arguments can be passed
+This script creates the training sets that are later used for training and prediction. An output directory has to be defined as well as the base file that was created in the first step. All the chromosomes, unless defined otherwise, are converted into training sets with the specific setting chosen by the user.
 
  * -wo, --windowOperation [avg|max|sum] 
                                   How should the proteins in between two base
@@ -52,7 +51,48 @@ The following arguments can be passed
  * -cmf, --centromeresFile PATH
  * -ws, --windowSize INTEGER       Maximum distance between two basepairs
                                   [default: 200]
+ *   --help                          Show this message and exit.
+
 Example:
 ```
-$ createBaseFile -mf hic.cool -bf basefile.ph5 -ct Gm12878 -r 5000 Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowpeak
+$ createTrainingSet.py -bf basefile.ph5 --dod Results/Sets/Default/
+```
+### 3. training.py'
+This script trains the models. A training set that serves as input  must be chosen as well as the output directory for the model.
+Optionally the user can convert the reads based on a function (so far only log)
+
+
+Options:
+ * -tdf, --trainDatasetFile PATH   File from which training is loaded
+                                  [required]
+ * -co, --conversion [standardLog|none]
+                                  Define a conversion function for the read
+                                  values  [default: none]
+ * -mod, --modelOutputDirectory PATH
+                                  Output directory for model files  [required]
+ * --help                          Show this message and exit.
+Example:
+```
+$ training.py -tdf Results/Sets/Default/chr1.z -mod Results/Models/Default
+```
+### 4. predict.py
+This script is the final step and predicts matrices based on a chosen model. Agaiin, the base file must be passed and an output directory for the predictions. The model must be chosen as well as a test set which should be predicted.
+Optionally a CSV-file can be defined as output for the evaluation metrics.
+
+Options:
+ * -bf, --baseFile PATH            Base file where to store proteins and
+                                  chromosomes for later use.  [required]
+ * -rfp, --resultsFilePath TEXT    File where to store evaluation metrics. If
+                                  not set no evaluation is executed
+ * -pod, --predictionOutputDirectory PATH
+                                  Output directory for prediction files. If
+                                  not set no converted Hi-C matrices are stored.
+ * -psp, --predictionSetPath PATH  Data set that is to be predicted.
+                                  [required]
+ * -mfp, --modelFilePath TEXT      Choose model on which to predict  [required]
+ * --help                          Show this message and exit.
+
+Example:
+```
+$ predict.py -bf basefile.ph5 -psp Results/Sets/Default/chr1.z -mfp Results/Models/Default/chr2.z -pod Results/Predictions/
 ```
