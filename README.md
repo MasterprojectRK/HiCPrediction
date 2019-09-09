@@ -17,6 +17,21 @@ The following arguments can be passed
 
 
 Example:
-'''
+```
 $ createBaseFile -mf hic.cool -bf basefile.ph5 -ct Gm12878 -r 5000 Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowpeak
-'''
+```
+### 2. createTrainingSet.py'
+This script creates bins the proteins for the given cell line and creates a base file that is needed for the consecutive steps. This step has to be executed for each cell line or resolution with the according protein files.
+The following arguments can be passed
+* -bf, --basefile(required) --  output path for base file  (ph5)
+* -mf,  --matrixfile(required) -- path to input HiC matrix (cool)                                                        
+* -ct, --celltype(required) -- cell line of the input matrix                                                
+* -r, --resolution(required) -- resolution of the input matrix                                          
+* -chs, --chromosomes(optional) -- comma separated list of chromosomes to be processed, if not set all chromosomes will be choosen
+* proteinfiles(required) -- list of paths of the protein files to be processed  (narrowpeak)      
+
+
+Example:
+```
+$ createBaseFile -mf hic.cool -bf basefile.ph5 -ct Gm12878 -r 5000 Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowpeak
+```
