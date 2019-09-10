@@ -86,7 +86,7 @@ _setAndProtein_options = [
                 "If set, sets are only calculated for these chromosomes instead of all"),
 ]
 _predict_base_options = [
-    click.option('--predictionOutputDirectory', '-dod',default=None,\
+    click.option('--predictionOutputDirectory', '-pod',default=None,\
                  type=click.Path(exists=True),help='Output directory for'\
                  +' prediction files'),
     click.option('--resultsFilePath', '-rfp', default=None,show_default=True,\
@@ -150,7 +150,7 @@ _set_options = [
                 help='How should the proteins in between two base pairs be summed up'),
 ]
 _train_options = [
-    click.option('--trainDatasetFile', '-sof',\
+    click.option('--trainDatasetFile', '-tdf',\
                  required=True,\
                  help='File from which training is loaded'\
                  ,type=click.Path(writable=True)),

@@ -22,12 +22,27 @@ requirements:
     - setuptools
   run:
     - python
-    # dependencies are defined in setup.py
-    {% for dep in data['install_requires'] %}
-    - {{ dep.lower() }}
-    {% endfor %}
-    {# raw is for ignoring templating with cookiecutter, leaving it for use with conda-build #}
-
+    - click
+    #- cooler
+    - future
+    - h5py
+    #- hic2cool
+    #- hicexplorer
+    #- hicmatrix 
+    #- intervaltree
+    - joblib
+    #- multiprocess
+    - numba
+    - pandas
+    - pyarrow
+    #- pybedtools
+    #- pyBigWig
+    - scikit-learn
+    - scipy
+    - seaborn
+    #- tables
+    - tqdm
+    - Unidecode
 test:
   source_files:
     - tests

@@ -6,8 +6,6 @@ def createSetTag(params):
     tmp += '_W' + params['windowOperation']
     tmp += str(params['windowSize'])
 
-    if params['equalize']:
-        tmp += '_E'
     if params['ignoreCentromeres']:
         tmp += '_A'
     return tmp + params['chrom']
