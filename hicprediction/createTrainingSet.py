@@ -47,8 +47,10 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
     """
     ### check extensions
     if not centromeresfile:
-        centromeresfile =  os.path.dirname(__file__) +\
-        "/InternalStorage/centromeres.txt"
+        # centromeresfile =  os.path.dirname(__file__) +\
+        # "/InternalStorage/centromeres.txt"
+        centromeresfile = resource_filename('hicprediction',\
+                'InternalStorage') +"/centromeres.txt"
 
     checkExtension(basefile, 'ph5')
     ### convert chromosomes to list
