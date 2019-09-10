@@ -1,13 +1,13 @@
 # HiCPrediction
 HiCPrediction enables the training of Random Forest Regressor models for Hi-C matrices by using protein levels. The models can then be used to predict Hi-C matrices of other chromosomes and cell lines. The current version requires an existing Hi-C matrix, or at least the binning intervals for any prediction. The framework has 2 data preparation scripts, one training scrip and one prediction script. All of them have to be executed consecutively in order to work. 
 ## Installment
-You need Python3.6 for the current version. 
+You need Python3.6 for the current version. Some other conda packages have to be installed in order to make the framework work.
 
 ```
 $ conda install -c conda-forge -c bioconda -c ska hic2cool
 $ conda install -c conda-forge -c bioconda -c ska pybedtools pybigwig
 $ conda install -c conda-forge -c bioconda -c ska hicmatrix hicexplorer
-$ conda install -c abajorat 
+$ conda install -c abajorat hicprediction
 ```
 ## Scripts
 
