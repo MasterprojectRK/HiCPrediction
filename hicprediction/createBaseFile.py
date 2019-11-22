@@ -52,7 +52,7 @@ def loadAllProteins(proteinfiles, basefile,chromosomes,
     ### call of function responsible for cutting and storing the chromosomes
     chromosomeDict = addGenome(matrixfile, basefile, chromosomeList,
                                outDirectory)
-    with h5py.File(basefile, 'a') as baseFile:
+    with h5py.File(basefile, 'a'):
         ### iterate over possible combinations for protein settings
         for setting in getBaseCombinations():
             params['peakColumn'] = setting['peakColumn']
@@ -171,7 +171,7 @@ def addGenome(matrixFile, baseFilePath, chromosomeList, outDirectory):
             chromTag = "chr" + str(i)
             ### create process to cut chromosomes
             sub2 = "hicAdjustMatrix -m "+matrixFile +" --action keep" \
-                        +" --chromosomes " + str(i) + " -o " + tag
+                        +" --chromosomes " + chromTag + " -o " + tag
             ### execute call if necessary
             if not chromTag in baseFile:
                 subprocess.call(sub2,shell=True)
