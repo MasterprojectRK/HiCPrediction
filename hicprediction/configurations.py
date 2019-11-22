@@ -12,6 +12,7 @@ from sklearn.metrics import mean_squared_log_error
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import auc
+import json
 
 from hicmatrix import HiCMatrix as hm
 from hicexplorer import hicPlotMatrix as hicPlot
