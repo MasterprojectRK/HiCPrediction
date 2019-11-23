@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from hicprediction.configurations import *
+from configurations import *
 from hicprediction.tagCreator import createProteinTag
 
 """ Module responsible for the binning of proteins and the cutting of
@@ -14,8 +14,8 @@ from hicprediction.tagCreator import createProteinTag
                # 'defined for the whole genome or at least, for the chromosomes'\
                # + ' you defined in thee options. Format must be "narrowPeak"')
 @click.command()
-def loadAllProteins(proteinfiles, basefile,chromosomes,
-                   matrixfile,celltype,resolution):
+def loadAllProteins(proteinfiles, basefile, chromosomes,
+                   matrixfile,celltype,resolution,internaloutdir):
     """
     Main function that is called with the desired path to the base file, a list
     of chromosomes that are to be included, the source HiC file (whole genome),
@@ -28,6 +28,7 @@ def loadAllProteins(proteinfiles, basefile,chromosomes,
         matrixfile -- path to input HiC matrix
         celltype -- cell line of the input matrix
         resolution -- resolution of the input matrix
+        outdir -- where the internally needed per-chromosome matrices are stored
     """
     ### checking extensions of files
     checkExtension(matrixfile, 'cool')
@@ -46,8 +47,9 @@ def loadAllProteins(proteinfiles, basefile,chromosomes,
         chromosomeList = chromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
-    outDirectory = resource_filename('hicprediction',
-                                               'InternalStorage') +"/"
+    #outDirectory = resource_filename('hicprediction',
+                                               #'InternalStorage') +"/"
+    outDirectory = internaloutdir
     print(outDirectory)
     ### call of function responsible for cutting and storing the chromosomes
     chromosomeDict = addGenome(matrixfile, basefile, chromosomeList,
