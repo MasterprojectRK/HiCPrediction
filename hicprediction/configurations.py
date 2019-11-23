@@ -113,8 +113,10 @@ _allpredict_options = [
                 "If set, sets are only calculated for these chromosomes instead of all"),
 ]
 _protein_options = [
+    click.option('--internalOutDir', '-iod', required=True, type=click.Path(writable=True), \
+                    help='path where internally used matrices will be stored'),
     click.option('--resolution' ,'-r', required=True,\
-                help = "Store resolution for analys and documentation"),
+                help = "Store resolution for analysis and documentation"),
     click.option('--cellType' ,'-ct', required=True, \
                 help="Store cell type for analysis and documentation"),
     click.option('--matrixFile', '-mf',required=True,type=click.Path(exists=True),\
