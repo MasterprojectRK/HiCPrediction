@@ -151,6 +151,8 @@ _set_options = [
     click.option('--windowOperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
+    click.option('--internalInDir', '-iid', type=click.Path(writable=True), \
+                    help='path where internally used matrices will be stored')
 ]
 _train_options = [
     click.option('--trainDatasetFile', '-tdf',\

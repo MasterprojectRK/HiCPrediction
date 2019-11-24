@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from hicprediction.configurations import *
+from configurations import *
 from hicprediction.tagCreator import createSetTag, createProteinTag
 
 """
@@ -18,18 +18,18 @@ used for the training sets. The base file from the former script
 @click.command()
 def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   windowoperation, mergeoperation, windowsize, peakcolumn):
+                   internalindir, windowoperation, mergeoperation, windowsize, peakcolumn):
     """
     Wrapper function
     calls function and can be called by click
     """
     createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   windowoperation, mergeoperation, windowsize, peakcolumn)
+                   internalindir, windowoperation, mergeoperation, windowsize, peakcolumn)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   windowoperation, mergeoperation, windowsize, peakcolumn):
+                   internalInDir, windowoperation, mergeoperation, windowsize, peakcolumn):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -40,6 +40,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             centromeresfile --  file path  with the positions of the centromeres
             ignorecentromeres --  Boolean to decide if centromeres are cut out
             normalize -- Boolean to decide if proteins are normalized
+            internalInDir -- path to directory where the per-chromosome cooler matrices are stored
             windowoperation -- bin operation for windows
             mergeoperation --  bin operations for protein binning
             windowsize --  maximal genomic distance
@@ -101,7 +102,19 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                             +'"getChroms"'
                     sys.exit()
                 ### load HiC matrix
-                hiCMatrix = hm.hiCMatrix(baseFile[chromTag].value)
+                matrixfile = baseFile[chromTag].value
+                if internalInDir:
+                    filename = os.path.basename(matrixfile)
+                    matrixfile = os.path.join(internalInDir, filename)
+                hiCMatrix = None
+                if os.path.isfile(matrixfile):
+                    hiCMatrix = hm.hiCMatrix(matrixfile)
+                else:
+                    msg = ("cooler file {0:s} is missing.\n" \
+                          + "Use --iif option to provide the directory where the internal matrices " \
+                          +  "where stored when creating the basefile").format(matrixfile)
+                    sys.exit(msg)
+                
             ### load reads and bins
             reads = hiCMatrix.matrix
             cuts = hiCMatrix.cut_intervals
