@@ -4,3 +4,4 @@ dist
 lib
 lib64
 InternalStorage/*
+*.vscode
