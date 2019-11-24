@@ -145,7 +145,7 @@ _set_options = [
                  help='This parameter defines how the proteins are binned'),
     click.option('--normalize', default=False,\
                  show_default=True,\
-                 help='Should the proteins be normalized to a 0-1 range'),
+                 help='Normalize protein signal values to a 0-1 range'),
     click.option('--ignoreCentromeres', default=True,\
                  show_default=True,help='Cut out the centroid arms for training'),
     click.option('--windowOperation', '-wo', default='avg',\
