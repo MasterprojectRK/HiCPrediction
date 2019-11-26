@@ -61,6 +61,8 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
+
 class Mutex(click.Option):
     def __init__(self, *args, **kwargs):
         self.not_required_if:list = kwargs.pop("not_required_if")

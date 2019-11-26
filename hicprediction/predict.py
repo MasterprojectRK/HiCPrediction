@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from hicprediction.configurations import *
+from configurations import *
 from hicprediction.tagCreator import createPredictionTag
 
 """
