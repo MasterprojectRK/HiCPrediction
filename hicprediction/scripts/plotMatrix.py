@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
-from hicprediction.configurations import *
+import os
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
+os.environ['NUMEXPR_NUM_THREADS'] = '8'
+import hicprediction.configurations as conf
+from hicmatrix import HiCMatrix as hm
+from hicexplorer import hicPlotMatrix as hicPlot
 from scipy.sparse import triu, tril
 from argparse import Namespace
+import numpy as np
+import logging as log
+log.basicConfig(level=log.DEBUG)
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import click
+from matplotlib.colors import LogNorm
 
 @click.option('--regionIndex1', '-r1',default=1, show_default=True, required=True)
 @click.option('--regionIndex2','-r2', default=400, show_default=True, required=True)
@@ -13,8 +25,8 @@ from argparse import Namespace
 def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix, title):
         if not imageoutputfile:
             imageoutputfile = matrixinputfile.split('.')[0] +'.png'
-        checkExtension(matrixinputfile, 'cool')
-        checkExtension(imageoutputfile, 'png')
+        conf.checkExtension(matrixinputfile, 'cool')
+        conf.checkExtension(imageoutputfile, 'png')
             
         #get the full matrix first to extract the desired region
         ma = hm.hiCMatrix(comparematrix)
@@ -46,7 +58,8 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
                              vMax=None, vMaxBigwig=None, 
                              vMin=1.0, vMinBigwig=None,
                              matrix = comparematrix) 
-        #following code is dupicated from hicPlotMatrix
+        
+        #following code is duplicated from hicPlotMatrix
         #not exactly beautiful, but works for now
         chrom, region_start, region_end, idx1, start_pos1, chrom2, region_start2, region_end2, idx2, start_pos2 = hicPlot.getRegion(plotArgs, lowerHiCMatrix)
         
@@ -100,6 +113,11 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         plt.savefig(imageoutputfile, dpi=plotArgs.dpi)
         plt.close(fig)
 
+        #the following does not work, unfortunately
+        #cooler throws bad input error
+        ##lowerHiCMatrix.matrix = lowerMatrix + upperMatrix
+        ##lowerHiCMatrix.save("test.cool", pSymmetric=False)
+
 # def plotMatrix(args):
     # for i in range(1,4):
         # print(i)
@@ -123,7 +141,7 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
             # name = name + "_R"+region
 
         # a.extend( ["-out", IMAGE_D+name+".png"])
-         #hicPlot.main(a)
+        # hicPlot.main(a)
 
 
 # def plotDir(args):
