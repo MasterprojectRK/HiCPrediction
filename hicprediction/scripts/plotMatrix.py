@@ -1,35 +1,104 @@
 #!/usr/bin/env python3
 from hicprediction.configurations import *
 from scipy.sparse import triu, tril
+from argparse import Namespace
 
 @click.option('--regionIndex1', '-r1',default=1, show_default=True, required=True)
 @click.option('--regionIndex2','-r2', default=400, show_default=True, required=True)
 @click.option('--matrixinputfile', '-mif',type=click.Path(exists=True), required=True)
 @click.option('--imageoutputfile','-iof', default=None)
 @click.option('--comparematrix', '-cmp', type=click.Path(exists=True), required=True)
+@click.option('--title', '-t', type=str, default=None)
 @click.command()
-def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix):
+def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix, title):
         if not imageoutputfile:
             imageoutputfile = matrixinputfile.split('.')[0] +'.png'
         checkExtension(matrixinputfile, 'cool')
         checkExtension(imageoutputfile, 'png')
-        lowerCooler = cooler.Cooler(comparematrix)
-        upperCooler = cooler.Cooler(matrixinputfile)
-        lowerArray = lowerCooler.matrix(balance=False, sparse=True)[:,:]
-        upperArray = upperCooler.matrix(balance=False, sparse=True)[:,:]
-        lowerArray = tril(lowerArray, k=0).astype(np.int16)
-        upperArray = triu(upperArray, k=1).astype(np.int16)
-        mixedArray = (lowerArray + upperArray).astype(np.int16)
-        #plt.spy(mixedArray)
-        print(mixedArray)
-        #fig = plt.figure(figsize=(10, 10))
-        #ax = fig.add_subplot(111)
-        xVals = mixedArray[0]
-        #yVals = mixedArray[,:]    
+            
+        #get the full matrix first to extract the desired region
+        ma = hm.hiCMatrix(comparematrix)
+        cuts = ma.cut_intervals
+        chromosome = cuts[0][0]
+        region = str(chromosome) +":"+str(cuts[regionindex1][1])+"-"+ str(cuts[regionindex2][1])
         
-        print(xVals)
+        #now get the predicted and the target matrix, restricted to the desired region
+        lowerHiCMatrix = hm.hiCMatrix(comparematrix , pChrnameList=[region])
+        upperHiCMatrix = hm.hiCMatrix(matrixinputfile ,pChrnameList=[region])
+        #only use upper and lower triangles
+        lowerMatrix = tril(lowerHiCMatrix.matrix, k=0, format="csr")
+        upperMatrix = triu(upperHiCMatrix.matrix, k=1, format="csr")
+        #arguments for plotting
+        plotArgs = Namespace(bigwig=None, 
+                             chromosomeOrder=None, 
+                             clearMaskedBins=False, 
+                             colorMap='RdYlBu_r', 
+                             disable_tight_layout=False, 
+                             dpi=300, 
+                             flipBigwigSign=False, 
+                             log=False, log1p=True, 
+                             perChromosome=False, 
+                             region=region, 
+                             region2=None, 
+                             scaleFactorBigwig=1.0, 
+                             scoreName=None, 
+                             title=title, 
+                             vMax=None, vMaxBigwig=None, 
+                             vMin=1.0, vMinBigwig=None,
+                             matrix = comparematrix) 
+        #following code is dupicated from hicPlotMatrix
+        #not exactly beautiful, but works for now
+        chrom, region_start, region_end, idx1, start_pos1, chrom2, region_start2, region_end2, idx2, start_pos2 = hicPlot.getRegion(plotArgs, lowerHiCMatrix)
+        
+        mixedMatrix = np.asarray((lowerMatrix + upperMatrix).todense().astype(float))
+        
+        cmap = cm.get_cmap(plotArgs.colorMap)
+        cmap.set_bad('black')
+        bigwig_info = None
 
+        norm = None
 
+        if plotArgs.log or plotArgs.log1p:
+            mask = mixedMatrix == 0
+            try:
+                mixedMatrix[mask] = np.nanmin(mixedMatrix[mask == False])
+            except ValueError:
+                log.info('Matrix contains only 0. Set all values to {}'.format(np.finfo(float).tiny))
+                mixedMatrix[mask] = np.finfo(float).tiny
+            if np.isnan(mixedMatrix).any() or np.isinf(mixedMatrix).any():
+                log.debug("any nan {}".format(np.isnan(mixedMatrix).any()))
+                log.debug("any inf {}".format(np.isinf(mixedMatrix).any()))
+                mask_nan = np.isnan(mixedMatrix)
+                mask_inf = np.isinf(mixedMatrix)
+                mixedMatrix[mask_nan] = np.nanmin(mixedMatrix[mask_nan == False])
+                mixedMatrix[mask_inf] = np.nanmin(mixedMatrix[mask_inf == False])
+
+        log.debug("any nan after remove of nan: {}".format(np.isnan(mixedMatrix).any()))
+        log.debug("any inf after remove of inf: {}".format(np.isinf(mixedMatrix).any()))
+        if plotArgs.log1p:
+            mixedMatrix += 1
+            norm = LogNorm()
+        elif plotArgs.log:
+            norm = LogNorm()
+
+        fig_height = 7
+        height = 4.8 / fig_height
+
+        fig_width = 8
+        width = 5.0 / fig_width
+        left_margin = (1.0 - width) * 0.5
+
+        fig = plt.figure(figsize=(fig_width, fig_height), dpi=plotArgs.dpi)
+
+        ax1 = None
+        bottom = 1.3 / fig_height
+
+        position = [left_margin, bottom, width, height]
+        hicPlot.plotHeatmap(mixedMatrix, ma.get_chromosome_sizes(), fig, position,
+                    plotArgs, cmap, xlabel=chrom, ylabel=chrom2,
+                    start_pos=start_pos1, start_pos2=start_pos2, pNorm=norm, pAxis=ax1, pBigwig=bigwig_info)
+        plt.savefig(imageoutputfile, dpi=plotArgs.dpi)
+        plt.close(fig)
 
 # def plotMatrix(args):
     # for i in range(1,4):
@@ -54,7 +123,7 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
             # name = name + "_R"+region
 
         # a.extend( ["-out", IMAGE_D+name+".png"])
-        # hicPlot.main(a)
+         #hicPlot.main(a)
 
 
 # def plotDir(args):
