@@ -1,27 +1,35 @@
 #!/usr/bin/env python3
 from hicprediction.configurations import *
+from scipy.sparse import triu, tril
 
 @click.option('--regionIndex1', '-r1',default=1, show_default=True, required=True)
 @click.option('--regionIndex2','-r2', default=400, show_default=True, required=True)
 @click.option('--matrixinputfile', '-mif',type=click.Path(exists=True), required=True)
 @click.option('--imageoutputfile','-iof', default=None)
+@click.option('--comparematrix', '-cmp', type=click.Path(exists=True), required=True)
 @click.command()
-def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2):
+def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix):
         if not imageoutputfile:
             imageoutputfile = matrixinputfile.split('.')[0] +'.png'
         checkExtension(matrixinputfile, 'cool')
         checkExtension(imageoutputfile, 'png')
-        a = ["--matrix",matrixinputfile,"--dpi", "300"]
-        a.extend(["--log1p", "--vMin" ,"1"])
-        ma = hm.hiCMatrix(matrixinputfile)
-        cuts = ma.cut_intervals
-        chromosome = cuts[0][0]
-        print(chromosome)
-        region = str(chromosome) +":"+str(cuts[regionindex1][1])+"-"+ str(cuts[regionindex2][1])
-        a.extend(["--region", region])
-        a.extend( ["-out",imageoutputfile])
-        print(a)
-        hicPlot.main(a)
+        lowerCooler = cooler.Cooler(comparematrix)
+        upperCooler = cooler.Cooler(matrixinputfile)
+        lowerArray = lowerCooler.matrix(balance=False, sparse=True)[:,:]
+        upperArray = upperCooler.matrix(balance=False, sparse=True)[:,:]
+        lowerArray = tril(lowerArray, k=0).astype(np.int16)
+        upperArray = triu(upperArray, k=1).astype(np.int16)
+        mixedArray = (lowerArray + upperArray).astype(np.int16)
+        #plt.spy(mixedArray)
+        print(mixedArray)
+        #fig = plt.figure(figsize=(10, 10))
+        #ax = fig.add_subplot(111)
+        xVals = mixedArray[0]
+        #yVals = mixedArray[,:]    
+        
+        print(xVals)
+
+
 
 # def plotMatrix(args):
     # for i in range(1,4):
