@@ -1,6 +1,22 @@
 #!/usr/bin/env python3
-from configurations import *
+import os
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
+os.environ['NUMEXPR_NUM_THREADS'] = '8'
+import sys
+import configurations as conf
+import click
+import h5py
+from tqdm import tqdm
+import pandas as pd
+pd.set_option('display.float_format', lambda x: '%.3f' % x)
+import pybedtools
+import numpy as np
+np.set_printoptions(threshold=sys.maxsize)
+np.set_printoptions(precision=3, suppress=True)
+import bisect
 from hicprediction.tagCreator import createProteinTag
+from hicmatrix import HiCMatrix as hm
+import subprocess
 
 """ Module responsible for the binning of proteins and the cutting of
     the genome HiC matrix into the chromosomes for easier access.
@@ -8,7 +24,7 @@ from hicprediction.tagCreator import createProteinTag
     chromosome HiC matrices.
 """
 
-@protein_options
+@conf.protein_options
 @click.argument('proteinFiles', nargs=-1)#, help='Pass all of the protein'\
                # +' files you want to use for the prediction. They should be '+\
                # 'defined for the whole genome or at least, for the chromosomes'\
@@ -31,10 +47,10 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         outdir -- where the internally needed per-chromosome matrices are stored
     """
     ### checking extensions of files
-    checkExtension(matrixfile, 'cool')
-    checkExtension(basefile, 'ph5')
+    conf.checkExtension(matrixfile, 'cool')
+    conf.checkExtension(basefile, 'ph5')
     for fileName in proteinfiles:
-        checkExtension(fileName, 'narrowPeak')
+        conf.checkExtension(fileName, 'narrowPeak')
     ### cutting path to get source file name for storage
     inputName = matrixfile.split(".")[0].split("/")[-1]
     ### creation of parameter set
@@ -56,7 +72,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
                                outDirectory)
     with h5py.File(basefile, 'a'):
         ### iterate over possible combinations for protein settings
-        for setting in getBaseCombinations():
+        for setting in conf.getBaseCombinations():
             params['peakColumn'] = setting['peakColumn']
             params['normalize'] = setting['normalize']
             params['mergeOperation'] = setting['mergeOperation']
@@ -131,7 +147,8 @@ def loadProtein(proteins, chromName, cutsStart, params):
     i = 0
     columns = ['start']
     ### iterate proteins 
-    for name, a in tqdm(proteins.items(), desc = 'Proteins converting'):
+    for tup in tqdm(proteins.items(), desc = 'Proteins converting'):
+        a = tup[1]
         columns.append(str(i))
         ### filter for specific chromosome and sort
         a = a.filter(chrom_filter, c=str(chromName))
@@ -145,7 +162,7 @@ def loadProtein(proteins, chromName, cutsStart, params):
                 values[pos].append(float(feature[params['peakColumn']]))
             else:
                 values[pos] = [float(feature[params['peakColumn']])]
-        j = 0
+        #j = 0
         for key, val in values.items():
             ### bin proteins for each bin
             score = merge(val)
