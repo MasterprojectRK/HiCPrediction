@@ -16,7 +16,7 @@ import click
 from matplotlib.colors import LogNorm
 
 @click.option('--regionIndex1', '-r1',default=1, show_default=True, required=True)
-@click.option('--regionIndex2','-r2', default=400, show_default=True, required=True)
+@click.option('--regionIndex2','-r2', default=1000, show_default=True, required=True)
 @click.option('--matrixinputfile', '-mif',type=click.Path(exists=True), required=True)
 @click.option('--imageoutputfile','-iof', default=None)
 @click.option('--comparematrix', '-cmp', type=click.Path(exists=True), required=True)
@@ -34,9 +34,9 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         chromosome = cuts[0][0]
         region = str(chromosome) +":"+str(cuts[regionindex1][1])+"-"+ str(cuts[regionindex2][1])
         
-        #now get the predicted and the target matrix, restricted to the desired region
+        #now get the predicted and the compared matrix, restricted to the desired region
         lowerHiCMatrix = hm.hiCMatrix(comparematrix , pChrnameList=[region])
-        upperHiCMatrix = hm.hiCMatrix(matrixinputfile ,pChrnameList=[region])
+        upperHiCMatrix = hm.hiCMatrix(matrixinputfile ,pChrnameList=[region]) #todo: load region from matrix
         #only use upper and lower triangles
         lowerMatrix = tril(lowerHiCMatrix.matrix, k=0, format="csr")
         upperMatrix = triu(upperHiCMatrix.matrix, k=1, format="csr")
