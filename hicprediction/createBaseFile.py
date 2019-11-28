@@ -52,7 +52,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     for fileName in proteinfiles:
         conf.checkExtension(fileName, 'narrowPeak')
     ### cutting path to get source file name for storage
-    inputName = matrixfile.split(".")[0].split("/")[-1]
+    inputName = matrixfile.strip(".cool")
     ### creation of parameter set
     params = dict()
     params['originName'] = inputName
@@ -66,7 +66,6 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     #outDirectory = resource_filename('hicprediction',
                                                #'InternalStorage') +"/"
     outDirectory = internaloutdir
-    print(outDirectory)
     ### call of function responsible for cutting and storing the chromosomes
     chromosomeDict = addGenome(matrixfile, basefile, chromosomeList,
                                outDirectory)
@@ -185,7 +184,7 @@ def addGenome(matrixFile, baseFilePath, chromosomeList, outDirectory):
     chromosomeDict = {}
     with h5py.File(baseFilePath, 'a') as baseFile:
         for i in tqdm(chromosomeList,desc='Converting chromosomes'):
-            tag = outDirectory + matrixFile.split("/")[-1].split(".")[0]\
+            tag = outDirectory + matrixFile.strip("cool") \
                     +"_chr" + str(i) +".cool"
             chromTag = "chr" + str(i)
             ### create process to cut chromosomes
