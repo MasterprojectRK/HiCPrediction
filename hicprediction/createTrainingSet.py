@@ -112,7 +112,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                 else:
                     msg = ("cooler file {0:s} is missing.\n" \
                           + "Use --iif option to provide the directory where the internal matrices " \
-                          +  "where stored when creating the basefile").format(matrixfile)
+                          +  "were stored when creating the basefile").format(matrixfile)
                     sys.exit(msg)
                 
             ### load reads and bins
