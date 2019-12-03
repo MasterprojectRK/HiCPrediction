@@ -52,7 +52,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     for fileName in proteinfiles:
         conf.checkExtension(fileName, 'narrowPeak')
     ### cutting path to get source file name for storage
-    inputName = matrixfile.strip(".cool")
+    inputName = matrixfile.rstrip(".cool")
     ### creation of parameter set
     params = dict()
     params['originName'] = inputName
@@ -184,7 +184,7 @@ def addGenome(matrixFile, baseFilePath, chromosomeList, outDirectory):
     chromosomeDict = {}
     with h5py.File(baseFilePath, 'a') as baseFile:
         for i in tqdm(chromosomeList,desc='Converting chromosomes'):
-            tag = outDirectory + matrixFile.strip("cool") \
+            tag = outDirectory + matrixFile.rstrip(".cool") \
                     +"_chr" + str(i) +".cool"
             chromTag = "chr" + str(i)
             ### create process to cut chromosomes
