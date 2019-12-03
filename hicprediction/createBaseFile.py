@@ -184,7 +184,9 @@ def addGenome(matrixFile, baseFilePath, chromosomeList, outDirectory):
     chromosomeDict = {}
     with h5py.File(baseFilePath, 'a') as baseFile:
         for i in tqdm(chromosomeList,desc='Converting chromosomes'):
-            tag = outDirectory + matrixFile.rstrip(".cool") \
+            filename = os.path.basename(matrixFile)
+            outMatrix = os.path.join(outDirectory, filename)
+            tag = outMatrix.rstrip(".cool") \
                     +"_chr" + str(i) +".cool"
             chromTag = "chr" + str(i)
             ### create process to cut chromosomes
