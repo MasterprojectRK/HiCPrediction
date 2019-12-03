@@ -86,12 +86,12 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             params2 = store.get_storer(proteinChromTag).attrs.metadata
         ### join parameters
         params = {**params, **params2}
-        setTag =createSetTag(params)
-        datasetFileName = datasetoutputdirectory +"/" + setTag + ".z"
+        setTag = createSetTag(params) + ".z"
+        datasetFileName = os.path.join(datasetoutputdirectory, setTag)
         fileExists = os.path.isfile(datasetFileName)
         dir_list = next(os.walk(datasetoutputdirectory))[1]
         for path in dir_list:
-            tmpPath = datasetoutputdirectory +"/"+path+"/" + setTag + ".z"
+            tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
             fileExists = fileExists or os.path.isfile(tmpPath)
         if not fileExists:
             rows = np.shape(proteins)[0]
