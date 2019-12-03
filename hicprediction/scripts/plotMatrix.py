@@ -2,10 +2,12 @@
 import os
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
+import sys
 import hicprediction.configurations as conf
 from hicmatrix import HiCMatrix as hm
 from hicexplorer import hicPlotMatrix as hicPlot
 from scipy.sparse import triu, tril
+from scipy.sparse import csr_matrix
 from argparse import Namespace
 import numpy as np
 import logging as log
@@ -19,27 +21,37 @@ from matplotlib.colors import LogNorm
 @click.option('--regionIndex2','-r2', default=1000, show_default=True, required=True)
 @click.option('--matrixinputfile', '-mif',type=click.Path(exists=True), required=True)
 @click.option('--imageoutputfile','-iof', default=None)
-@click.option('--comparematrix', '-cmp', type=click.Path(exists=True), required=True)
+@click.option('--comparematrix', '-cmp', type=click.Path(exists=True))
 @click.option('--title', '-t', type=str, default=None)
 @click.command()
 def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix, title):
-        if not imageoutputfile:
-            imageoutputfile = matrixinputfile.split('.')[0] +'.png'
         conf.checkExtension(matrixinputfile, 'cool')
+        if not imageoutputfile:
+            imageoutputfile = matrixinputfile.rstrip('cool') + 'png'
         conf.checkExtension(imageoutputfile, 'png')
             
         #get the full matrix first to extract the desired region
-        ma = hm.hiCMatrix(comparematrix)
+        ma = hm.hiCMatrix(matrixinputfile)
         cuts = ma.cut_intervals
         chromosome = cuts[0][0]
         region = str(chromosome) +":"+str(cuts[regionindex1][1])+"-"+ str(cuts[regionindex2][1])
         
-        #now get the predicted and the compared matrix, restricted to the desired region
-        lowerHiCMatrix = hm.hiCMatrix(comparematrix , pChrnameList=[region])
+        #now get the data for the input matrix, restricted to the desired region
         upperHiCMatrix = hm.hiCMatrix(matrixinputfile ,pChrnameList=[region]) #todo: load region from matrix
-        #only use upper and lower triangles
-        lowerMatrix = tril(lowerHiCMatrix.matrix, k=0, format="csr")
         upperMatrix = triu(upperHiCMatrix.matrix, k=1, format="csr")
+        
+        #if set, get data from the same region also for the compare matrix
+        #there's no compatibility check so far
+        lowerHiCMatrix = None
+        lowerMatrix = None
+        if comparematrix:
+            lowerHiCMatrix = hm.hiCMatrix(comparematrix , pChrnameList=[region])
+            lowerMatrix = tril(lowerHiCMatrix.matrix, k=0, format="csr") 
+        
+            if lowerMatrix.get_shape() != upperMatrix.get_shape():
+                msg = "shapes of input matrix and compare matrix do not match"
+                sys.exit(msg)
+
         #arguments for plotting
         plotArgs = Namespace(bigwig=None, 
                              chromosomeOrder=None, 
@@ -57,14 +69,20 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
                              title=title, 
                              vMax=None, vMaxBigwig=None, 
                              vMin=1.0, vMinBigwig=None,
-                             matrix = comparematrix) 
+                             matrix = matrixinputfile) 
         
-        #following code is duplicated from hicPlotMatrix
+        #following code is largely duplicated from hicPlotMatrix
         #not exactly beautiful, but works for now
-        chrom, region_start, region_end, idx1, start_pos1, chrom2, region_start2, region_end2, idx2, start_pos2 = hicPlot.getRegion(plotArgs, lowerHiCMatrix)
+        chrom, region_start, region_end, idx1, start_pos1, chrom2, region_start2, region_end2, idx2, start_pos2 = hicPlot.getRegion(plotArgs, upperHiCMatrix)
         
-        mixedMatrix = np.asarray((lowerMatrix + upperMatrix).todense().astype(float))
+
+        mixedMatrix = None
+        if comparematrix:
+            mixedMatrix = np.asarray((lowerMatrix + upperMatrix).todense().astype(float))
+        else:
+            mixedMatrix = np.asarray(upperHiCMatrix.matrix.todense().astype(float))
         
+        #colormap for plotting
         cmap = cm.get_cmap(plotArgs.colorMap)
         cmap.set_bad('black')
         bigwig_info = None
