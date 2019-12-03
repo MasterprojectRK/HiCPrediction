@@ -19,7 +19,7 @@ $ conda install -c abajorat hicprediction
 
 ### 1. createBaseFile.py
 This script bins the proteins for the given cell line and resolution.
-It creates a base file and per-chromosome cooler matrices which are needed as input for the following three steps. 
+It creates a base file and per-chromosome cooler matrices which are needed as input for the following steps. 
 This step has to be executed for each cell line or resolution with the according protein files.
 
 Options:
@@ -42,7 +42,7 @@ Examples:
 ```
 $ createBaseFile -mf Gm12878_5kb.cool -bf Gm12878_5kb.ph5 -ct Gm12878 -r 5000 -chs 1,2,3  Gm12878_Rad21.narrowpeak Gm12878_Ctcf.narrowPeak
 
-$ createBaseFile -mf K562_10kb.cool -bf K562_10kb.ph5 -ct K562 -r 10000 K562_chipseqData/*.narrowPeak
+$ createBaseFile -mf K562_10kb.cool -bf K562_10kb.ph5 -ct K562 -r 10000 -iod myOutDir/10kbMatrices/ K562_chipseqData/*.narrowPeak
 
 ```
 ### 2. createTrainingSet.py
@@ -58,8 +58,9 @@ Options |  Explanation
 -bf, --baseFile PATH         |   Base file with binned proteins for given cell line and resolution, can be created with createBaseFile.  [required]
 -dod, --datasetOutputDirectory PATH | Output directory for training set files [required]
 -cmf, --centromeresFile PATH |  Text file containing centromer regions. See centromeres.txt in InternalStorage for formatting
--ws, --windowSize INTEGER     |  Maximum distance between two blocks of basepairs [default: 200]
---help                          Show this message and exit.
+-ws, --windowSize INTEGER     |  Maximum distance in bins between two blocks of basepairs [default: 200; corresponds to 1.000.000 bp at 5kb resolution]
+-iid, --internalInDir | path to directory where the internal matrices from createBaseFile are stored
+--help                         | Show this message and exit.
 
 Example:
 ```
@@ -91,8 +92,7 @@ This script predicts HiC-matrices based on the chosen model. It requires the bas
 Optionally a CSV-file can be defined as output for the evaluation metrics.
 
 Options:
- * -bf, --baseFile PATH            Base file with binned proteins for given cell line 
-                                    and resolution, can be created with createBaseFile.  [required]
+ * -bf, --baseFile PATH            Base file with binned proteins for the prediction target (see -psp below), can be created with createBaseFile.  [required]
  * -rfp, --resultsFilePath TEXT    File where to store evaluation metrics. If
                                   not set no evaluation is executed
  * -pod, --predictionOutputDirectory PATH
