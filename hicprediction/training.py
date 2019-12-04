@@ -26,8 +26,8 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
     ### load data set and set parameters
     df, params = joblib.load(traindatasetfile)
     params['conversion'] = conversion
-    modelTag = createModelTag(params)
-    modelFileName = modeloutputdirectory + "/" + modelTag + ".z"
+    modelTag = createModelTag(params) + ".z"
+    modelFileName = os.path.join(modeloutputdirectory, modelTag)
     if not os.path.isfile(modelFileName):
         ### create model with desired parameters
         model = RandomForestRegressor(max_features='sqrt',random_state=5,\
