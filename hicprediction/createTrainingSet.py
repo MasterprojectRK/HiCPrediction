@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
-
-from configurations import *
+import os
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
+os.environ['NUMEXPR_NUM_THREADS'] = '8'
+import click
+import hicprediction.configurations as conf
 from hicprediction.tagCreator import createSetTag, createProteinTag
+from pkg_resources import resource_filename
+from tqdm import tqdm
+import sys
+import numpy as np
+import pandas as pd
+import h5py
+import joblib
+from hicmatrix import HiCMatrix as hm
+import itertools
 
 """
 Module responsible for creating the training sets
@@ -14,7 +26,7 @@ used for the training sets. The base file from the former script
 (createBaseFile) must also be passed along
 """
 
-@set_options
+@conf.set_options
 @click.command()
 def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
@@ -48,12 +60,10 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
     """
     ### check extensions
     if not centromeresfile:
-        # centromeresfile =  os.path.dirname(__file__) +\
-        # "/InternalStorage/centromeres.txt"
         centromeresfile = resource_filename('hicprediction',\
                 'InternalStorage') +"/centromeres.txt"
 
-    checkExtension(basefile, 'ph5')
+    conf.checkExtension(basefile, 'ph5')
     ### convert chromosomes to list
     if chromosomes:
         chromosomeList = chromosomes.split(',')
@@ -65,10 +75,9 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         chromTag = "chr" +str(chromosome)
         ### check if chromosme is along the 22 first chromosomes
         if not chromosome in range(1,23):
-            msg = 'Chromosome {} is not in the range of 1 to 22. Please' +\
-                    'provide correct chromosomes'
-            print(msg.format(str(chromosome)))
-            sys.exit()
+            msg = 'Chromosome {0:d} is not in the range of 1 to 22.'
+            msg += 'Please provide correct chromosomes'
+            sys.exit( msg.format(chromosome) )
         ### create parameter set
         params = dict()
         params['chrom'] = chromTag
@@ -94,7 +103,6 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
             fileExists = fileExists or os.path.isfile(tmpPath)
         if not fileExists:
-            rows = np.shape(proteins)[0]
             with h5py.File(basefile, 'r') as baseFile:
                 if chromTag not in baseFile:
                     msg = 'The chromosome {} is not loaded yet. Please'\
@@ -102,7 +110,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                             +'"getChroms"'
                     sys.exit()
                 ### load HiC matrix
-                matrixfile = baseFile[chromTag].value
+                matrixfile = baseFile[chromTag][()]
                 if internalInDir:
                     filename = os.path.basename(matrixfile)
                     matrixfile = os.path.join(internalInDir, filename)
@@ -190,12 +198,12 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
     strList = [str(x) for x in range(3*(proteinNr))]
     cols = ['first', 'second','chrom'] + strList+['distance','reads']
     ### get window bin operation
-    if windowOperation == 'avg':
-        convertF = np.mean
-    elif windowOperation == 'sum':
-        convertF = np.sum
-    elif windowOperation == 'max':
-        convertF = np.max
+    #if windowOperation == 'avg':
+    #    convertF = np.mean
+    #elif windowOperation == 'sum':
+    #    convertF = np.sum
+    #elif windowOperation == 'max':
+    #    convertF = np.max
     
     reach  = int(windowSize)
     height = int((rows - reach) * reach +  reach * (reach +1) /2)
