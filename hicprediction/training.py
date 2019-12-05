@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-
-from hicprediction.configurations import *
+import os
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
+os.environ['NUMEXPR_NUM_THREADS'] = '8'
+import hicprediction.configurations as conf
+import click
+import joblib
+import sklearn.ensemble
+import numpy as np
 from hicprediction.tagCreator import createModelTag
 
 """ Module responsible for the training of the regressor with data sets.
 """
-@train_options
+@conf.train_options
 @click.command()
 def train(modeloutputdirectory, conversion, traindatasetfile):
     """
@@ -22,7 +28,7 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
         traindatasetfile -- input data set for training
     """
     ### checking extensions of files
-    checkExtension(traindatasetfile, "z")
+    conf.checkExtension(traindatasetfile, "z")
     ### load data set and set parameters
     df, params = joblib.load(traindatasetfile)
     params['conversion'] = conversion
@@ -30,7 +36,7 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
     modelFileName = os.path.join(modeloutputdirectory, modelTag)
     if not os.path.isfile(modelFileName):
         ### create model with desired parameters
-        model = RandomForestRegressor(max_features='sqrt',random_state=5,\
+        model = sklearn.ensemble.RandomForestRegressor(max_features='sqrt',random_state=5,\
                     n_estimators =10,n_jobs=4, verbose=2, criterion='mse')
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(value=0)
