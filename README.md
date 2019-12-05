@@ -64,8 +64,8 @@ Options |  Explanation
 
 Example:
 ```
-$ createTrainingSet.py -bf Gm12878_5kb.ph5 -dod Results/Sets/
-$ createTrainingSet.py -bf K562_5kb.ph5 -dod Results/Sets/ -chs 1,2,3
+$ createTrainingSet.py -bf Gm12878_5kb.ph5 -dod TrainingSets/
+$ createTrainingSet.py -bf K562_10kb.ph5 -dod TrainingSets/ -chs 1,2,3
 ```
 ### 3. training.py
 This script builds and trains the regression model. A training set as created above by createTrainingSet.py must be given as well as the output directory for the model.
@@ -84,7 +84,7 @@ Options:
 
 Example:
 ```
-$ training.py -tdf Results/Sets/Gm12878_5000_Mavg_Wavg200_Achr1.z -mod Results/Models/
+$ training.py -tdf TrainingSets/Gm12878_5000_Mavg_Wavg200_Achr1.z -mod Models/
 
 ```
 ### 4. predict.py
@@ -93,8 +93,7 @@ Optionally a CSV-file can be defined as output for the evaluation metrics.
 
 Options:
  * -bf, --baseFile PATH            Base file with binned proteins for the prediction target (see -psp below), can be created with createBaseFile.  [required]
- * -rfp, --resultsFilePath TEXT    File where to store evaluation metrics. If
-                                  not set no evaluation is executed
+ * -rfp, --resultsFilePath     File where evaluation metrics are stored. Must have a csv file extension (.csv). If not set, no evaluation is executed
  * -pod, --predictionOutputDirectory PATH
                                   Output directory for prediction files. If
                                   not set, no predicted Hi-C matrices are stored.
@@ -102,9 +101,10 @@ Options:
  * -psp, --predictionSetPath PATH  Data set that is to be predicted.
                                   [required]
  * -mfp, --modelFilePath TEXT      Choose model on which to predict  [required]
+ * -iid                            Internal input directory, path to directory where matrices from createBaseFile.py are stored
  * --help                          Show this message and exit.
 
-Example:
+Example (predict K562 chr1 from GM12878 chr1):
 ```
-$ predict.py -bf Gm12878_5kb.ph5 -psp Results/Sets/K562_5000_Mavg_Wavg200_Achr1.z -mfp Results/Models/Gm12878_5000_Mavg_Wavg200_Achr1_Cnone.z -pod Results/Predictions/K562/
+$ predict.py -bf K562_5kb.ph5 -psp TrainingSets/K562_5000_Mavg_Wavg200_Achr1.z -mfp Models/GM12878_5000_Mavg_Wavg200_Achr1_Cnone.z -pod Predictions/ -rfp Predictions/GM12878onK562_5kb_chr1.csv
 ```
