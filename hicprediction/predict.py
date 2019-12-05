@@ -12,6 +12,7 @@ import h5py
 from scipy import sparse
 from hicmatrix import HiCMatrix as hm
 import sklearn.metrics as metrics
+import sys
 
 """
 Module responsible for the prediction of test set, their evaluation and the
@@ -21,7 +22,7 @@ conversion of prediction to HiC matrices
 @conf.predict_options
 @click.command()
 def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
-                      predictionoutputdirectory, resultsfilepath):
+                      predictionoutputdirectory, resultsfilepath, internalindir):
     """
     Wrapper function for Cli
     """
@@ -31,10 +32,10 @@ def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
     model, modelParams = joblib.load(modelfilepath)
     testSet, setParams = joblib.load(predictionsetpath)
     executePrediction(model, modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath)
+                      predictionoutputdirectory, resultsfilepath, internalindir)
 
 def executePrediction(model,modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath):
+                      predictionoutputdirectory, resultsfilepath, internalInDir):
     """ 
     Main function
     calls prediction, evaluation and conversion methods and stores everything
@@ -54,7 +55,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         columns = [ 'Score', 'R2','MSE', 'MAE', 'MSLE',
                        'AUC_OP_S','AUC_OP_P', 'S_OP', 'S_OA', 'S_PA',
                        'P_OP','P_OA','P_PA',
-                       'Window', 'Merge','equalize','normalize',
+                       'Window', 'Merge','normalize',
                        'ignoreCentromeres','conversion', 'Loss', 'Peak',
                        'resolution','modelChromosome', 'modelCellType',
                        'predictionChromosome', 'predictionCellType']
@@ -72,10 +73,10 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
     if not exists:
         prediction, score = predict(model, testSet, modelParams['conversion'])
         if predictionoutputdirectory:
-            predictionFilePath =  predictionoutputdirectory +"/"+ predictionTag + ".cool"
+            predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
         ### call function to convert prediction to HiC matrix
             predictionToMatrix(prediction, basefile,modelParams['conversion'],\
-                           setParams['chrom'], predictionFilePath)
+                           setParams['chrom'], predictionFilePath, internalInDir)
         ### call function to store evaluation metrics
         if resultsfilepath:
 
@@ -126,7 +127,7 @@ def predict(model, testSet, conversion):
     test_y = test_y.set_index(['first','second'])
     return test_y, score
 
-def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFilePath):
+def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFilePath, internalInDir):
 
     """
     Function to convert prediction to Hi-C matrix
@@ -149,7 +150,18 @@ def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFile
         data = convert(pred['pred'])
         ### convert back 
         ### create matrix with new values and overwrite original
-        originalMatrix = hm.hiCMatrix(baseFile[chromosome].value)
+        matrixfile = baseFile[chromosome][()]
+        if internalInDir:
+            filename = os.path.basename(matrixfile)
+            matrixfile = os.path.join(internalInDir, filename)
+        originalMatrix = None
+        if os.path.isfile(matrixfile):
+            originalMatrix = hm.hiCMatrix(matrixfile)
+        else:
+            msg = ("cooler file {0:s} is missing.\n" \
+                    + "Use --iif option to provide the directory where the internal matrices " \
+                    +  "were stored when creating the basefile").format(matrixfile)
+            sys.exit(msg)        
         new = sparse.csr_matrix((data, (rows, cols)),\
                                 shape=originalMatrix.matrix.shape)
         originalMatrix.setMatrix(new, originalMatrix.cut_intervals)
@@ -196,7 +208,7 @@ def saveResults(tag, df, params, setParams, y, score, columns):
             0, corrScoreOP_P, corrScoreOA_P,
             0, params['windowOperation'],
             params['mergeOperation'],
-            params['equalize'], params['normalize'], params['ignoreCentromeres'],
+            params['normalize'], params['ignoreCentromeres'],
             params['conversion'], 'MSE', params['peakColumn'],
             params['resolution'],setParams['chrom'], setParams['cellType'],
             params['chrom'], params['cellType']]
@@ -204,7 +216,7 @@ def saveResults(tag, df, params, setParams, y, score, columns):
     df.loc[tag] = cols
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\
-                            'Window','Merge', 'equalize', 'normalize'])
+                            'Window','Merge', 'normalize'])
     return df
 if __name__ == '__main__':
     executePredictionWrapper()
