@@ -5,3 +5,9 @@ lib
 lib64
 InternalStorage/*
 *.vscode
+*.ph5
+*.narrowPeak
+*.cool
+*.z
+*.png
+*.csv
