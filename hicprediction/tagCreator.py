@@ -1,5 +1,3 @@
-from hicprediction.configurations import *
-
 def createSetTag(params):
     tmp = params['cellType'] + '_' + params['resolution']
     tmp +='_'+ createProteinTag(params)
