@@ -3,7 +3,7 @@ import os
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import sys
-import configurations as conf
+import hicprediction.configurations as conf
 import click
 import h5py
 from tqdm import tqdm
