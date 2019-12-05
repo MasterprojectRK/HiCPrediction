@@ -1,14 +1,24 @@
 #!/usr/bin/env python3
-
-from configurations import *
+import os
+os.environ['NUMEXPR_MAX_THREADS'] = '16'
+os.environ['NUMEXPR_NUM_THREADS'] = '8'
+import hicprediction.configurations as conf
+import click
 from hicprediction.tagCreator import createPredictionTag
+import joblib
+import pandas as pd
+import numpy as np
+import h5py
+from scipy import sparse
+from hicmatrix import HiCMatrix as hm
+import sklearn.metrics as metrics
 
 """
 Module responsible for the prediction of test set, their evaluation and the
 conversion of prediction to HiC matrices
 """
 
-@predict_options
+@conf.predict_options
 @click.command()
 def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
                       predictionoutputdirectory, resultsfilepath):
@@ -16,8 +26,8 @@ def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
     Wrapper function for Cli
     """
 
-    checkExtension(modelfilepath, 'z')
-    checkExtension(predictionsetpath, 'z')
+    conf.checkExtension(modelfilepath, 'z')
+    conf.checkExtension(predictionsetpath, 'z')
     model, modelParams = joblib.load(modelfilepath)
     testSet, setParams = joblib.load(predictionsetpath)
     executePrediction(model, modelParams, basefile, testSet, setParams,
@@ -37,10 +47,10 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         resultsfilepath --  path to results file for evaluation storage
     """
     ### check extensions
-    checkExtension(basefile, 'ph5')
+    conf.checkExtension(basefile, 'ph5')
     predictionTag = createPredictionTag(modelParams, setParams)
     if resultsfilepath:
-        checkExtension(resultsfilepath, 'csv')
+        conf.checkExtension(resultsfilepath, 'csv')
         columns = [ 'Score', 'R2','MSE', 'MAE', 'MSLE',
                        'AUC_OP_S','AUC_OP_P', 'S_OP', 'S_OA', 'S_PA',
                        'P_OP','P_OA','P_PA',
@@ -170,7 +180,7 @@ def saveResults(tag, df, params, setParams, y, score, columns):
     indicesOPP, valuesOPP= getCorrelation(y,'reads', 'predReads',
                                      params['resolution'], 'pearson')
     ### calculate AUC
-    aucScoreOPP = auc(indicesOPP, valuesOPP)
+    aucScoreOPP = metrics.auc(indicesOPP, valuesOPP)
     corrScoreOP_P = y[['reads','predReads']].corr(method= \
                 'pearson').iloc[0::2,-1].values[0]
     corrScoreOA_P = y[['reads', 'avgRead']].corr(method= \
@@ -179,9 +189,9 @@ def saveResults(tag, df, params, setParams, y, score, columns):
                 'spearman').iloc[0::2,-1].values[0]
     corrScoreOA_S= y[['reads', 'avgRead']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
-    cols = [score, r2_score(y_true, y_pred),mean_squared_error( y_true, y_pred),
-            mean_absolute_error( y_true, y_pred),
-            mean_squared_log_error(y_true, y_pred),
+    cols = [score, metrics.r2_score(y_true, y_pred),metrics.mean_squared_error( y_true, y_pred),
+            metrics.mean_absolute_error( y_true, y_pred),
+            metrics.mean_squared_log_error(y_true, y_pred),
             0, aucScoreOPP, corrScoreOP_S, corrScoreOA_S,
             0, corrScoreOP_P, corrScoreOA_P,
             0, params['windowOperation'],
