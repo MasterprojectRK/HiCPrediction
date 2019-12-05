@@ -1,67 +1,10 @@
 #!/usr/bin/env python3
-
-from pkg_resources import resource_filename, Requirement
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.neural_network import MLPRegressor
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import mean_squared_log_error
-from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import auc
+import click
+from itertools import product
+import sys
+from tqdm import tqdm
 import json
 
-from hicmatrix import HiCMatrix as hm
-from hicexplorer import hicPlotMatrix as hicPlot
-
-import h5py
-import joblib
-import sys
-import bisect 
-import argparse
-import glob
-import math
-import time
-from itertools import product
-import datetime
-import itertools
-import shutil
-import operator
-import subprocess
-import click
-import pickle
-import os
-import numpy as np
-import logging as log
-import pandas as pd
-from copy import copy, deepcopy
-from io import StringIO
-from csv import writer
-from tqdm import tqdm
-import logging
-
-import cooler
-import pybedtools
-
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from matplotlib.colors import LogNorm
-
-from scipy import sparse
-from scipy import signal
-from scipy import misc
-from scipy.stats.stats import pearsonr
-from scipy.sparse import coo_matrix
-
-log.basicConfig(level=log.DEBUG)
-pd.set_option('display.float_format', lambda x: '%.3f' % x)
-np.set_printoptions(threshold=sys.maxsize)
-np.set_printoptions(precision=3, suppress=True)
-
-os.environ['NUMEXPR_MAX_THREADS'] = '16'
 
 class Mutex(click.Option):
     def __init__(self, *args, **kwargs):
@@ -96,7 +39,9 @@ _predict_base_options = [
               help='File where to store evaluation metrics. If not set'\
                 +' no evaluation is executed'),
     click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
-        help='Base file where to store proteins and chromosomes for later use.'),
+        help='Base file used to create the predicted set'),
+    click.option('--internalInDir', '-iid', required=False, type=click.Path(exists=True),
+                help='path where internally used matrices are stored')
 
 ]
 _predict_options = [
@@ -153,8 +98,8 @@ _set_options = [
     click.option('--windowOperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
-    click.option('--internalInDir', '-iid', type=click.Path(writable=True), \
-                    help='path where internally used matrices will be stored')
+    click.option('--internalInDir', '-iid', type=click.Path(exists=True), \
+                    help='path where internally used matrices are stored')
 ]
 _train_options = [
     click.option('--trainDatasetFile', '-tdf',\
