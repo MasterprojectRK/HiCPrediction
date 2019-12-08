@@ -27,8 +27,13 @@ def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
     Wrapper function for Cli
     """
 
-    conf.checkExtension(modelfilepath, 'z')
-    conf.checkExtension(predictionsetpath, 'z')
+    if not conf.checkExtension(modelfilepath, '.z'):
+        msg = "model file {0:s} does not have a .z file extension. Aborted"
+        sys.exit(msg.format(modelfilepath))
+    if not conf.checkExtension(predictionsetpath, '.z'):
+        msg = "prediction file {0:s} does not have a .z file extension. Aborted"
+        sys.exit(msg.format(predictionsetpath))
+
     model, modelParams = joblib.load(modelfilepath)
     testSet, setParams = joblib.load(predictionsetpath)
     executePrediction(model, modelParams, basefile, testSet, setParams,
@@ -48,10 +53,18 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         resultsfilepath --  path to results file for evaluation storage
     """
     ### check extensions
-    conf.checkExtension(basefile, 'ph5')
+    if not conf.checkExtension(basefile, '.ph5'):
+        msg = "basefile {0:s} must have a .ph5 file extension"
+        sys.exit(msg.format(basefile))
+
     predictionTag = createPredictionTag(modelParams, setParams)
     if resultsfilepath:
-        conf.checkExtension(resultsfilepath, 'csv')
+        if not conf.checkExtension(resultsfilepath, '.csv'):
+            resultsfilename = os.path.splitext(resultsfilepath)[0]
+            resultsfilepath = resultsfilename + ".csv"
+            msg = "result file must have .csv file extension"
+            msg += "renamed file to {0:s}"
+            print(msg.format(resultsfilepath))
         columns = [ 'Score', 'R2','MSE', 'MAE', 'MSLE',
                        'AUC_OP_S','AUC_OP_P', 'S_OP', 'S_OA', 'S_PA',
                        'P_OP','P_OA','P_PA',

@@ -63,7 +63,11 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         centromeresfile = resource_filename('hicprediction',\
                 'InternalStorage') +"/centromeres.txt"
 
-    conf.checkExtension(basefile, 'ph5')
+    if not conf.checkExtension(basefile, '.ph5'):
+        msg = "Aborted. Basefile {0:s} has the wrong format (wrong file extension) \n"
+        msg += "please specify a .ph5 file"
+        sys.exit(msg.format(basefile))
+
     ### convert chromosomes to list
     if chromosomes:
         chromosomeList = chromosomes.split(',')

@@ -8,6 +8,7 @@ import joblib
 import sklearn.ensemble
 import numpy as np
 from hicprediction.tagCreator import createModelTag
+import sys
 
 """ Module responsible for the training of the regressor with data sets.
 """
@@ -28,7 +29,9 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
         traindatasetfile -- input data set for training
     """
     ### checking extensions of files
-    conf.checkExtension(traindatasetfile, "z")
+    if not conf.checkExtension(traindatasetfile, ".z"):
+        msg = "Aborted. Data set {0:s} must have .z file extension"
+        sys.exit(msg.format(traindatasetfile))
     ### load data set and set parameters
     df, params = joblib.load(traindatasetfile)
     params['conversion'] = conversion

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import click
 from itertools import product
-import sys
 from tqdm import tqdm
 import json
 
@@ -184,14 +183,10 @@ def getBaseCombinations():
         yield dict(zip(params, val))
 
 def checkExtension(fileName, extension, option=None):
-    if fileName.split(".")[-1] != extension:
-        if option and fileName.split(".")[-1] == option:
-            return
-        else:
-            msg = 'The file {} has the wrong extension. Ensure to '\
-                    +'pass a file with .{} extension'
-            print(msg.format(str(fileName), extension))
-            sys.exit()
+    if option:
+        return ( fileName.endswith(extension) or fileName.endswith(option) )
+    else:
+        return fileName.endswith(extension)
 
 def getCombinations(paramsfile):
     with open(paramsfile) as f:
