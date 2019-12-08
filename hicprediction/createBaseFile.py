@@ -113,6 +113,11 @@ def getProteinFiles(proteinFiles, params):
     proteins = dict()
     for path in proteinFiles:
         a = pybedtools.BedTool(path)
+        malformedFeatures = [features for features in a if len(features.fields) not in [9,10]]
+        if malformedFeatures:
+            msg = "protein file {0:s} seems to be an invalid narrow- or broadPeak file\n"
+            msg += "there are rows with more than 10 or less than 9 columns"
+            sys.exit(msg.format(path))
         ### compute min and max for the normalization
         b = a.to_dataframe()
         c = b.iloc[:,params['peakColumn']]
@@ -165,14 +170,14 @@ def loadProtein(proteins, chromName, cutsStart, params):
         values = dict()
         for feature in a:
             peak = feature.start
-            if len(feature) == 10 and int(feature[9]) != -1: 
+            if len(feature.fields) == 10 and int(feature.fields[9]) != -1: 
                 #narrowPeak files with called peaks
-                #the peak column is an offset to "feature.start"
-                peak += int(feature[9])
+                #the peak column (9) is an offset to "feature.start"
+                peak += int(feature.fields[9])
             else:
                 #narrowPeak files without called peaks
                 #and broadPeak files, which have no peak column
-                peak += feature.end
+                peak += feature.stop
                 peak = int(peak / 2)
             ### get bin index of peak
             pos = bisect.bisect_right(cutsStart, peak)
@@ -215,7 +220,7 @@ def addGenome(matrixFile, baseFilePath, chromosomeList, outDirectory):
             if not chromTag in baseFile:
                 subprocess.call(sub2,shell=True)
                 baseFile[chromTag] = tag
-            elif not os.path.isfile(baseFile[chromTag].value):
+            elif not os.path.isfile(baseFile[chromTag][()]):
                 subprocess.call(sub2,shell=True)
             ### store HiC matrix
             chromosomeDict[chromTag] =hm.hiCMatrix(tag)
