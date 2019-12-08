@@ -25,10 +25,16 @@ from matplotlib.colors import LogNorm
 @click.option('--title', '-t', type=str, default=None)
 @click.command()
 def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix, title):
-        conf.checkExtension(matrixinputfile, 'cool')
+        if not conf.checkExtension(matrixinputfile, '.cool'):
+            msg = "input matrix must be in cooler format (.cool)"
+            sys.exit(msg)
+        if comparematrix and not conf.checkExtension(comparematrix, ".cool"):
+            msg = "if specified, compare matrix must be in cooler format (.cool)"
+            sys.exit(msg)
         if not imageoutputfile:
             imageoutputfile = matrixinputfile.rstrip('cool') + 'png'
-        conf.checkExtension(imageoutputfile, 'png')
+        elif imageoutputfile and not conf.checkExtension(imageoutputfile, ".png"):
+            imageoutputfile = os.path.splitext(imageoutputfile)[0] + ".png"
        
         #get the full matrix first to extract the desired region
         ma = hm.hiCMatrix(matrixinputfile)
