@@ -47,10 +47,20 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         outdir -- where the internally needed per-chromosome matrices are stored
     """
     ### checking extensions of files
-    conf.checkExtension(matrixfile, 'cool')
-    conf.checkExtension(basefile, 'ph5')
-    for fileName in proteinfiles:
-        conf.checkExtension(fileName, 'narrowPeak')
+    if not conf.checkExtension(matrixfile, '.cool'):
+        msg = "input matrix {0:s} for binning must be a cooler file (.cool). Aborted"
+        sys.exit(msg.format(matrixfile))
+    if not conf.checkExtension(basefile, '.ph5'):
+        basefilename = os.path.splitext(basefile)[0]
+        basefile = basefilename + ".ph5"
+        msg = "basefile must have .ph5 file extension\n"
+        msg += "renamed to {0:s}"
+        print(msg.format(basefile))
+    wrongFileExtensionList = [fileName for fileName in proteinfiles if not conf.checkExtension(fileName,'.narrowPeak', '.broadPeak') ]
+    if wrongFileExtensionList:
+        msg = "Aborted. The following protein files are not narrowPeak or broadPeak files:\n"
+        msg += ", ".join(wrongFileExtensionList)
+        sys.exit(msg)
     ### cutting path to get source file name for storage
     inputName = matrixfile.rstrip(".cool")
     ### creation of parameter set
@@ -154,7 +164,16 @@ def loadProtein(proteins, chromName, cutsStart, params):
         a = a.sort()
         values = dict()
         for feature in a:
-            peak = feature.start + int(feature[9])
+            peak = feature.start
+            if len(feature) == 10 and int(feature[9]) != -1: 
+                #narrowPeak files with called peaks
+                #the peak column is an offset to "feature.start"
+                peak += int(feature[9])
+            else:
+                #narrowPeak files without called peaks
+                #and broadPeak files, which have no peak column
+                peak += feature.end
+                peak = int(peak / 2)
             ### get bin index of peak
             pos = bisect.bisect_right(cutsStart, peak)
             if pos in values:
