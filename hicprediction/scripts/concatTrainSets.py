@@ -1,4 +1,5 @@
 import click
+import os
 import pandas as pd
 import joblib
 import sys
@@ -9,7 +10,7 @@ import numpy as np
 @click.option("--ignorechrom", "-igc", type=bool, default=False, help="allow concatenating datasets from different chromosomes")
 @click.option("--ignoremerge", "-igm", type=bool, default=False, help="allow concatenating datasets with different merge operations")
 @click.option("--ignorewindowop", "-igw", type=bool, default=False, help="allow concatenating datasets with different window operations")
-@click.option("--outfile", "-o", type=click.Path(writable=True), help="path to outfile")
+@click.option("--outfile", "-o", type=click.Path(writable=True), help="path to outfile, must have .z file extension", required=True)
 @click.command()
 
 def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outfile):
@@ -24,7 +25,12 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             sys.exit(msg)
         datasets = [row[0] for row in allTheData]
         params = [row[1] for row in allTheData]
-        
+        if not outfile.endswith(".z"):
+            outfilename = os.path.splitext(outfile)[0]
+            outfile = outfilename + ".z"
+            msg = "outfile name must have .z file extension\n"
+            msg += "renamed outfile, now writing to {0:s}"
+            print(msg.format(outfile))
         #check if the datasets can be merged: 
         #column names should agree, data should be from same chromosome, same resolution etc.
         #unless specified otherwise via --ignoreX options
