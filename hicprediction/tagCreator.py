@@ -2,9 +2,9 @@ import numpy as np
 
 def createSetTag(params):
     #compound sets may comprise multiple cell types, window operations and chromosomes
-    cellTypeList = list( np.hstack([], params['cellType']) )
-    windowOpList = list( np.hstack([], params['windowOperation']) )
-    chromList = list( np.hstack([], params['chrom']) )
+    cellTypeList = list( np.hstack([[], params['cellType']]) )
+    windowOpList = list( np.hstack([[], params['windowOperation']]) )
+    chromList = list( np.hstack([[], params['chrom']]) )
     cellTypeStr = "_".join(cellTypeList)
     windowOpStr = "_".join(windowOpList)
     chromStr = "_".join(chromList)
@@ -19,7 +19,7 @@ def createSetTag(params):
 
 def createProteinTag(params):
     #compound sets may comprise multiple merge operations
-    mergeOpList = list( np.hstack([], params['mergeOperation']) )
+    mergeOpList = list( np.hstack([[], params['mergeOperation']]) )
     mergeOpStr = "_".join(mergeOpList)
     tmp = ''
     tmp += 'M' + mergeOpStr
