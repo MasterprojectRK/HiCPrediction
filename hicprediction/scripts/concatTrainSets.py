@@ -37,9 +37,9 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
         datasetMismatch = False
         errorMessage = "Error:\n"
 
-        #check if the columns have the same names
+        #check if the datasets have the same number of columns
         #this happens if they have been created with a different number of proteins
-        #for now, just assume same column name 1,2,3,... => same protein => can't allow different column names
+        #for now, just assume same number of columns => same number of proteins => can't allow different column numbers
         nrColumnsSet = set ( str(dataset.shape[1]) for dataset in datasets )
         if len(nrColumnsSet) > 1:
             errorMessage += "Datasets have different number of columns (proteins).\n"
@@ -120,6 +120,8 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             if len(windowOpSet) > 1:
                 paramsDict["windowOperation"] = sorted(list(windowOpSet))
             concatDataset = pd.concat(datasets, ignore_index=True, sort=False)
+            assert concatDataset.shape[1] == datasets[0].shape[1] 
+            #fails only if columns had different names, since their original shapes are matching
             joblib.dump((concatDataset, paramsDict), outfile, compress=True)
         else:
             sys.exit(errorMessage)
