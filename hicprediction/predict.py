@@ -58,7 +58,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         sys.exit(msg.format(basefile))
     #check if the test set is a compound dataset (e.g. concatenated from diverse sets). 
     #this is not allowed for now
-    if type(setParams["chrom"]) == list or type(setParams["cellType"] == list):
+    if isinstance(setParams["chrom"], list) or isinstance(setParams["cellType"], list):
         msg = "The target dataset is a compound (concatenated) dataset with multiple chromosomes"
         msg += "or cell lines.\n" 
         msg += "Compound datasets cannot be predicted. Aborting"
