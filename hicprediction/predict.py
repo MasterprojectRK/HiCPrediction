@@ -56,7 +56,13 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
     if not conf.checkExtension(basefile, '.ph5'):
         msg = "basefile {0:s} must have a .ph5 file extension"
         sys.exit(msg.format(basefile))
-
+    #check if the test set is a compound dataset (e.g. concatenated from diverse sets). 
+    #this is not allowed for now
+    if type(setParams["chrom"]) == list or type(setParams["cellType"] == list):
+        msg = "The target dataset is a compound (concatenated) dataset with multiple chromosomes"
+        msg += "or cell lines.\n" 
+        msg += "Compound datasets cannot be predicted. Aborting"
+        sys.exit(msg) 
     predictionTag = createPredictionTag(modelParams, setParams)
     if resultsfilepath:
         if not conf.checkExtension(resultsfilepath, '.csv'):
@@ -65,13 +71,31 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
             msg = "result file must have .csv file extension"
             msg += "renamed file to {0:s}"
             print(msg.format(resultsfilepath))
-        columns = [ 'Score', 'R2','MSE', 'MAE', 'MSLE',
-                       'AUC_OP_S','AUC_OP_P', 'S_OP', 'S_OA', 'S_PA',
-                       'P_OP','P_OA','P_PA',
-                       'Window', 'Merge','normalize',
-                       'ignoreCentromeres','conversion', 'Loss', 'Peak',
-                       'resolution','modelChromosome', 'modelCellType',
-                       'predictionChromosome', 'predictionCellType']
+        columns = ['Score', 
+                    'R2',
+                    'MSE', 
+                    'MAE', 
+                    'MSLE',
+                    'AUC_OP_S',
+                    'AUC_OP_P', 
+                    'S_OP', 
+                    'S_OA', 
+                    'S_PA',
+                    'P_OP',
+                    'P_OA',
+                    'P_PA',
+                    'Window', 
+                    'Merge',
+                    'normalize',
+                    'ignoreCentromeres',
+                    'conversion', 
+                    'Loss', 
+                    'Peak',
+                    'resolution',
+                    'modelChromosome', 
+                    'modelCellType',
+                    'predictionChromosome', 
+                    'predictionCellType']
         columns.extend(list(range(modelParams['windowSize'])))
         columns.append('Tag')
         if os.path.isfile(resultsfilepath):
@@ -88,7 +112,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         if predictionoutputdirectory:
             predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
         ### call function to convert prediction to HiC matrix
-            predictionToMatrix(prediction, basefile,modelParams['conversion'],\
+            predictionToMatrix(prediction, basefile, modelParams['conversion'],\
                            setParams['chrom'], predictionFilePath, internalInDir)
         ### call function to store evaluation metrics
         if resultsfilepath:
@@ -196,14 +220,14 @@ def getCorrelation(data, field1, field2,  resolution, method):
     indices = indices / div 
     return indices, values
 
-def saveResults(tag, df, params, setParams, y, score, columns):
+def saveResults(pTag, df, pModelParams, pSetParams, y, pScore, pColumns):
     """
-    Function to calculate metrics and store them intoo a file
+    Function to calculate metrics and store them into a file
     """
     y_pred = y['predReads']
     y_true = y['reads']
-    indicesOPP, valuesOPP= getCorrelation(y,'reads', 'predReads',
-                                     params['resolution'], 'pearson')
+    indicesOPP, valuesOPP = getCorrelation(y,'reads', 'predReads',
+                                     pModelParams['resolution'], 'pearson')
     ### calculate AUC
     aucScoreOPP = metrics.auc(indicesOPP, valuesOPP)
     corrScoreOP_P = y[['reads','predReads']].corr(method= \
@@ -214,19 +238,43 @@ def saveResults(tag, df, params, setParams, y, score, columns):
                 'spearman').iloc[0::2,-1].values[0]
     corrScoreOA_S= y[['reads', 'avgRead']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
-    cols = [score, metrics.r2_score(y_true, y_pred),metrics.mean_squared_error( y_true, y_pred),
+    #model parameters cell type, chromosome, window operation and merge operation may be lists
+    #so generate appropriate strings for storage
+    modelCellTypeList = list( np.hstack([], pModelParams['cellType']) )
+    modelChromList = list( np.hstack([], pModelParams['chrom']) )
+    modelWindowOpList = list( np.hstack([], pModelParams['windowOperation']))
+    modelMergeOpList = list( np.hstack([], pModelParams['mergeOperation']) )
+    modelCellTypeStr = ", ".join(modelCellTypeList)
+    modelChromStr = ", ".join(modelChromList)
+    modelWindowOpStr = ", ".join(modelWindowOpList)
+    modelMergeOpStr = ", ".join(modelMergeOpList)
+    cols = [pScore, 
+            metrics.r2_score(y_true, y_pred),
+            metrics.mean_squared_error( y_true, y_pred),
             metrics.mean_absolute_error( y_true, y_pred),
             metrics.mean_squared_log_error(y_true, y_pred),
-            0, aucScoreOPP, corrScoreOP_S, corrScoreOA_S,
-            0, corrScoreOP_P, corrScoreOA_P,
-            0, params['windowOperation'],
-            params['mergeOperation'],
-            params['normalize'], params['ignoreCentromeres'],
-            params['conversion'], 'MSE', params['peakColumn'],
-            params['resolution'],setParams['chrom'], setParams['cellType'],
-            params['chrom'], params['cellType']]
+            0, 
+            aucScoreOPP, 
+            corrScoreOP_S, 
+            corrScoreOA_S,
+            0, 
+            corrScoreOP_P, 
+            corrScoreOA_P,
+            0, 
+            modelWindowOpStr,
+            modelMergeOpStr,
+            pModelParams['normalize'], 
+            pModelParams['ignoreCentromeres'],
+            pModelParams['conversion'], 
+            'MSE', 
+            pModelParams['peakColumn'],
+            pModelParams['resolution'],
+            pSetParams['chrom'], 
+            pSetParams['cellType'],
+            modelChromStr, 
+            modelCellTypeStr]
     cols.extend(valuesOPP)
-    df.loc[tag] = cols
+    df.loc[pTag] = cols
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\
                             'Window','Merge', 'normalize'])
