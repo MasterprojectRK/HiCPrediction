@@ -240,10 +240,10 @@ def saveResults(pTag, df, pModelParams, pSetParams, y, pScore, pColumns):
                 'spearman').iloc[0::2,-1].values[0]
     #model parameters cell type, chromosome, window operation and merge operation may be lists
     #so generate appropriate strings for storage
-    modelCellTypeList = list( np.hstack([], pModelParams['cellType']) )
-    modelChromList = list( np.hstack([], pModelParams['chrom']) )
-    modelWindowOpList = list( np.hstack([], pModelParams['windowOperation']))
-    modelMergeOpList = list( np.hstack([], pModelParams['mergeOperation']) )
+    modelCellTypeList = list( np.hstack([[], pModelParams['cellType']]) )
+    modelChromList = list( np.hstack([[], pModelParams['chrom']]) )
+    modelWindowOpList = list( np.hstack([[], pModelParams['windowOperation']]))
+    modelMergeOpList = list( np.hstack([[], pModelParams['mergeOperation']]) )
     modelCellTypeStr = ", ".join(modelCellTypeList)
     modelChromStr = ", ".join(modelChromList)
     modelWindowOpStr = ", ".join(modelWindowOpList)
