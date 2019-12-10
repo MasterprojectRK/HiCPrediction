@@ -32,21 +32,21 @@ _setAndProtein_options = [
 ]
 _predict_base_options = [
     click.option('--predictionOutputDirectory', '-pod',default=None,\
-                 type=click.Path(exists=True),help='Output directory for'\
+                 type=click.Path(exists=True, writable=True),help='Output directory for'\
                  +' prediction files'),
     click.option('--resultsFilePath', '-rfp', default=None,show_default=True,\
               help='File where to store evaluation metrics. If not set'\
                 +' no evaluation is executed'),
-    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
+    click.option('--baseFile','-bf', required=True,type=click.Path(exists=True),
         help='Base file used to create the predicted set'),
     click.option('--internalInDir', '-iid', required=False, type=click.Path(exists=True),
                 help='path where internally used matrices are stored')
 
 ]
 _predict_options = [
-    click.option('--modelFilePath', '-mfp', required=True,\
+    click.option('--modelFilePath', '-mfp', required=True,type=click.Path(exists=True),\
               help='Choose model on which to predict'),
-    click.option('--predictionSetPath','-psp', required=True,type=click.Path(writable=True),
+    click.option('--predictionSetPath','-psp', required=True,type=click.Path(exists=True),
         help='Data set that is to be predicted.'),
 ]
 
@@ -92,7 +92,7 @@ _set_options = [
     click.option('--normalize', default=False,\
                  show_default=True,\
                  help='Normalize protein signal values to a 0-1 range'),
-    click.option('--ignoreCentromeres', default=True,\
+    click.option('--ignoreCentromeres', type=bool, default=True,\
                  show_default=True,help='Cut out the centroid arms for training'),
     click.option('--windowOperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
@@ -104,7 +104,7 @@ _train_options = [
     click.option('--trainDatasetFile', '-tdf',\
                  required=True,\
                  help='File from which training is loaded'\
-                 ,type=click.Path(writable=True)),
+                 ,type=click.Path(exists=True)),
 ]
 _alltrain_options = [
     click.option('--setDirectory', '-sd',type=click.Path(exists=True),\
