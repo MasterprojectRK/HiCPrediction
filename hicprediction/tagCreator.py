@@ -14,8 +14,10 @@ def createSetTag(params):
     tmp += str(params['windowSize'])
 
     if params['ignoreCentromeres']:
-        tmp += '_A'
-    return tmp + chromStr
+        tmp += '_A' + chromStr
+    else:
+        tmp += '_B' + chromStr
+    return tmp
 
 def createProteinTag(params):
     #compound sets may comprise multiple merge operations
