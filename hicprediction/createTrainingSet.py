@@ -335,24 +335,28 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
 
     df['first'] += pStart
     df['second'] += pStart
-
     
-    print(df.shape, 'original before concat')
+    #add symmetry
+    #if we have a protein count A at start, B at middle and C at end index
+    #then we should also have C - B - A
     df2 = df.copy(deep=True)
-    l0 = list(df2['0'])
-    l2 = list(df2['2'])
-    df2['0'] = l2
-    df2['2'] = l0
-    print(df2.shape, 'copy before concat')
+    for prot in range(numberOfProteins):
+        swIndex0 = str(prot)
+        swIndex2 = str(prot + 2 * numberOfProteins)
+        l0 = list(df2[swIndex0])
+        l2 = list(df2[swIndex2])
+        df2[swIndex0] = l2
+        df2[swIndex2] = l0
+        #print(df2.shape, 'copy before concat')
     df3 = pd.concat([df, df2], ignore_index=True)
     df3.drop_duplicates(keep='first', inplace=True)
     df3.reindex(df3.chrom)
-    print(df3, df3.shape, 'after concat')
+    #print(df3, df3.shape, 'after concat')
 
 
-    dist = df3['distance'] == 20
-    fst = df3['first'] == 2382
-    print(df3[dist & fst])
+    #dist = df3['distance'] == 20
+    #fst = df3['first'] == 2382
+    #print(df3[dist & fst])
     # df2 = pd.DataFrame({'name':['Allan','Mike','Brenda','Holy'], 'Age': [30,20,25,18],'Zodiac':['Aries','Leo','Virgo','Libra'],'Grade':['A','AB','B','AA'],'City':['Aura','Somerville','Boon','Gannon']})
     # df3 = df2.copy(deep=True)
     # zodiac = list(df3['Zodiac'])
