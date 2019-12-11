@@ -244,7 +244,7 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
         ### Could maybe iterate genomic distance instead of middleGenerator to speed
         ### things up
         df[str(i)] = np.array(proteinMatrix[df['first'], i+1]).flatten()
-        df[str(proteinNr + i)] = 0# next(middleGenerator) 
+        df[str(proteinNr + i)] = next(middleGenerator) 
         df[str(proteinNr * 2 + i)] = np.array(proteinMatrix[df['second'], i+1]).flatten()
     df['first'] += start
     df['second'] += start
