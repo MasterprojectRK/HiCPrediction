@@ -14,6 +14,7 @@ import h5py
 import joblib
 from hicmatrix import HiCMatrix as hm
 import itertools
+import scipy.sparse as sparse
 
 """
 Module responsible for creating the training sets
@@ -144,8 +145,10 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                                 windowoperation, windowsize,\
                                 chromosome, start=end + 1, end=len(cuts)))
             else:
-                df = createDataset(proteins, reads, windowoperation, windowsize,
-                               chromosome, start=0, end =len(cuts))
+                #df = createDataset(proteins, reads, windowoperation, windowsize,
+                #               chromosome, start=0, end =len(cuts))
+                df = createDataset2(proteins, reads, windowoperation, windowsize,
+                               chromosome, pStart=0, pEnd =len(cuts))
             ### add average contact read stratified by distance to dataset
             for i in range(int(windowsize)):
                 df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
@@ -215,6 +218,7 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
     ### compute indices for all the possible contact pairs considering maximum
     ### genomic distance etc.
     idx1 = list(itertools.chain.from_iterable(itertools.repeat(x, reach) for x in lst))
+    print(max(idx1))
     for i in range(reach):
         idx1.extend((reach - i) * [rows - reach + i])
     idx2 =[]
@@ -244,11 +248,59 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
         ### Could maybe iterate genomic distance instead of middleGenerator to speed
         ### things up
         df[str(i)] = np.array(proteinMatrix[df['first'], i+1]).flatten()
-        df[str(proteinNr + i)] = next(middleGenerator) 
+        df[str(proteinNr + i)] = 0 #next(middleGenerator) 
         df[str(proteinNr * 2 + i)] = np.array(proteinMatrix[df['second'], i+1]).flatten()
     df['first'] += start
     df['second'] += start
+
+    readsGreaterTwenty = df['reads'] > 20
+    distGreaterTwenty = df['distance'] > 20
+    print(df[readsGreaterTwenty & distGreaterTwenty])
     return df
+
+
+def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
+                   pChrom, pStart, pEnd):
+    proteins = pProteins[pStart:pEnd]
+    #print(proteins)
+    trapezIndices = np.mask_indices(pFullReads.shape[0],maskFunc,k=pWindowSize)
+    reads = np.array(pFullReads[trapezIndices])[0]
+    testRead = pFullReads[2382,2404]
+    print(testRead)
+    cols = ['first', 'second','chrom', '0', '1', '2', 'distance','reads']
+    #df = pd.DataFrame(0, index=range(len(trapezIndices[0])), columns=cols)
+    df = pd.DataFrame(columns=cols)
+    df['first'] = trapezIndices[0]
+    df['second'] = trapezIndices[1]
+    df['distance'] = df['second'] - df['first']
+    df['chrom'] = pChrom
+    df['reads'] = reads
+    #df.set_index(['first', 'second'], drop=False, inplace=True)
+  
+
+    df['1'] = 0.
+    startProts = list(proteins['0'][df['first']])
+    df['0'] = startProts
+    endProts = list(proteins['0'][df['second']])
+    df['2'] = endProts
+
+    #l1 = [1,2,3]
+    #l2 = [4,5,6]
+    #l3 = proteins[0][l1:l2]
+    #print(l3)
+
+    readsGreaterTwenty = df['reads'] > 20
+    distGreaterTwenty = df['distance'] > 20
+    print(df[readsGreaterTwenty & distGreaterTwenty])
+
+    ##assert that the nonzero matrix elements are in the right place within the df
+    #readsGreaterZero = df['reads'] > 0
+    #test = df[readsGreaterZero]
+    #for x,y,z in tqdm(zip(test['first'], test['second'], test['reads'] )):
+    #    assert pFullReads[x, y] == z
+
+    return df
+
 
 def get_ranges(starts,ends):
 
@@ -304,6 +356,15 @@ def getMiddle(proteins,starts,ends, windowOperation):
             yield bin_count
         # elif windowOperation == "max":
             # yield bin_count
+
+
+def maskFunc(pArray, pWindowSize):
+    maskArray = np.zeros(pArray.shape)
+    upperTriaInd = np.triu_indices(maskArray.shape[0])
+    notRequiredTriaInd = np.triu_indices(maskArray.shape[0], k=pWindowSize)
+    maskArray[upperTriaInd] = 1
+    maskArray[notRequiredTriaInd] = 0
+    return maskArray
 
 
 if __name__ == '__main__':
