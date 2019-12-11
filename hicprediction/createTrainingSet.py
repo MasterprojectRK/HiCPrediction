@@ -135,15 +135,16 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             ### if user decided to cut out centromeres and if the chromosome
             ### has one, create datasets for both chromatids and join them
             if ignorecentromeres :
-                start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
+                centromereStartBin, centromereEndBin = getCentromerePositions(centromeresfile, chromTag,cuts)
                 for i in tqdm(range(2), desc = "Loading chromatids separately"):
                     if i == 0:
-                        df = createDataset(proteins, reads, windowoperation, windowsize,
-                                chromosome, start=0, end=start)
+                        df = createDataset2(proteins, reads, windowoperation, windowsize,
+                                chromosome, pStart=0, pEnd=centromereStartBin)
                     elif i == 1:
-                        df = df.append(createDataset(proteins, reads,\
+                        df2 = createDataset2(proteins, reads,\
                                 windowoperation, windowsize,\
-                                chromosome, start=end + 1, end=len(cuts)))
+                                chromosome, pStart=centromereEndBin, pEnd=len(cuts))
+                        df.append(df2, ignore_index=True, sort=False)
             else:
                 #df = createDataset(proteins, reads, windowoperation, windowsize,
                 #               chromosome, start=0, end =len(cuts))
@@ -177,7 +178,9 @@ def getCentromerePositions(centromeresfilepath, chromTag, cuts):
     end = int(elems[3])
     toStart = cuts[cuts < start]
     toEnd = cuts[cuts < end]
-    return  len(toStart), len(toEnd)
+    startBin = len(toStart)
+    endBin = len(toEnd)
+    return  startBin, endBin
 
 def createDataset(proteins, fullReads, windowOperation, windowSize,
                    chrom, start, end):
@@ -248,7 +251,7 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
         ### Could maybe iterate genomic distance instead of middleGenerator to speed
         ### things up
         df[str(i)] = np.array(proteinMatrix[df['first'], i+1]).flatten()
-        df[str(proteinNr + i)] = 0 #next(middleGenerator) 
+        df[str(proteinNr + i)] = next(middleGenerator) 
         df[str(proteinNr * 2 + i)] = np.array(proteinMatrix[df['second'], i+1]).flatten()
     df['first'] += start
     df['second'] += start
@@ -262,73 +265,120 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
 def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd):
     proteins = pProteins[pStart:pEnd]
-    #print(proteins)
-    trapezIndices = np.mask_indices(pFullReads.shape[0],maskFunc,k=pWindowSize)
-    reads = np.array(pFullReads[trapezIndices])[0]
-    testRead = pFullReads[2382,2404]
-    print(testRead)
-    cols = ['first', 'second','chrom', '0', '1', '2', 'distance','reads']
-    #df = pd.DataFrame(0, index=range(len(trapezIndices[0])), columns=cols)
+    proteins.reindex(proteins.start)
+    print(proteins)
+
+    # Get those indices and corresponding read values of the HiC-matrix that shall be used 
+    # for learning and predicting.
+    # Since HiC matrices are symmetric, looking at the upper triangular matrix is sufficient
+    # It has been shown that taking the full triangle is not good, since most values 
+    # are zero or close to zero. So, take the indices of the main diagonal 
+    # and the next pWindowSize-1 side diagonals. This structure is a trapezoid
+    numberOfDiagonals = min(pEnd-pStart-1,pWindowSize) #range might be smaller than window size depending on chromosome
+    readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
+    trapezIndices = np.mask_indices(readMatrix.shape[0],maskFunc,k=numberOfDiagonals)
+    reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
+    #testRead = pFullReads[2382,2404]
+    #print(testRead)
+    
+    #one column for each protein at each row index ("first") of the masked HiC matrix 
+    #one column for each protein at the column index ("second") of the masked HiC matrix
+    #one column for each protein for the (window) value in between both positions
+    #in the end, 3 columns for each protein
+    numberOfColumns = np.shape(proteins)[1]
+    numberOfProteins = numberOfColumns - 1
+    proteinColumns = [str(x) for x in range(3*(numberOfProteins))] 
+    
+    cols = ['first', 'second','chrom'] + proteinColumns + ['distance','reads']
     df = pd.DataFrame(columns=cols)
     df['first'] = trapezIndices[0]
     df['second'] = trapezIndices[1]
     df['distance'] = df['second'] - df['first']
     df['chrom'] = pChrom
     df['reads'] = reads
-    #df.set_index(['first', 'second'], drop=False, inplace=True)
   
+    #df['first'] += pStart
+    #df['second'] += pStart
 
-    df['1'] = 0.
-    startProts = list(proteins['0'][df['first']])
-    df['0'] = startProts
-    endProts = list(proteins['0'][df['second']])
-    df['2'] = endProts
+    for protein in tqdm(range(numberOfProteins), desc="adding Proteins to dataset"):
+        #get the protein values for the row ("first") and column ("second") position
+        #in the HiC matrix
+        firstIndex = str(protein)
+        middleIndex = str(protein + numberOfProteins)
+        secondIndex = str(protein + 2*numberOfProteins)
+        
+        startProts = list(proteins[firstIndex][df['first']])
+        df[firstIndex] = startProts
+        endProts = list(proteins[firstIndex][df['second']])
+        df[secondIndex] = endProts
 
-    testDf = buildWindowDataset(proteins, pWindowSize)
-    print(testDf)
+        #compute window proteins for all positions ending at "second"
+        #and all window sizes between 1 and pWindowSize
+        #windowDf[x,y] = middle protein values for "second" = x and "distance" = y
+        df[middleIndex] = 0.
+        windowDf = buildWindowDataset(proteins, protein, pWindowSize, pWindowOperation)
     
-    arr1 = testDf.to_numpy()
-    slice1 = list(df['second'])
-    slice2 = list(df['distance'])
-    #print("sl1", len(slice1), max(slice1))
-    #print("sl2", len(slice2), max(slice2))
-    #print(arr1.shape)
-    slice3 = (slice1, slice2)
-    resArr = np.array(arr1[slice3])
-    #print(resArr)
-    df['1'] = resArr
+        #print(testDf)
+    
+        #get the window proteins into an array and slice it to get all values at once 
+        #there might be a more efficient way using pandas
+        distWindowArr = windowDf.to_numpy()
+        slice1 = list(df['second'])
+        slice2 = list(df['distance'])
+        slice3 = (slice1, slice2)
+        windowProteins = np.array(distWindowArr[slice3])
+        df[middleIndex] = windowProteins
 
-    fltr1 = df['1'] > 50.
-    fltr2 = df['second'] == 2406
-    print(df[fltr1 & fltr2])
+        #fltr1 = df['1'] > 50.
+        #fltr2 = df['second'] == 2406
+        #print(df[fltr1 & fltr2])
 
-    ##the following works, but takes about 5min at window size 100 chr21
-    #l1 = df['first']
-    #l2 = df['second']
-    #l3 = []
-    #for pos1, pos2 in tqdm(zip(l1,l2), total=len(l1.index)):
-    #    lst = proteins['0'][pos1:pos2]
-    #    l3.append(np.mean(lst))
-    #df['1'] = l3
-    #print(l3)
+    df['first'] += pStart
+    df['second'] += pStart
 
-    #readsGreaterTwenty = df['reads'] > 20
-    #distGreaterTwenty = df['distance'] > 20
-    #print(df[readsGreaterTwenty & distGreaterTwenty])
+    
+    print(df.shape, 'original before concat')
+    df2 = df.copy(deep=True)
+    l0 = list(df2['0'])
+    l2 = list(df2['2'])
+    df2['0'] = l2
+    df2['2'] = l0
+    print(df2.shape, 'copy before concat')
+    df3 = pd.concat([df, df2], ignore_index=True)
+    df3.drop_duplicates(keep='first', inplace=True)
+    df3.reindex(df3.chrom)
+    print(df3, df3.shape, 'after concat')
 
-    ##assert that the nonzero matrix elements are in the right place within the df
-    #readsGreaterZero = df['reads'] > 0
-    #test = df[readsGreaterZero]
-    #for x,y,z in tqdm(zip(test['first'], test['second'], test['reads'] )):
-    #    assert pFullReads[x, y] == z
 
-    return df
+    dist = df3['distance'] == 20
+    fst = df3['first'] == 2382
+    print(df3[dist & fst])
+    # df2 = pd.DataFrame({'name':['Allan','Mike','Brenda','Holy'], 'Age': [30,20,25,18],'Zodiac':['Aries','Leo','Virgo','Libra'],'Grade':['A','AB','B','AA'],'City':['Aura','Somerville','Boon','Gannon']})
+    # df3 = df2.copy(deep=True)
+    # zodiac = list(df3['Zodiac'])
+    # grade = list(df3['Grade'])
+    # df3['Zodiac'] = grade
+    # df3['Grade'] = zodiac
+    # print(df3)
+    # print('ooo')
+    # print(df2)
+    # df4 = pd.concat([df2,df3],ignore_index=True)
+    # df4.reindex(df4.name)
+    # print(df4)
 
-def buildWindowDataset(pProteinsDf, pWindowSize):
+    return df3
+
+def buildWindowDataset(pProteinsDf, pProteinNr, pWindowSize, pWindowOperation):
     df = pd.DataFrame()
+    proteinIndex = str(pProteinNr)
     for winSize in range(pWindowSize):
-        rollingMean = pProteinsDf['0'].rolling(window=winSize+1).mean()
-        df[str(winSize)] = rollingMean.round(3)
+        if pWindowOperation == "max":
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).max()
+        elif pWindowOperation == "sum":
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).sum()
+        else:
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).mean()
+        df[str(winSize)] = windowColumn.round(3)
     return df
 
 
@@ -388,7 +438,7 @@ def getMiddle(proteins,starts,ends, windowOperation):
             # yield bin_count
 
 
-def maskFunc(pArray, pWindowSize):
+def maskFunc(pArray, pWindowSize=0):
     maskArray = np.zeros(pArray.shape)
     upperTriaInd = np.triu_indices(maskArray.shape[0])
     notRequiredTriaInd = np.triu_indices(maskArray.shape[0], k=pWindowSize)

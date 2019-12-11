@@ -45,6 +45,11 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
         df = df.fillna(value=0)
         ### eliminate columns that should not be used for training
         X = df[df.columns.difference(['first', 'second','chrom', 'reads', 'avgRead'])]
+        dist0 = X['distance'] == 0
+        # print(X[dist0])
+        # print('before dropping', df.shape)
+        # X.drop_duplicates(keep='first',inplace=True)
+        # print('after dropping', df.shape)
         ### apply conversion
         if conversion == 'none':
             y = df['reads']
