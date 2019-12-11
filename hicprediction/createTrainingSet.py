@@ -284,6 +284,24 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
     endProts = list(proteins['0'][df['second']])
     df['2'] = endProts
 
+    testDf = buildWindowDataset(proteins, pWindowSize)
+    print(testDf)
+    
+    arr1 = testDf.to_numpy()
+    slice1 = list(df['second'])
+    slice2 = list(df['distance'])
+    #print("sl1", len(slice1), max(slice1))
+    #print("sl2", len(slice2), max(slice2))
+    #print(arr1.shape)
+    slice3 = (slice1, slice2)
+    resArr = np.array(arr1[slice3])
+    #print(resArr)
+    df['1'] = resArr
+
+    fltr1 = df['1'] > 50.
+    fltr2 = df['second'] == 2406
+    print(df[fltr1 & fltr2])
+
     ##the following works, but takes about 5min at window size 100 chr21
     #l1 = df['first']
     #l2 = df['second']
@@ -304,6 +322,13 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
     #for x,y,z in tqdm(zip(test['first'], test['second'], test['reads'] )):
     #    assert pFullReads[x, y] == z
 
+    return df
+
+def buildWindowDataset(pProteinsDf, pWindowSize):
+    df = pd.DataFrame()
+    for winSize in range(pWindowSize):
+        rollingMean = pProteinsDf['0'].rolling(window=winSize+1).mean()
+        df[str(winSize)] = rollingMean.round(3)
     return df
 
 
