@@ -39,8 +39,8 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
     modelFileName = os.path.join(modeloutputdirectory, modelTag)
     if not os.path.isfile(modelFileName):
         ### create model with desired parameters
-        model = sklearn.ensemble.RandomForestRegressor(max_features='sqrt',random_state=5,\
-                    n_estimators =10,n_jobs=4, verbose=2, criterion='mse')
+        model = sklearn.ensemble.RandomForestRegressor(max_features=None,random_state=5,\
+                    n_estimators =100,n_jobs=4, verbose=2, criterion='mse')
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(value=0)
         ### eliminate columns that should not be used for training
