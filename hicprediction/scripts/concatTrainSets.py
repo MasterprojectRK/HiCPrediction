@@ -4,7 +4,7 @@ import pandas as pd
 import joblib
 import sys
 import numpy as np
-
+from tqdm import tqdm
 
 @click.argument("datasetpaths", nargs=-1, type=click.Path(exists=True))
 @click.option("--ignorechrom", "-igc", type=bool, default=False, help="allow concatenating datasets from different chromosomes")
@@ -122,6 +122,10 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             concatDataset = pd.concat(datasets, ignore_index=True, sort=False)
             assert concatDataset.shape[1] == datasets[0].shape[1] 
             #fails only if columns had different names, since their original shapes are matching
+            
+            #recompute average read values for distances
+            for i in tqdm(range(paramsDict['windowSize']), desc="recompute avg. read values for all distances"):
+                concatDataset.loc[concatDataset['distance'] == i, 'avgRead'] = concatDataset[concatDataset['distance'] == i]['reads'].mean()
             joblib.dump((concatDataset, paramsDict), outfile, compress=True)
         else:
             sys.exit(errorMessage)
