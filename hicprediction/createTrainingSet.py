@@ -284,14 +284,19 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
     endProts = list(proteins['0'][df['second']])
     df['2'] = endProts
 
-    #l1 = [1,2,3]
-    #l2 = [4,5,6]
-    #l3 = proteins[0][l1:l2]
+    ##the following works, but takes about 5min at window size 100 chr21
+    #l1 = df['first']
+    #l2 = df['second']
+    #l3 = []
+    #for pos1, pos2 in tqdm(zip(l1,l2), total=len(l1.index)):
+    #    lst = proteins['0'][pos1:pos2]
+    #    l3.append(np.mean(lst))
+    #df['1'] = l3
     #print(l3)
 
-    readsGreaterTwenty = df['reads'] > 20
-    distGreaterTwenty = df['distance'] > 20
-    print(df[readsGreaterTwenty & distGreaterTwenty])
+    #readsGreaterTwenty = df['reads'] > 20
+    #distGreaterTwenty = df['distance'] > 20
+    #print(df[readsGreaterTwenty & distGreaterTwenty])
 
     ##assert that the nonzero matrix elements are in the right place within the df
     #readsGreaterZero = df['reads'] > 0
