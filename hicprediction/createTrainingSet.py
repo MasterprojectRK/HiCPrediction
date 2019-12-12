@@ -152,12 +152,6 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                         #         chromosome, pStart=centromereEndBin, pEnd=len(cuts))
                         df = pd.concat([df1,df2], ignore_index=True, sort=False)
                         df.reindex(df.chrom)
-                        #centrStart = df['first'] > 512
-                        #centrStop = df['first'] < 663
-                        #print(df[centrStart & centrStop])
-                        #print(df['first'].max(), 'max')
-                        #print(df['first'].min(), 'min')
-                        #print(df.shape, 'shape')
             else:
                 #df = createDataset(proteins, reads, windowoperation, windowsize,
                 #               chromosome, start=0, end =len(cuts))
@@ -309,9 +303,6 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
     df['distance'] = df['second'] - df['first']
     df['chrom'] = pChrom
     df['reads'] = reads
-  
-    #df['first'] += pStart
-    #df['second'] += pStart
 
     for protein in tqdm(range(numberOfProteins), desc="adding Proteins to dataset"):
         #get the protein values for the row ("first") and column ("second") position
@@ -319,8 +310,6 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         firstIndex = str(protein)
         middleIndex = str(protein + numberOfProteins)
         secondIndex = str(protein + 2*numberOfProteins)
-        #print('max', df['first'].max())
-        #print('min', df['first'].min())
         startProts = list(proteins[firstIndex][df['first'] + pStart])
         df[firstIndex] = startProts
         endProts = list(proteins[firstIndex][df['second'] + pStart])
@@ -331,9 +320,7 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         #windowDf[x,y] = middle protein values for "second" = x and "distance" = y
         df[middleIndex] = 0.
         windowDf = buildWindowDataset(proteins, protein, pWindowSize, pWindowOperation)
-    
-        #print(testDf)
-    
+      
         #get the window proteins into an array and slice it to get all values at once 
         #there might be a more efficient way using pandas
         distWindowArr = windowDf.to_numpy()
@@ -342,10 +329,6 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         slice3 = (slice1, slice2)
         windowProteins = np.array(distWindowArr[slice3])
         df[middleIndex] = windowProteins
-
-        #fltr1 = df['1'] > 50.
-        #fltr2 = df['second'] == 2406
-        #print(df[fltr1 & fltr2])
 
     df['first'] += pStart
     df['second'] += pStart
@@ -361,31 +344,10 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         l2 = list(df2[swIndex2])
         df2[swIndex0] = l2
         df2[swIndex2] = l0
-        #print(df2.shape, 'copy before concat')
+
     df3 = pd.concat([df, df2], ignore_index=True)
     df3.drop_duplicates(keep='first', inplace=True)
     df3.reindex(df3.chrom)
-    #print(df3, df3.shape, 'after concat')
-
-    #centrStart = df3['first'] >= 512
-    #centrStop = df3['first'] <= 662
-    #print(df3[centrStart & centrStop])
-
-    #dist = df3['distance'] == 20
-    #fst = df3['first'] == 2382
-    #print(df3[dist & fst])
-    # df2 = pd.DataFrame({'name':['Allan','Mike','Brenda','Holy'], 'Age': [30,20,25,18],'Zodiac':['Aries','Leo','Virgo','Libra'],'Grade':['A','AB','B','AA'],'City':['Aura','Somerville','Boon','Gannon']})
-    # df3 = df2.copy(deep=True)
-    # zodiac = list(df3['Zodiac'])
-    # grade = list(df3['Grade'])
-    # df3['Zodiac'] = grade
-    # df3['Grade'] = zodiac
-    # print(df3)
-    # print('ooo')
-    # print(df2)
-    # df4 = pd.concat([df2,df3],ignore_index=True)
-    # df4.reindex(df4.name)
-    # print(df4)
 
     return df3
 
