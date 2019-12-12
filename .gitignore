@@ -12,3 +12,4 @@ InternalStorage/*
 *.png
 *.csv
 *.broadPeak
+configurations.sh
