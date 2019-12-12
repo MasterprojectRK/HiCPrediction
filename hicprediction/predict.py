@@ -107,6 +107,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
     else:
         exists =False
     ### load model and set and predict
+    exists = False
     if not exists:
         prediction, score = predict(model, testSet, modelParams['conversion'])
         if predictionoutputdirectory:
@@ -161,7 +162,7 @@ def predict(model, testSet, conversion):
     test_y['avgRead'] = testSet['avgRead']
     test_y['predReads'] = reads
     score = model.score(test_X,test_y[target])
-    test_y = test_y.set_index(['first','second'])
+    #test_y = test_y.set_index(['first','second'])
     return test_y, score
 
 def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFilePath, internalInDir):
@@ -182,8 +183,11 @@ def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFile
         elif conversion == "none":
             convert = lambda val: val
         ### get rows and columns
-        rows = pred.index.codes[0]
-        cols = pred.index.codes[1]
+        #rows = pred.index.codes[0]
+        #cols = pred.index.codes[1]
+        rows = list(pred['first'])
+        columns = list(pred['second'])
+        matIndx = (rows,columns)
         data = convert(pred['pred'])
         ### convert back 
         ### create matrix with new values and overwrite original
@@ -199,8 +203,9 @@ def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFile
                     + "Use --iif option to provide the directory where the internal matrices " \
                     +  "were stored when creating the basefile").format(matrixfile)
             sys.exit(msg)        
-        new = sparse.csr_matrix((data, (rows, cols)),\
-                                shape=originalMatrix.matrix.shape)
+        # new = sparse.csr_matrix((data, (rows, cols)),\
+        #                         shape=originalMatrix.matrix.shape)
+        new = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
         originalMatrix.setMatrix(new, originalMatrix.cut_intervals)
         originalMatrix.save(predictionFilePath)
 
