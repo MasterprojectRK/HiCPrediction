@@ -50,7 +50,13 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
         print(df.shape, 'shape after')
 
         ### eliminate columns that should not be used for training
-        X = df[df.columns.difference(['first', 'second','chrom', 'reads', 'avgRead'])]
+        #X = df[df.columns.difference(['first', 'second','chrom', 'reads', 'avgRead'])]
+        numberOfProteins = int((df.shape[1] - 6) / 3)
+        dropList = []
+        for prot in range(numberOfProteins):
+            dropList.append(str(prot))
+            dropList.append(str(prot + 2*numberOfProteins))
+        X = df[df.columns.difference(['first', 'second','chrom'] + dropList + ['reads', 'avgRead'])]
         #dist0 = X['distance'] == 0
         # print(X[dist0])
         # print('before dropping', df.shape)
