@@ -45,6 +45,10 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
                     n_estimators =30,n_jobs=4, verbose=2, criterion='mse')
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(value=0)
+        print(df.shape, 'shape before')
+        df.drop_duplicates(keep='first', inplace=True, subset=['0', '1', '2','distance','reads','avgRead'])
+        print(df.shape, 'shape after')
+
         ### eliminate columns that should not be used for training
         X = df[df.columns.difference(['first', 'second','chrom', 'reads', 'avgRead'])]
         #dist0 = X['distance'] == 0
