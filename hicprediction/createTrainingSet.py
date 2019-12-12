@@ -102,11 +102,12 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         params = {**params, **params2}
         setTag = createSetTag(params) + ".z"
         datasetFileName = os.path.join(datasetoutputdirectory, setTag)
-        fileExists = os.path.isfile(datasetFileName)
-        dir_list = next(os.walk(datasetoutputdirectory))[1]
-        for path in dir_list:
-            tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
-            fileExists = fileExists or os.path.isfile(tmpPath)
+        #fileExists = os.path.isfile(datasetFileName)
+        #dir_list = next(os.walk(datasetoutputdirectory))[1]
+        #for path in dir_list:
+        #    tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
+        #   fileExists = fileExists or os.path.isfile(tmpPath)
+        fileExists = False
         if not fileExists:
             with h5py.File(basefile, 'r') as baseFile:
                 if chromTag not in baseFile:
@@ -138,20 +139,32 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                 centromereStartBin, centromereEndBin = getCentromerePositions(centromeresfile, chromTag,cuts)
                 for i in tqdm(range(2), desc = "Loading chromatids separately"):
                     if i == 0:
-                        df = createDataset2(proteins, reads, windowoperation, windowsize,
-                                chromosome, pStart=0, pEnd=centromereStartBin)
+                        df1 = createDataset(proteins, reads, windowoperation, windowsize,
+                                chromosome, start=0, end=centromereStartBin)
+                        #df1 = createDataset2(proteins, reads, windowoperation, windowsize,
+                        #        chromosome, pStart=0, pEnd=centromereStartBin)
                     elif i == 1:
-                        df2 = createDataset2(proteins, reads,\
+                        df2 = createDataset(proteins, reads,\
                                 windowoperation, windowsize,\
-                                chromosome, pStart=centromereEndBin, pEnd=len(cuts))
-                        df.append(df2, ignore_index=True, sort=False)
+                                chromosome, start=centromereEndBin, end=len(cuts))
+                        # df2 = createDataset2(proteins, reads,\
+                        #         windowoperation, windowsize,\
+                        #         chromosome, pStart=centromereEndBin, pEnd=len(cuts))
+                        df = pd.concat([df1,df2], ignore_index=True, sort=False)
+                        df.reindex(df.chrom)
+                        #centrStart = df['first'] > 512
+                        #centrStop = df['first'] < 663
+                        #print(df[centrStart & centrStop])
+                        #print(df['first'].max(), 'max')
+                        #print(df['first'].min(), 'min')
+                        #print(df.shape, 'shape')
             else:
                 #df = createDataset(proteins, reads, windowoperation, windowsize,
                 #               chromosome, start=0, end =len(cuts))
                 df = createDataset2(proteins, reads, windowoperation, windowsize,
                                chromosome, pStart=0, pEnd =len(cuts))
             ### add average contact read stratified by distance to dataset
-            for i in range(int(windowsize)):
+            for i in tqdm(range(int(windowsize)), desc="adding average read value"):
                 df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
             joblib.dump((df, params), datasetFileName,compress=True ) 
         else:
@@ -266,7 +279,7 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd):
     proteins = pProteins[pStart:pEnd]
     proteins.reindex(proteins.start)
-    print(proteins)
+    #print(proteins)
 
     # Get those indices and corresponding read values of the HiC-matrix that shall be used 
     # for learning and predicting.
@@ -306,10 +319,11 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         firstIndex = str(protein)
         middleIndex = str(protein + numberOfProteins)
         secondIndex = str(protein + 2*numberOfProteins)
-        
-        startProts = list(proteins[firstIndex][df['first']])
+        #print('max', df['first'].max())
+        #print('min', df['first'].min())
+        startProts = list(proteins[firstIndex][df['first'] + pStart])
         df[firstIndex] = startProts
-        endProts = list(proteins[firstIndex][df['second']])
+        endProts = list(proteins[firstIndex][df['second'] + pStart])
         df[secondIndex] = endProts
 
         #compute window proteins for all positions ending at "second"
@@ -353,6 +367,9 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
     df3.reindex(df3.chrom)
     #print(df3, df3.shape, 'after concat')
 
+    #centrStart = df3['first'] >= 512
+    #centrStop = df3['first'] <= 662
+    #print(df3[centrStart & centrStop])
 
     #dist = df3['distance'] == 20
     #fst = df3['first'] == 2382
