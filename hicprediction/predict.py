@@ -135,13 +135,15 @@ def predict(model, testSet, conversion):
     testSet = testSet.fillna(value=0)
     ### Hide Columns that are not needed for prediction
     numberOfProteins = int((testSet.shape[1] - 6) / 3)
-    dropList = []
-    for prot in range(numberOfProteins):
-        dropList.append(str(prot))
-        dropList.append(str(prot + 2*numberOfProteins))
+    dropList = ['distance']
+    #for prot in range(numberOfProteins):
+    #    dropList.append(str(prot))
+    #    dropList.append(str(prot + 2*numberOfProteins))
+    #    dropList.append(str(prot + numberOfProteins))
     test_X = testSet[testSet.columns.difference(['first',
                                                  'second', 'chrom'] + dropList + ['reads',
                                                  'avgRead'])]
+    #test_X.drop_duplicates(keep='first', inplace=True, subset=['0', '1', '2'])
     test_y = testSet['chrom']
     test_y = test_y.to_frame()
     ### convert reads to log reads

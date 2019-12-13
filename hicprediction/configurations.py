@@ -111,7 +111,7 @@ _alltrain_options = [
                  help='Input directory for training files', required=True,),
 ]
 _train_base_options = [
-    click.option('--modelOutputDirectory', '-mod',type=click.Path(exists=True),\
+    click.option('--modelOutputDirectory', '-mod',type=click.Path(exists=True, writable=True),\
                  help='Output directory for model files', required=True,),
     click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']), show_default=True,\
