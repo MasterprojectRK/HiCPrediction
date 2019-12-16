@@ -117,8 +117,9 @@ _train_base_options = [
                  help='Output directory for model files', required=True,),
     click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']), show_default=True,\
-                help='Define a conversion function for the read values')
-
+                help='Define a conversion function for the read values'),
+    click.option('--trees', type=click.IntRange(min=10, max=100, clamp=True), default=10, required=False),
+    click.option('--maxFeat', type=click.Choice(['sqrt', 'none']), default='none', required=False)
 ]
 def protein_options(func):
     for option in reversed(_protein_options):

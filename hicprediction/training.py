@@ -14,13 +14,15 @@ import sys
 """
 @conf.train_options
 @click.command()
-def train(modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle):
+def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle):
     """
     Wrapper function for click
     """
-    training(modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle)
+    if maxfeat == 'none':
+        maxfeat = None
+    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle)
 
-def training(modeloutputdirectory, conversion, traindatasetfile, noDist, noMiddle):
+def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle):
     """
     Train function
     Attributes:
@@ -41,8 +43,8 @@ def training(modeloutputdirectory, conversion, traindatasetfile, noDist, noMiddl
     exists = False
     if not exists:
         ### create model with desired parameters
-        model = sklearn.ensemble.RandomForestRegressor(max_features='sqrt',random_state=5,\
-                    n_estimators =10,n_jobs=4, verbose=2, criterion='mse')
+        model = sklearn.ensemble.RandomForestRegressor(max_features=pMaxFeat, random_state=5,\
+                    n_estimators=pNrOfTrees, n_jobs=4, verbose=2, criterion='mse')
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(value=0)
         ### drop columns that should not be used for training
