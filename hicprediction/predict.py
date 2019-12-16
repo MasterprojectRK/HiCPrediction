@@ -109,11 +109,11 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
     ### load model and set and predict
     exists = False #always execute prediction for now
     if not exists:
-        prediction, score = predict(model, testSet, modelParams['conversion'])
+        prediction, score = predict(model, testSet, modelParams)
         if predictionoutputdirectory:
             predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
         ### call function to convert prediction to HiC matrix
-            predictionToMatrix(prediction, basefile, modelParams['conversion'],\
+            predictionToMatrix(prediction, basefile, modelParams,\
                            setParams['chrom'], predictionFilePath, internalInDir)
         ### call function to store evaluation metrics
         if resultsfilepath:
@@ -123,7 +123,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
             df.to_csv(resultsfilepath)
 
 
-def predict(model, testSet, conversion):
+def predict(model, testSet, pModelParams):
     """
     Function to predict test set
     Attributes:
@@ -134,9 +134,15 @@ def predict(model, testSet, conversion):
     ### Eliminate NaNs
     testSet = testSet.fillna(value=0)
     ### Hide Columns that are not needed for prediction
-    test_X = testSet[testSet.columns.difference(['first',
-                                                 'second','chrom','reads',
-                                                 'avgRead'])]
+    dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
+    if 'noDistance' in pModelParams and pModelParams['noDistance'] == True:
+        dropList.append('distance')
+    if 'noMiddle' in pModelParams and pModelParams['noMiddle'] == True:
+        numberOfProteins = int((testSet.shape[1] - 6) / 3)
+        for protein in range(numberOfProteins):
+                dropList.append(str(protein + numberOfProteins))
+    test_X = testSet[testSet.columns.difference(dropList)]
+    print(test_X.head())
     test_y = testSet['chrom']
     test_y = test_y.to_frame()
     ### convert reads to log reads
@@ -150,10 +156,10 @@ def predict(model, testSet, conversion):
     test_y['distance'] = testSet['distance']
     test_y['predAbs'] = y_pred
     ### convert back if necessary
-    if conversion == 'none':
+    if pModelParams['conversion'] == 'none':
         target = 'reads'
         reads = y_pred
-    elif conversion == 'standardLog':
+    elif pModelParams['conversion'] == 'standardLog':
         target = 'standardLog'
         reads = y_pred
         reads = np.exp(reads) - 1
@@ -164,7 +170,7 @@ def predict(model, testSet, conversion):
     score = model.score(test_X,test_y[target])
     return test_y, score
 
-def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFilePath, internalInDir):
+def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir):
 
     """
     Function to convert prediction to Hi-C matrix
@@ -177,9 +183,9 @@ def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFile
     """
     with h5py.File(baseFilePath, 'r') as baseFile:
         ### store conversion function
-        if conversion == "standardLog":
+        if pModelParams['conversion'] == "standardLog":
             convert = lambda val: np.exp(val) - 1
-        elif conversion == "none":
+        elif pModelParams['conversion'] == "none":
             convert = lambda val: val
         ### get rows and columns (indices) for re-building the HiC matrix
         rows = list(pred['first'])
