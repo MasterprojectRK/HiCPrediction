@@ -14,15 +14,15 @@ import sys
 """
 @conf.train_options
 @click.command()
-def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle):
+def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend):
     """
     Wrapper function for click
     """
     if maxfeat == 'none':
         maxfeat = None
-    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle)
+    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend)
 
-def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle):
+def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle, noStartEnd):
     """
     Train function
     Attributes:
@@ -51,10 +51,14 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
         if noDist:
             dropList.append('distance')
-        if noMiddle:
+        if noMiddle or noStartEnd:
             numberOfProteins = int((df.shape[1] - 6) / 3)
             for protein in range(numberOfProteins):
-                dropList.append(str(protein + numberOfProteins))
+                if noMiddle:
+                    dropList.append(str(protein + numberOfProteins))
+                else: 
+                    dropList.append(str(protein))
+                    dropList.append(str(protein + 2 * numberOfProteins))
         X = df[df.columns.difference(dropList)]
         ### apply conversion
         if conversion == 'none':
@@ -66,7 +70,8 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         model.fit(X, y)
         params['noDistance'] = noDist
         params['noMiddle'] = noMiddle
-        joblib.dump((model, params), modelFileName,compress=True ) 
+        params['noStartEnd'] = noStartEnd
+        joblib.dump((model, params), modelFileName, compress=True ) 
         print("\n")
     else:
 

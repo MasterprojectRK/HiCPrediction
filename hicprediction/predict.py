@@ -135,14 +135,20 @@ def predict(model, testSet, pModelParams):
     testSet = testSet.fillna(value=0)
     ### Hide Columns that are not needed for prediction
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
-    if 'noDistance' in pModelParams and pModelParams['noDistance'] == True:
+    noDistance = 'noDistance' in pModelParams and pModelParams['noDistance'] == True
+    noMiddle = 'noMiddle' in pModelParams and pModelParams['noMiddle'] == True
+    noStartEnd = 'noStartEnd' in pModelParams and pModelParams['noStartEnd'] == True
+    if noDistance:
         dropList.append('distance')
-    if 'noMiddle' in pModelParams and pModelParams['noMiddle'] == True:
+    if noMiddle or noStartEnd:
         numberOfProteins = int((testSet.shape[1] - 6) / 3)
         for protein in range(numberOfProteins):
+            if noMiddle:
                 dropList.append(str(protein + numberOfProteins))
+            else: #noStartEnd
+                dropList.append(str(protein))
+                dropList.append(str(protein + 2 * numberOfProteins))
     test_X = testSet[testSet.columns.difference(dropList)]
-    print(test_X.head())
     test_y = testSet['chrom']
     test_y = test_y.to_frame()
     ### convert reads to log reads

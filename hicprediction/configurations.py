@@ -106,7 +106,8 @@ _train_options = [
                  help='File from which training is loaded'\
                  ,type=click.Path(exists=True)),
     click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model"),
-    click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model")
+    click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model"),
+    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model")
 ]
 _alltrain_options = [
     click.option('--setDirectory', '-sd',type=click.Path(exists=True),\
