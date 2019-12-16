@@ -107,6 +107,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
     else:
         exists =False
     ### load model and set and predict
+    exists = False #always execute prediction for now
     if not exists:
         prediction, score = predict(model, testSet, modelParams['conversion'])
         if predictionoutputdirectory:
