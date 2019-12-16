@@ -139,17 +139,17 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                 centromereStartBin, centromereEndBin = getCentromerePositions(centromeresfile, chromTag,cuts)
                 for i in tqdm(range(2), desc = "Loading chromatids separately"):
                     if i == 0:
-                        df1 = createDataset(proteins, reads, windowoperation, windowsize,
-                                chromosome, start=0, end=centromereStartBin)
-                        #df1 = createDataset2(proteins, reads, windowoperation, windowsize,
-                        #        chromosome, pStart=0, pEnd=centromereStartBin)
+                        #df1 = createDataset(proteins, reads, windowoperation, windowsize,
+                        #        chromosome, start=0, end=centromereStartBin)
+                        df1 = createDataset2(proteins, reads, windowoperation, windowsize,
+                                chromosome, pStart=0, pEnd=centromereStartBin)
                     elif i == 1:
-                        df2 = createDataset(proteins, reads,\
+                        #df2 = createDataset(proteins, reads,\
+                        #        windowoperation, windowsize,\
+                        #        chromosome, start=centromereEndBin, end=len(cuts))
+                        df2 = createDataset2(proteins, reads,\
                                 windowoperation, windowsize,\
-                                chromosome, start=centromereEndBin, end=len(cuts))
-                        # df2 = createDataset2(proteins, reads,\
-                        #         windowoperation, windowsize,\
-                        #         chromosome, pStart=centromereEndBin, pEnd=len(cuts))
+                                chromosome, pStart=centromereEndBin, pEnd=len(cuts))
                         df = pd.concat([df1,df2], ignore_index=True, sort=False)
                         df.reindex(df.chrom)
             else:
@@ -272,8 +272,7 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
 def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd):
     proteins = pProteins[pStart:pEnd]
-    proteins.reindex(proteins.start)
-    #print(proteins)
+    proteins.reset_index(inplace=True, drop=True) #otherwise access indices out of range when ignoring centromeres
 
     # Get those indices and corresponding read values of the HiC-matrix that shall be used 
     # for learning and predicting.
@@ -310,9 +309,9 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         firstIndex = str(protein)
         middleIndex = str(protein + numberOfProteins)
         secondIndex = str(protein + 2*numberOfProteins)
-        startProts = list(proteins[firstIndex][df['first'] + pStart])
+        startProts = list(proteins[firstIndex][df['first']])
         df[firstIndex] = startProts
-        endProts = list(proteins[firstIndex][df['second'] + pStart])
+        endProts = list(proteins[firstIndex][df['second']])
         df[secondIndex] = endProts
 
         #compute window proteins for all positions ending at "second"
