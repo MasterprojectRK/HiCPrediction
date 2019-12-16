@@ -161,7 +161,6 @@ def predict(model, testSet, conversion):
     test_y['avgRead'] = testSet['avgRead']
     test_y['predReads'] = reads
     score = model.score(test_X,test_y[target])
-    test_y = test_y.set_index(['first','second'])
     return test_y, score
 
 def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFilePath, internalInDir):
@@ -181,11 +180,12 @@ def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFile
             convert = lambda val: np.exp(val) - 1
         elif conversion == "none":
             convert = lambda val: val
-        ### get rows and columns
-        rows = pred.index.codes[0]
-        cols = pred.index.codes[1]
+        ### get rows and columns (indices) for re-building the HiC matrix
+        rows = list(pred['first'])
+        columns = list(pred['second'])
+        matIndx = (rows,columns)
+        ### convert back
         data = convert(pred['pred'])
-        ### convert back 
         ### create matrix with new values and overwrite original
         matrixfile = baseFile[chromosome][()]
         if internalInDir:
@@ -199,8 +199,7 @@ def predictionToMatrix(pred, baseFilePath,conversion, chromosome, predictionFile
                     + "Use --iif option to provide the directory where the internal matrices " \
                     +  "were stored when creating the basefile").format(matrixfile)
             sys.exit(msg)        
-        new = sparse.csr_matrix((data, (rows, cols)),\
-                                shape=originalMatrix.matrix.shape)
+        new = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
         originalMatrix.setMatrix(new, originalMatrix.cut_intervals)
         originalMatrix.save(predictionFilePath)
 
