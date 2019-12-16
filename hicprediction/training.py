@@ -14,13 +14,13 @@ import sys
 """
 @conf.train_options
 @click.command()
-def train(modeloutputdirectory, conversion, traindatasetfile):
+def train(modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle):
     """
     Wrapper function for click
     """
-    training(modeloutputdirectory, conversion, traindatasetfile)
+    training(modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle)
 
-def training(modeloutputdirectory, conversion, traindatasetfile):
+def training(modeloutputdirectory, conversion, traindatasetfile, noDist, noMiddle):
     """
     Train function
     Attributes:
@@ -45,8 +45,15 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
                     n_estimators =10,n_jobs=4, verbose=2, criterion='mse')
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(value=0)
-        ### eliminate columns that should not be used for training
-        X = df[df.columns.difference(['first', 'second','chrom', 'reads', 'avgRead'])]
+        ### drop columns that should not be used for training
+        dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
+        if noDist:
+            dropList.append('distance')
+        if noMiddle:
+            numberOfProteins = int((df.shape[1] - 6) / 3)
+            for protein in range(numberOfProteins):
+                dropList.append(str(protein + numberOfProteins))
+        X = df[df.columns.difference(dropList)]
         ### apply conversion
         if conversion == 'none':
             y = df['reads']
@@ -55,6 +62,8 @@ def training(modeloutputdirectory, conversion, traindatasetfile):
 
         ## train model and store it
         model.fit(X, y)
+        params['noDistance'] = noDist
+        params['noMiddle'] = noMiddle
         joblib.dump((model, params), modelFileName,compress=True ) 
         print("\n")
     else:
