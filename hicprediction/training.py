@@ -51,14 +51,11 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
         if noDist:
             dropList.append('distance')
-        if noMiddle or noStartEnd:
-            numberOfProteins = int((df.shape[1] - 6) / 3)
-            for protein in range(numberOfProteins):
-                if noMiddle:
-                    dropList.append(str(protein + numberOfProteins))
-                else: 
-                    dropList.append(str(protein))
-                    dropList.append(str(protein + 2 * numberOfProteins))
+        if noMiddle:
+            dropList.append('middleProt')
+        if noStartEnd:
+            dropList.append('startProt')
+            dropList.append('endProt')
         X = df[df.columns.difference(dropList)]
         ### apply conversion
         if conversion == 'none':

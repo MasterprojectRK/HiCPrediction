@@ -106,6 +106,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         for path in dir_list:
             tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
             fileExists = fileExists or os.path.isfile(tmpPath)
+        fileExists = False
         if not fileExists:
             with h5py.File(basefile, 'r') as baseFile:
                 if chromTag not in baseFile:
@@ -137,18 +138,25 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                 start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
                 for i in tqdm(range(2), desc = "Loading chromatids separately"):
                     if i == 0:
-                        df = createDataset(proteins, reads, windowoperation, windowsize,
-                                chromosome, start=0, end=start)
+                        df = createDataset2(proteins, reads, windowoperation, windowsize,
+                                chromosome, pStart=0, pEnd=start)
                     elif i == 1:
-                        df = df.append(createDataset(proteins, reads,\
+                        df = df.append(createDataset2(proteins, reads,\
                                 windowoperation, windowsize,\
-                                chromosome, start=end + 1, end=len(cuts)))
+                                chromosome, pStart=end + 1, pEnd=len(cuts)), ignore_index=True, sort=False)
             else:
                 df = createDataset(proteins, reads, windowoperation, windowsize,
                                chromosome, start=0, end =len(cuts))
             ### add average contact read stratified by distance to dataset
-            for i in range(int(windowsize)):
+            for i in tqdm(range(int(windowsize)),desc='Adding average read values'):
                 df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
+            
+            #one-hot encoding for the proteins / protein numbers
+            df['proteinNr'] = df['proteinNr'].astype('category')
+            df = pd.get_dummies(df, prefix='prot')
+            print(df.head(10))
+            print(df.tail(10))
+            
             joblib.dump((df, params), datasetFileName,compress=True ) 
         else:
             print("Skipped creating file that already existed: " + datasetFileName)
@@ -250,6 +258,72 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
     df['second'] += start
     return df
 
+def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
+                   pChrom, pStart, pEnd):
+    proteins = pProteins[pStart:pEnd]
+    proteins.reset_index(inplace=True, drop=True) #otherwise access indices out of range when ignoring centromeres
+
+    numberOfColumns = np.shape(proteins)[1]
+    numberOfProteins = numberOfColumns - 1
+
+    # Get those indices and corresponding read values of the HiC-matrix that shall be used 
+    # for learning and predicting.
+    # Since HiC matrices are symmetric, looking at the upper triangular matrix is sufficient
+    # It has been shown that taking the full triangle is not good, since most values 
+    # are zero or close to zero. So, take the indices of the main diagonal 
+    # and the next pWindowSize-1 side diagonals. This structure is a trapezoid
+    numberOfDiagonals = min(pEnd-pStart-1,pWindowSize) #range might be smaller than window size depending on chromosome
+    readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
+    trapezIndices = np.mask_indices(readMatrix.shape[0],maskFunc,k=numberOfDiagonals)
+    reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
+
+    cols = ['first', 'second', 'chrom', 'startProt', 'middleProt', 'endProt', 'distance', 'reads', 'proteinNr']
+
+    dsList = []
+
+    for protein in tqdm(range(numberOfProteins)):
+        protDf = pd.DataFrame(columns=cols)
+        protDf['first'] = trapezIndices[0]
+        protDf['second'] = trapezIndices[1]
+        protDf['distance'] = protDf['second'] - protDf['first']
+        protDf['chrom'] = pChrom
+        protDf['reads'] = reads
+        protDf['proteinNr'] = protein
+        
+        #get the protein values for the row ("first") and column ("second") position
+        #in the HiC matrix
+        protIndex = str(protein)
+        startProts = list(proteins[protIndex][protDf['first']])
+        protDf['startProt'] = startProts
+        endProts = list(proteins[protIndex][protDf['second']])
+        protDf['endProt'] = endProts
+
+        #compute window proteins for all positions ending at "second"
+        #and all window sizes between 1 and pWindowSize
+        #windowDf[x,y] = middle protein values for "second" = x and "distance" = y
+        protDf['middleProt'] = 0.
+        windowDf = buildWindowDataset(proteins, protein, pWindowSize, pWindowOperation)
+      
+        #get the window proteins into an array and slice it to get all values at once 
+        #there might be a more efficient way using pandas
+        distWindowArr = windowDf.to_numpy()
+        slice1 = list(protDf['second'])
+        slice2 = list(protDf['distance'])
+        slice3 = (slice1, slice2)
+        windowProteins = np.array(distWindowArr[slice3])
+        protDf['middleProt'] = windowProteins
+
+        dsList.append(protDf)
+        print(protDf)
+    
+    df = pd.concat(dsList, ignore_index=True, sort=False)
+    df['first'] += pStart
+    df['second'] += pStart
+
+    print(df.head())
+    print(df.tail())
+    return df
+
 def get_ranges(starts,ends):
 
     """
@@ -305,6 +379,26 @@ def getMiddle(proteins,starts,ends, windowOperation):
         # elif windowOperation == "max":
             # yield bin_count
 
+def maskFunc(pArray, pWindowSize=0):
+    maskArray = np.zeros(pArray.shape)
+    upperTriaInd = np.triu_indices(maskArray.shape[0])
+    notRequiredTriaInd = np.triu_indices(maskArray.shape[0], k=pWindowSize)
+    maskArray[upperTriaInd] = 1
+    maskArray[notRequiredTriaInd] = 0
+    return maskArray
+
+def buildWindowDataset(pProteinsDf, pProteinNr, pWindowSize, pWindowOperation):
+    df = pd.DataFrame()
+    proteinIndex = str(pProteinNr)
+    for winSize in range(pWindowSize):
+        if pWindowOperation == "max":
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).max()
+        elif pWindowOperation == "sum":
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).sum()
+        else:
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).mean()
+        df[str(winSize)] = windowColumn.round(3)
+    return df
 
 if __name__ == '__main__':
     createTrainingSet()

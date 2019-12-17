@@ -140,26 +140,25 @@ def predict(model, testSet, pModelParams):
     noStartEnd = 'noStartEnd' in pModelParams and pModelParams['noStartEnd'] == True
     if noDistance:
         dropList.append('distance')
-    if noMiddle or noStartEnd:
-        numberOfProteins = int((testSet.shape[1] - 6) / 3)
-        for protein in range(numberOfProteins):
-            if noMiddle:
-                dropList.append(str(protein + numberOfProteins))
-            else: #noStartEnd
-                dropList.append(str(protein))
-                dropList.append(str(protein + 2 * numberOfProteins))
+    if noMiddle:
+        dropList.append('middleProt')
+    if noStartEnd:
+        dropList.append('startProt')
+        dropList.append('endProt')
     test_X = testSet[testSet.columns.difference(dropList)]
-    test_y = testSet['chrom']
-    test_y = test_y.to_frame()
+    test_y = testSet.copy(deep=True)
+    #test_y = testSet['chrom']
+    #test_y = test_y.to_frame()
     ### convert reads to log reads
     test_y['standardLog'] = np.log(testSet['reads']+1)
     ### predict
     y_pred = model.predict(test_X)
+    #print(y_pred.shape, 'shape')
     test_y['pred'] = y_pred
     y_pred = np.absolute(y_pred)
-    test_y['second'] = testSet['second']
-    test_y['first'] = testSet['first']
-    test_y['distance'] = testSet['distance']
+    #test_y['second'] = testSet['second']
+    #test_y['first'] = testSet['first']
+    #test_y['distance'] = testSet['distance']
     test_y['predAbs'] = y_pred
     ### convert back if necessary
     if pModelParams['conversion'] == 'none':
@@ -170,10 +169,11 @@ def predict(model, testSet, pModelParams):
         reads = y_pred
         reads = np.exp(reads) - 1
     ### store into new dataframe
-    test_y['reads'] = testSet['reads']
-    test_y['avgRead'] = testSet['avgRead']
+    #test_y['reads'] = testSet['reads']
+    #test_y['avgRead'] = testSet['avgRead']
     test_y['predReads'] = reads
     score = model.score(test_X,test_y[target])
+    #print(test_y.head(20))
     return test_y, score
 
 def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir):
@@ -194,11 +194,20 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
         elif pModelParams['conversion'] == "none":
             convert = lambda val: val
         ### get rows and columns (indices) for re-building the HiC matrix
-        rows = list(pred['first'])
-        columns = list(pred['second'])
+        mask = pred['prot_0'] == 1
+        rows = list(pred[mask]['first'])
+        columns = list(pred[mask]['second'])
         matIndx = (rows,columns)
-        ### convert back
-        data = convert(pred['pred'])
+        resDf = pd.DataFrame()
+        for protein in range(12):
+            ### convert back
+            colName = 'prot_' + str(protein)
+            mask = pred[colName] == 1
+            data = list(convert(pred[mask]['pred']))
+            resDf[str(protein)] = data
+        resDf['merged'] = resDf.mean(axis=1)
+        #print(resDf)
+        data = list(resDf['merged'])
         ### create matrix with new values and overwrite original
         matrixfile = baseFile[chromosome][()]
         if internalInDir:
