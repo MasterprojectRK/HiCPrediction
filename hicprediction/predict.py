@@ -199,14 +199,15 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
         columns = list(pred[mask]['second'])
         matIndx = (rows,columns)
         resDf = pd.DataFrame()
-        for protein in range(12):
+        numberOfProteins = pred.shape[1] - 13
+        for protein in range(numberOfProteins):
             ### convert back
             colName = 'prot_' + str(protein)
             mask = pred[colName] == 1
             data = list(convert(pred[mask]['pred']))
             resDf[str(protein)] = data
+        #explicit join on indices would be better...todo
         resDf['merged'] = resDf.mean(axis=1)
-        #print(resDf)
         data = list(resDf['merged'])
         ### create matrix with new values and overwrite original
         matrixfile = baseFile[chromosome][()]
