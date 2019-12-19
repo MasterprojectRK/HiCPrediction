@@ -45,8 +45,8 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         ### create model with desired parameters
         model = sklearn.ensemble.RandomForestRegressor(max_features=pMaxFeat, random_state=5,\
                     n_estimators=pNrOfTrees, n_jobs=4, verbose=2, criterion='mse')
-        df.replace([np.inf, -np.inf], np.nan)
-        df = df.fillna(value=0)
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        df.fillna(value=0, inplace=True)
         ### drop columns that should not be used for training
         dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
         if noDist:
@@ -55,8 +55,9 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
             dropList.append('middleProt')
         if noStartEnd:
             dropList.append('startProt')
-            dropList.append('endProt')
+            dropList.append('endProt')    
         X = df[df.columns.difference(dropList)]
+        
         ### apply conversion
         if conversion == 'none':
             y = df['reads']
