@@ -180,7 +180,7 @@ def getBaseCombinations():
     params = {
         'mergeOperation': ["avg", "max"],
         'normalize': [True, False],
-        'peakColumn': [4,6],
+        'peakColumn': [6],
     }
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
