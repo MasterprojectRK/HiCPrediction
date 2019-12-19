@@ -154,8 +154,8 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             #one-hot encoding for the proteins / protein numbers
             df['proteinNr'] = df['proteinNr'].astype('category')
             df = pd.get_dummies(df, prefix='prot')
-            print(df.head(10))
-            print(df.tail(10))
+            #print(df.head(10))
+            #print(df.tail(10))
             
             joblib.dump((df, params), datasetFileName,compress=True ) 
         else:
@@ -317,14 +317,11 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         protDf['middleProt'] = windowProteins
 
         dsList.append(protDf)
-        print(protDf)
     
     df = pd.concat(dsList, ignore_index=True, sort=False)
     df['first'] += pStart
     df['second'] += pStart
 
-    print(df.head())
-    print(df.tail())
     return df
 
 def get_ranges(starts,ends):
