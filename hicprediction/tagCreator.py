@@ -35,6 +35,12 @@ def createProteinTag(params):
 def createModelTag(params):
     tmp = createSetTag(params)
     tmp +=  '_C' + params['conversion']
+    if params['noDistance']:
+        tmp += '_noDist'
+    if params['noMiddle']:
+        tmp += '_noMiddle'
+    if params['noStartEnd']:
+        tmp += '_noStartEnd'
     return tmp
 
 def createPredictionTag(params, setParams):

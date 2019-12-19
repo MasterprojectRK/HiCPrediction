@@ -37,6 +37,9 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     ### load data set and set parameters
     df, params = joblib.load(traindatasetfile)
     params['conversion'] = conversion
+    params['noDistance'] = noDist
+    params['noMiddle'] = noMiddle
+    params['noStartEnd'] = noStartEnd
     modelTag = createModelTag(params) + ".z"
     modelFileName = os.path.join(modeloutputdirectory, modelTag)
     #exists = os.path.isfile(modelFileName)
@@ -68,9 +71,6 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
 
         ## train model and store it
         model.fit(X, y)
-        params['noDistance'] = noDist
-        params['noMiddle'] = noMiddle
-        params['noStartEnd'] = noStartEnd
         joblib.dump((model, params), modelFileName, compress=True ) 
         print("\n")
     else:
