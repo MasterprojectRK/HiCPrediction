@@ -260,11 +260,14 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
 
 def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd):
-    proteins = pProteins[pStart:pEnd]
+    
+    df = pd.DataFrame()
+    
+    if pEnd > pStart and pEnd >= 0 and pStart >= 0: #end not >= start (greater equal), since we look at diagonals and need two non-equal values
+        proteins = pProteins[pStart:pEnd].drop('start', axis=1)
     proteins.reset_index(inplace=True, drop=True) #otherwise access indices out of range when ignoring centromeres
 
-    numberOfColumns = np.shape(proteins)[1]
-    numberOfProteins = numberOfColumns - 1
+        numberOfProteins = proteins.shape[1]
 
     # Get those indices and corresponding read values of the HiC-matrix that shall be used 
     # for learning and predicting.
