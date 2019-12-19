@@ -272,7 +272,7 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
     # It has been shown that taking the full triangle is not good, since most values 
     # are zero or close to zero. So, take the indices of the main diagonal 
     # and the next pWindowSize-1 side diagonals. This structure is a trapezoid
-    numberOfDiagonals = min(pEnd-pStart-1,pWindowSize) #range might be smaller than window size depending on chromosome
+        numberOfDiagonals = min(pEnd-pStart,pWindowSize) #range might be smaller than window size, if centromere close to start / end of chromosome or if valid region small
     readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
     trapezIndices = np.mask_indices(readMatrix.shape[0],maskFunc,k=numberOfDiagonals)
     reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
