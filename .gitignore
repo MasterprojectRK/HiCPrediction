@@ -12,3 +12,4 @@ InternalStorage/*
 *.png
 *.csv
 *.broadPeak
+HicMatrices/K562pca1_chr21.bigwig
