@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import click
 from matplotlib.colors import LogNorm
+import matplotlib.gridspec as gridspec
 
 @click.option('--regionIndex1', '-r1',default=1, show_default=True, required=True, type=click.IntRange(min=0) )
 @click.option('--regionIndex2','-r2', default=1000, show_default=True, required=True, type=click.IntRange(min=0))
@@ -23,8 +24,9 @@ from matplotlib.colors import LogNorm
 @click.option('--imageoutputfile','-iof', default=None)
 @click.option('--comparematrix', '-cmp', type=click.Path(exists=True))
 @click.option('--title', '-t', type=str, default=None)
+@click.option('--bigwig', '-bw', type=click.Path(exists=True), required=False, default=None)
 @click.command()
-def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix, title):
+def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix, title, bigwig):
         if not conf.checkExtension(matrixinputfile, '.cool'):
             msg = "input matrix must be in cooler format (.cool)"
             sys.exit(msg)
@@ -74,7 +76,7 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
                 sys.exit(msg)
 
         #arguments for plotting
-        plotArgs = Namespace(bigwig=None, 
+        plotArgs = Namespace(bigwig=bigwig, 
                              chromosomeOrder=None, 
                              clearMaskedBins=False, 
                              colorMap='RdYlBu_r', 
@@ -106,8 +108,10 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         #colormap for plotting
         cmap = cm.get_cmap(plotArgs.colorMap)
         cmap.set_bad('black')
+        
         bigwig_info = None
-
+        if plotArgs.bigwig:
+            bigwig_info = {'args': plotArgs, 'axis': None, 'axis_colorbar': None, 'nan_bins': upperHiCMatrix.nan_bins}
         norm = None
 
         if plotArgs.log or plotArgs.log1p:
@@ -133,16 +137,30 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         elif plotArgs.log:
             norm = LogNorm()
 
-        fig_height = 7
+        if plotArgs.bigwig:
+            # increase figure height to accommodate bigwig track
+            fig_height = 8.5
+        else:
+            fig_height = 7
         height = 4.8 / fig_height
-
+        
         fig_width = 8
         width = 5.0 / fig_width
         left_margin = (1.0 - width) * 0.5
 
         fig = plt.figure(figsize=(fig_width, fig_height), dpi=plotArgs.dpi)
 
-        ax1 = None
+        if plotArgs.bigwig:
+            gs = gridspec.GridSpec(2, 2, height_ratios=[0.90, 0.1], width_ratios=[0.97, 0.03])
+            gs.update(hspace=0.05, wspace=0.05)
+            ax1 = plt.subplot(gs[0, 0])
+            ax2 = plt.subplot(gs[1, 0])
+            ax3 = plt.subplot(gs[0, 1])
+            bigwig_info['axis'] = ax2
+            bigwig_info['axis_colorbar'] = ax3
+        else:
+            ax1 = None
+        
         bottom = 1.3 / fig_height
 
         position = [left_margin, bottom, width, height]
