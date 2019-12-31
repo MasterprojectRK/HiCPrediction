@@ -209,7 +209,7 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
     #elif windowOperation == 'max':
     #    convertF = np.max
     
-    reach  = int(windowSize)
+    reach  = min(end-start, int(windowSize))
     height = int((rows - reach) * reach +  reach * (reach +1) /2)
     lst = range(rows - reach)
     ### compute indices for all the possible contact pairs considering maximum
