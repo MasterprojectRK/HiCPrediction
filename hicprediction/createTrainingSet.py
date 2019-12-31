@@ -300,13 +300,13 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         dsList = []
 
         for protein in tqdm(range(numberOfProteins)):
-            protDf = pd.DataFrame(columns=cols)
-            protDf['first'] = trapezIndices[0]
-            protDf['second'] = trapezIndices[1]
+            protDf = pd.DataFrame(columns=cols,dtype=np.uint32)
+            protDf['first'] = np.uint32(trapezIndices[0])
+            protDf['second'] = np.uint32(trapezIndices[1])
             protDf['distance'] = protDf['second'] - protDf['first']
-            protDf['chrom'] = pChrom
-            protDf['reads'] = reads
-            protDf['proteinNr'] = protein
+            protDf['chrom'] = np.uint8(pChrom)
+            protDf['reads'] = np.float32(reads)
+            protDf['proteinNr'] = np.uint8(protein)
             
             #get the protein values for the row ("first") and column ("second") position
             #in the HiC matrix
@@ -329,7 +329,7 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
             slice2 = list(protDf['distance'])
             slice3 = (slice1, slice2)
             windowProteins = np.array(distWindowArr[slice3])
-            protDf['middleProt'] = windowProteins
+            protDf['middleProt'] = np.float32(windowProteins)
 
             dsList.append(protDf)
         
@@ -412,7 +412,7 @@ def buildWindowDataset(pProteinsDf, pProteinNr, pWindowSize, pWindowOperation):
             windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).sum()
         else:
             windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).mean()
-        df[str(winSize)] = windowColumn.round(3)
+        df[str(winSize)] = windowColumn.round(3).astype('float32')
     return df
 
 def findValidProteinRegions(pProteins, pLenThreshold):
