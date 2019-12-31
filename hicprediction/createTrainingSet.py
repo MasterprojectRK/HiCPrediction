@@ -320,7 +320,8 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
             #and all window sizes between 1 and pWindowSize
             #windowDf[x,y] = middle protein values for "second" = x and "distance" = y
             protDf['middleProt'] = 0.
-            windowDf = buildWindowDataset(proteins, protein, pWindowSize, pWindowOperation)
+            winSize = min(pEnd-pStart, pWindowSize)
+            windowDf = buildWindowDataset(proteins, protein, winSize, pWindowOperation)
         
             #get the window proteins into an array and slice it to get all values at once 
             #there might be a more efficient way using pandas
