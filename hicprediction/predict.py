@@ -199,6 +199,10 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
         matIndx = (rows,columns)
         ### convert back
         data = convert(pred['pred'])
+        ##set everything less than median = 0
+        #med = data.median()
+        #mask = data > med
+        #data = data.where(mask, other=0.0)
         ### create matrix with new values and overwrite original
         matrixfile = baseFile[chromosome][()]
         if internalInDir:
