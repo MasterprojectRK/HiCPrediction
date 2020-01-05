@@ -246,6 +246,17 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
         df[str(i)] = np.array(proteinMatrix[df['first'], i+1]).flatten()
         df[str(proteinNr + i)] = next(middleGenerator) 
         df[str(proteinNr * 2 + i)] = np.array(proteinMatrix[df['second'], i+1]).flatten()
+
+    mask = False    
+    for i in tqdm(range(proteinNr), desc="removing rows without start/end proteins"):    
+        m1 = df[str(i)] > 0
+        m2 = df[str(proteinNr * 2 + i)] > 0
+        mask = mask | (m1 & m2)
+   
+    print("rows before", df.shape[0])
+    df = df[mask]
+    print("rows after", df.shape[0])
+    
     df['first'] += start
     df['second'] += start
     return df
