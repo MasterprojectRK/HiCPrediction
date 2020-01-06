@@ -198,7 +198,7 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
         columns = list(pred['second'])
         matIndx = (rows,columns)
         ### convert back
-        data = convert(pred['pred'])
+        data = list(convert(pred['pred']))
         ##set everything less than median = 0
         #med = data.median()
         #mask = data > med

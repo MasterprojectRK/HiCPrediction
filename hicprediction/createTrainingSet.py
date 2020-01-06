@@ -106,6 +106,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         for path in dir_list:
             tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
             fileExists = fileExists or os.path.isfile(tmpPath)
+        fileExists = False
         if not fileExists:
             with h5py.File(basefile, 'r') as baseFile:
                 if chromTag not in baseFile:
@@ -252,10 +253,9 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
         m1 = df[str(i)] > 0
         m2 = df[str(proteinNr * 2 + i)] > 0
         mask = mask | (m1 & m2)
-   
-    print("rows before", df.shape[0])
+    
     df = df[mask]
-    print("rows after", df.shape[0])
+
     
     df['first'] += start
     df['second'] += start
