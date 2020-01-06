@@ -338,6 +338,12 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         df['first'] += pStart
         df['second'] += pStart
 
+        #drop all rows where start and end protein are both zero
+        mask1 = df['startProt'] > 0 
+        mask2 = df['endProt'] > 0
+        #print("rows before: ", df.shape[0])
+        df = df[mask1 & mask2]
+        #print("rows after: ", df.shape[0])
     return df
 
 def get_ranges(starts,ends):

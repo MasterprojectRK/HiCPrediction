@@ -193,22 +193,33 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
             convert = lambda val: np.exp(val) - 1
         elif pModelParams['conversion'] == "none":
             convert = lambda val: val
-        ### get rows and columns (indices) for re-building the HiC matrix
-        mask = pred['prot_0'] == 1
-        rows = list(pred[mask]['first'])
-        columns = list(pred[mask]['second'])
-        matIndx = (rows,columns)
-        resDf = pd.DataFrame()
+        ### get individual predictions for the counts from each protein
+        resList = []
         numberOfProteins = pred.shape[1] - 13
         for protein in range(numberOfProteins):
-            ### convert back
             colName = 'prot_' + str(protein)
             mask = pred[colName] == 1
-            data = list(convert(pred[mask]['pred']))
-            resDf[str(protein)] = data
-        #explicit join on indices would be better...todo
-        resDf['merged'] = resDf.mean(axis=1)
-        data = list(resDf['merged'])
+            resDf = pd.DataFrame()
+            resDf['first'] = pred[mask]['first']
+            resDf['second'] = pred[mask]['second']
+            ### convert back
+            predStr = 'pred_' + str(protein)
+            resDf[predStr] = convert(pred[mask]['pred'])
+            resDf.set_index(['first','second'],inplace=True)
+            resList.append(resDf)
+        #join the results on indices
+        predictionDf = pd.DataFrame(columns=['first', 'second'])
+        predictionDf.set_index(['first', 'second'], inplace=True)
+        predictionDf = predictionDf.join(resList,how='outer')
+        predictionDf.fillna(0.0, inplace=True)
+        predictionDf['merged'] = predictionDf.mean(axis=1)
+        #get the indices for the predicted counts
+        predictionDf.reset_index(inplace=True)
+        rows = list(predictionDf['first'])
+        columns = list(predictionDf['second'])
+        matIndx = (rows,columns)
+        #get the predicted counts
+        data = list(predictionDf['merged'])
         ### create matrix with new values and overwrite original
         matrixfile = baseFile[chromosome][()]
         if internalInDir:
