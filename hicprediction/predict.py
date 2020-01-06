@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import h5py
 from scipy import sparse
+from scipy import ndimage
 from hicmatrix import HiCMatrix as hm
 import sklearn.metrics as metrics
 import sys
@@ -22,7 +23,7 @@ conversion of prediction to HiC matrices
 @conf.predict_options
 @click.command()
 def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
-                      predictionoutputdirectory, resultsfilepath, internalindir):
+                      predictionoutputdirectory, resultsfilepath, internalindir, sigma):
     """
     Wrapper function for Cli
     """
@@ -37,10 +38,10 @@ def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
     model, modelParams = joblib.load(modelfilepath)
     testSet, setParams = joblib.load(predictionsetpath)
     executePrediction(model, modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, internalindir)
+                      predictionoutputdirectory, resultsfilepath, internalindir, sigma)
 
 def executePrediction(model,modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, internalInDir):
+                      predictionoutputdirectory, resultsfilepath, internalInDir, sigma):
     """ 
     Main function
     calls prediction, evaluation and conversion methods and stores everything
@@ -114,7 +115,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
             predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
         ### call function to convert prediction to HiC matrix
             predictionToMatrix(prediction, basefile, modelParams,\
-                           setParams['chrom'], predictionFilePath, internalInDir)
+                           setParams['chrom'], predictionFilePath, internalInDir, sigma)
         ### call function to store evaluation metrics
         if resultsfilepath:
 
@@ -131,8 +132,13 @@ def predict(model, testSet, pModelParams):
         testSet -- testSet to be predicted
         conversion -- conversion function used when training the model
     """
-    ### Eliminate NaNs
-    testSet = testSet.fillna(value=0)
+    ### Eliminate NaNs - there should be none
+    nrOfRowsBefore = testSet.shape[0]
+    testSet.fillna(value=0, inplace=True)
+    nrOfRowsAfter = testSet.shape[0]
+    if nrOfRowsAfter != nrOfRowsBefore:
+        msg = "Warning: Removed {0:d} rows from test set because they contained NaNs"
+        print(msg.format(nrOfRowsBefore-nrOfRowsAfter))
     ### Hide Columns that are not needed for prediction
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
     noDistance = 'noDistance' in pModelParams and pModelParams['noDistance'] == True
@@ -147,18 +153,12 @@ def predict(model, testSet, pModelParams):
         dropList.append('endProt')
     test_X = testSet[testSet.columns.difference(dropList)]
     test_y = testSet.copy(deep=True)
-    #test_y = testSet['chrom']
-    #test_y = test_y.to_frame()
     ### convert reads to log reads
     test_y['standardLog'] = np.log(testSet['reads']+1)
     ### predict
     y_pred = model.predict(test_X)
-    #print(y_pred.shape, 'shape')
     test_y['pred'] = y_pred
     y_pred = np.absolute(y_pred)
-    #test_y['second'] = testSet['second']
-    #test_y['first'] = testSet['first']
-    #test_y['distance'] = testSet['distance']
     test_y['predAbs'] = y_pred
     ### convert back if necessary
     if pModelParams['conversion'] == 'none':
@@ -169,14 +169,11 @@ def predict(model, testSet, pModelParams):
         reads = y_pred
         reads = np.exp(reads) - 1
     ### store into new dataframe
-    #test_y['reads'] = testSet['reads']
-    #test_y['avgRead'] = testSet['avgRead']
     test_y['predReads'] = reads
     score = model.score(test_X,test_y[target])
-    #print(test_y.head(20))
     return test_y, score
 
-def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir):
+def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
 
     """
     Function to convert prediction to Hi-C matrix
@@ -233,8 +230,17 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
                     + "Use --iif option to provide the directory where the internal matrices " \
                     +  "were stored when creating the basefile").format(matrixfile)
             sys.exit(msg)        
-        new = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
-        originalMatrix.setMatrix(new, originalMatrix.cut_intervals)
+        
+        predMatrix = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
+        #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
+        if pSigma > 0.0:
+            upper = sparse.triu(predMatrix)
+            lower = sparse.triu(predMatrix, k=1).T
+            fullPredMatrix = (upper+lower).todense().astype('uint32')
+            filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
+            predMatrix = sparse.triu(filteredPredMatrix)
+
+        originalMatrix.setMatrix(predMatrix, originalMatrix.cut_intervals)
         originalMatrix.save(predictionFilePath)
 
 def getCorrelation(data, field1, field2,  resolution, method):
