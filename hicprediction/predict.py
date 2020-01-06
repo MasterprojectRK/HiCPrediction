@@ -97,9 +97,12 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
                     'modelCellType',
                     'predictionChromosome', 
                     'predictionCellType']
-        columns.extend(list(range(modelParams['windowSize'])))
+        dists = sorted(list(testSet.distance.unique()))
+        columns.extend(dists)
         columns.append('Tag')
-        if os.path.isfile(resultsfilepath):
+        fileexists = os.path.isfile(resultsfilepath)
+        fileexists = False
+        if fileexists:
             df = pd.read_csv(resultsfilepath, index_col=0)
         else:
             df = pd.DataFrame(columns=columns)
