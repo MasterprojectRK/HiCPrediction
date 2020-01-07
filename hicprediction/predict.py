@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import h5py
 from scipy import sparse
+from scipy import ndimage
 from hicmatrix import HiCMatrix as hm
 import sklearn.metrics as metrics
 import sys
@@ -22,7 +23,7 @@ conversion of prediction to HiC matrices
 @conf.predict_options
 @click.command()
 def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
-                      predictionoutputdirectory, resultsfilepath, internalindir):
+                      predictionoutputdirectory, resultsfilepath, internalindir, sigma):
     """
     Wrapper function for Cli
     """
@@ -37,10 +38,10 @@ def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
     model, modelParams = joblib.load(modelfilepath)
     testSet, setParams = joblib.load(predictionsetpath)
     executePrediction(model, modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, internalindir)
+                      predictionoutputdirectory, resultsfilepath, internalindir, sigma)
 
 def executePrediction(model,modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, internalInDir):
+                      predictionoutputdirectory, resultsfilepath, internalInDir, sigma):
     """ 
     Main function
     calls prediction, evaluation and conversion methods and stores everything
@@ -114,7 +115,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
             predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
         ### call function to convert prediction to HiC matrix
             predictionToMatrix(prediction, basefile, modelParams,\
-                           setParams['chrom'], predictionFilePath, internalInDir)
+                           setParams['chrom'], predictionFilePath, internalInDir, sigma)
         ### call function to store evaluation metrics
         if resultsfilepath:
 
@@ -176,7 +177,7 @@ def predict(model, testSet, pModelParams):
     score = model.score(test_X,test_y[target])
     return test_y, score
 
-def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir):
+def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
 
     """
     Function to convert prediction to Hi-C matrix
@@ -199,10 +200,6 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
         matIndx = (rows,columns)
         ### convert back
         data = list(convert(pred['pred']))
-        ##set everything less than median = 0
-        #med = data.median()
-        #mask = data > med
-        #data = data.where(mask, other=0.0)
         ### create matrix with new values and overwrite original
         matrixfile = baseFile[chromosome][()]
         if internalInDir:
@@ -216,8 +213,17 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
                     + "Use --iif option to provide the directory where the internal matrices " \
                     +  "were stored when creating the basefile").format(matrixfile)
             sys.exit(msg)        
-        new = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
-        originalMatrix.setMatrix(new, originalMatrix.cut_intervals)
+        
+        predMatrix = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
+        #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
+        if pSigma > 0.0:
+            upper = sparse.triu(predMatrix)
+            lower = sparse.triu(predMatrix, k=1).T
+            fullPredMatrix = (upper+lower).todense().astype('float32')
+            filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
+            predMatrix = sparse.triu(filteredPredMatrix)
+
+        originalMatrix.setMatrix(predMatrix, originalMatrix.cut_intervals)
         originalMatrix.save(predictionFilePath)
 
 def getCorrelation(data, field1, field2,  resolution, method):

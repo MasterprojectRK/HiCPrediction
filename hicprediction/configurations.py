@@ -48,6 +48,7 @@ _predict_options = [
               help='Choose model on which to predict'),
     click.option('--predictionSetPath','-psp', required=True,type=click.Path(exists=True),
         help='Data set that is to be predicted.'),
+    click.option('--sigma', type=click.FloatRange(min=0.0,max=10.0), default=0.0)
 ]
 
 _allpredict_options = [
@@ -180,7 +181,7 @@ def getBaseCombinations():
     params = {
         'mergeOperation': ["avg", "max"],
         'normalize': [True, False],
-        'peakColumn': [6],
+        'peakColumn': [4,6],
     }
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
