@@ -97,7 +97,8 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
                     'modelCellType',
                     'predictionChromosome', 
                     'predictionCellType']
-        columns.extend(list(range(modelParams['windowSize'])))
+        dists = sorted(list(testSet.distance.unique()))
+        columns.extend(dists)
         columns.append('Tag')
         if os.path.isfile(resultsfilepath):
             df = pd.read_csv(resultsfilepath, index_col=0)
