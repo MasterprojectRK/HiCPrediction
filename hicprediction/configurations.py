@@ -99,7 +99,9 @@ _set_options = [
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
     click.option('--internalInDir', '-iid', type=click.Path(exists=True), \
-                    help='path where internally used matrices are stored')
+                    help='path where internally used matrices are stored'),
+    click.option('--cutoutLength','-cl', required=False, type=int, default=1000000, help="regions of this length will be cut out, if they have no protein peaks assigned"),
+    click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing")                
 ]
 _train_options = [
     click.option('--trainDatasetFile', '-tdf',\
@@ -108,7 +110,7 @@ _train_options = [
                  ,type=click.Path(exists=True)),
     click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model"),
     click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model"),
-    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model")
+    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model"),
 ]
 _alltrain_options = [
     click.option('--setDirectory', '-sd',type=click.Path(exists=True),\
