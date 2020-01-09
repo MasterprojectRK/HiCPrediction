@@ -30,18 +30,21 @@ used for the training sets. The base file from the former script
 @click.command()
 def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   internalindir, windowoperation, mergeoperation, windowsize, peakcolumn):
+                   internalindir, windowoperation, mergeoperation, 
+                   windowsize, peakcolumn, cutoutlength, smooth):
     """
     Wrapper function
     calls function and can be called by click
     """
     createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   internalindir, windowoperation, mergeoperation, windowsize, peakcolumn)
+                   internalindir, windowoperation, mergeoperation, 
+                   windowsize, peakcolumn, cutoutlength, smooth)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   internalInDir, windowoperation, mergeoperation, windowsize, peakcolumn):
+                   internalInDir, windowoperation, mergeoperation, 
+                   windowsize, peakcolumn, pCutoutLength, pSmooth):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -56,7 +59,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             windowoperation -- bin operation for windows
             mergeoperation --  bin operations for protein binning
             windowsize --  maximal genomic distance
-            peakcolumn -- Column in bed file tha contains peak values
+            peakcolumn -- Column in bed file that contains peak values
     """
     ### check extensions
     if not centromeresfile:
@@ -73,6 +76,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         chromosomeList = chromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
+
     ### Iterate over chromosomes
     for chromosome in tqdm(chromosomeList, desc="Iterating chromosomes"):
         chromosome = int(chromosome)
@@ -91,12 +95,15 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         params['ignoreCentromeres'] = ignorecentromeres
         params['peakColumn'] = peakcolumn
         params['windowSize'] = windowsize
-        proteinTag =createProteinTag(params)
+        proteinTag = createProteinTag(params)
         proteinChromTag = proteinTag + "_" + chromTag
         ### retrieve proteins and parameters from base file
         with pd.HDFStore(basefile) as store:
             proteins = store[proteinChromTag]
             params2 = store.get_storer(proteinChromTag).attrs.metadata
+        ###smoothen the proteins by gaussian filtering, if desired
+        if pSmooth > 0.0:
+            proteins = smoothenProteins(proteins, pSmooth)
         ### join parameters
         params = {**params, **params2}
         setTag = createSetTag(params) + ".z"
@@ -144,7 +151,16 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                 #         df = df.append(createDataset2(proteins, reads,\
                 #                 windowoperation, windowsize,\
                 #                 chromosome, pStart=end + 1, pEnd=len(cuts)), ignore_index=True, sort=False)
-                threshold = int(1000000 / int(params['resolution']))
+                ### check cutout length
+                resolution = int(params['resolution'])
+                if pCutoutLength < resolution:
+                    msg="Error: Cutout length must not be smaller than resolution. Aborting"
+                    sys.exit(msg)
+                elif pCutoutLength < 5*resolution:
+                    msg = "Warning: cutout length is smaller than 5x resolution\n"
+                    msg += "Many regions might be cut out."
+                    print(msg)
+                threshold = int(pCutoutLength / resolution)
                 starts, ends = findValidProteinRegions(proteins, threshold)
                 if not starts or not ends or len(starts) < 1 or len(ends) < 1:
                     msg = "No valid protein peaks found. Aborting."
@@ -461,6 +477,23 @@ def findValidProteinRegions(pProteins, pLenThreshold):
 
     return (validStartIndices, validEndIndices)
     
+def smoothenProteins(pProteins, pSmooth):
+    smoothenedProtDf = pd.DataFrame(columns=pProteins.columns)
+    for column in pProteins.columns:
+        if column == 'start':
+            smoothenedProtDf['start'] = pProteins['start']
+        else:
+            #compute window size. 
+            winSize = int(8*pSmooth) #try a window width of 8 sigma - 4 sigma on both sides
+            if winSize % 2 == 0:
+                winSize += 1 #window size should not be even, shifting the input otherwise
+            winSize = max(3, winSize) #window size should be at least 3, otherwise no smoothing
+            #use gaussian for smoothing
+            smoothenedProtDf[column] = pProteins[column].rolling(window=winSize, win_type='gaussian', center=True).mean(std=pSmooth)
+    smoothenedProtDf.fillna(method='bfill', inplace=True) #fill first (window/2) bins
+    smoothenedProtDf.fillna(method='ffill', inplace=True) #fill last (window/2) bins
+    return smoothenedProtDf
+
 
 if __name__ == '__main__':
     createTrainingSet()
