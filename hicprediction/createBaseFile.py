@@ -31,7 +31,7 @@ import subprocess
                # + ' you defined in thee options. Format must be "narrowPeak"')
 @click.command()
 def loadAllProteins(proteinfiles, basefile, chromosomes,
-                   matrixfile,celltype,resolution,internaloutdir):
+                   matrixfile,celltype,resolution,internaloutdir,chromsizefile):
     """
     Main function that is called with the desired path to the base file, a list
     of chromosomes that are to be included, the source HiC file (whole genome),
@@ -47,25 +47,22 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         outdir -- where the internally needed per-chromosome matrices are stored
     """
     ### checking extensions of files
-    if not conf.checkExtension(matrixfile, '.cool'):
-        msg = "input matrix {0:s} for binning must be a cooler file (.cool). Aborted"
-        sys.exit(msg.format(matrixfile))
     if not conf.checkExtension(basefile, '.ph5'):
         basefilename = os.path.splitext(basefile)[0]
         basefile = basefilename + ".ph5"
         msg = "basefile must have .ph5 file extension\n"
         msg += "renamed to {0:s}"
         print(msg.format(basefile))
-    wrongFileExtensionList = [fileName for fileName in proteinfiles if not conf.checkExtension(fileName,'.narrowPeak', '.broadPeak') ]
+    protPeakFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName,'.narrowPeak', '.broadPeak')]
+    bigwigFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName, 'bigwig')]
+    wrongFileExtensionList = [fileName for fileName in proteinfiles \
+        if not fileName in protPeakFileList and not fileName in bigwigFileList]
     if wrongFileExtensionList:
-        msg = "Aborted. The following protein files are not narrowPeak or broadPeak files:\n"
+        msg = "Aborted. The following input files are not narrowPeak or broadPeak files:\n"
         msg += ", ".join(wrongFileExtensionList)
         sys.exit(msg)
-    ### cutting path to get source file name for storage
-    inputName = matrixfile.rstrip(".cool")
     ### creation of parameter set
     params = dict()
-    params['originName'] = inputName
     params['resolution'] = resolution
     params['cellType'] = celltype
     ### conversion of desired chromosomes to list
@@ -75,6 +72,9 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         chromosomeList = range(1, 23)
     #outDirectory = resource_filename('hicprediction',
                                                #'InternalStorage') +"/"
+    params['chromList'] = chromosomeList
+    params['chromSizes'] = getChromSizes(chromosomeList, chromsizefile)
+
     outDirectory = internaloutdir
     ### call of function responsible for cutting and storing the chromosomes
     chromosomeDict = addGenome(matrixfile, basefile, chromosomeList,
@@ -228,6 +228,30 @@ def addGenome(matrixFile, baseFilePath, chromosomeList, outDirectory):
 
 def chrom_filter(feature, c):
         return feature.chrom == c
+
+def getChromSizes(pChromNameList, pChromSizeFile):
+    chromSizeDict = dict()
+    try:
+        chromSizeDf = pd.read_csv(pChromSizeFile,names=['chrom', 'size'],header=None,sep='\t')
+    except:
+        msg = "Error: could not parse chrom.sizes file {0:s}\n".format(pChromSizeFile)
+        msg += "Maybe wrong format, not tab-separated etc.?"
+        raise Exception(msg)
+    for chromName in pChromNameList:
+        sizeMask = chromSizeDf['chrom'] == "chr" + str(chromName)
+        if not sizeMask.any():
+            msg = "no entry for chromosome {0:s} in chrom.sizes file".format(chromName)
+            raise ValueError(msg)
+        elif chromSizeDf[sizeMask].shape[0] > 1:
+            msg = "multiple entries for chromosome {0:s} in chrom.sizes file".format(chromName)
+            raise ValueError(msg)
+        else:
+            try:
+                chromSizeDict[chromName] = int(chromSizeDf[sizeMask]['size'])
+            except ValueError:
+                msg = "entry for chromosome {0:s} in chrom.sizes is not an integer".format(chromName)
+    return chromSizeDict
+
 
 if __name__ == '__main__':
     loadAllProteins()
