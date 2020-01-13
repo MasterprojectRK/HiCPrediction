@@ -67,7 +67,8 @@ _protein_options = [
     click.option('--cellType' ,'-ct', required=True, \
                 help="Store cell type for analysis and documentation"),
     click.option('--matrixFile', '-mf',required=True,type=click.Path(exists=True),\
-                 help='Input file with the whole HiC-matrix ')
+                 help='Input file with the whole HiC-matrix '),
+    click.option('--chromsizeFile', '-csf', required=True, type=click.Path(exists=True), help="chrom.sizes file for binning the proteins")
 ]
 
 _set_base_options = [
@@ -183,7 +184,6 @@ def getBaseCombinations():
     params = {
         'mergeOperation': ["avg", "max"],
         'normalize': [True, False],
-        'peakColumn': [4,6],
     }
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):

@@ -17,6 +17,7 @@ import bisect
 from hicprediction.tagCreator import createProteinTag
 from hicmatrix import HiCMatrix as hm
 import subprocess
+import pyBigWig
 
 """ Module responsible for the binning of proteins and the cutting of
     the genome HiC matrix into the chromosomes for easier access.
@@ -58,7 +59,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     wrongFileExtensionList = [fileName for fileName in proteinfiles \
         if not fileName in protPeakFileList and not fileName in bigwigFileList]
     if wrongFileExtensionList:
-        msg = "Aborted. The following input files are not narrowPeak or broadPeak files:\n"
+        msg = "Aborted. The following input files are neither narrowPeak / broadPeak nor bigwig files:\n"
         msg += ", ".join(wrongFileExtensionList)
         sys.exit(msg)
     ### creation of parameter set
@@ -75,68 +76,84 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     params['chromList'] = chromosomeList
     params['chromSizes'] = getChromSizes(chromosomeList, chromsizefile)
 
-    outDirectory = internaloutdir
-    ### call of function responsible for cutting and storing the chromosomes
-    chromosomeDict = addGenome(matrixfile, basefile, chromosomeList,
-                               outDirectory)
     with h5py.File(basefile, 'a'):
         ### iterate over possible combinations for protein settings
         for setting in conf.getBaseCombinations():
-            params['peakColumn'] = setting['peakColumn']
+            params['peakColumn'] = 6 #column with signal value in narrowPeak and broadPeak files
             params['normalize'] = setting['normalize']
             params['mergeOperation'] = setting['mergeOperation']
             ### get protein files with given paths for each setting
-            proteins = getProteinFiles(proteinfiles, params)
             proteinTag =createProteinTag(params)
-            ### literate over all chromosomes in list 
-            for chromosome in tqdm(chromosomeDict.keys(), desc= 'Iterate chromosomes'):
-                ### get bin boundaries of HiC matrix
-                cuts = chromosomeDict[chromosome].cut_intervals
-                cutsStart = [cut[1] for cut in cuts]
-                ### call function that actually bins the proteins
-                proteinData = loadProtein(proteins, chromosome,cutsStart,params)
+            ###load protein data from files 
+            proteinData = getProteinFiles(proteinfiles, params)
+            ### literate over all chromosomes in list
+            for chromosome in tqdm(params['chromList'], desc= 'Iterate chromosomes'):
+                ### get bins for the proteins
+                bins = getBins(params['chromSizes'][chromosome], params['resolution'])
+                binnedProteins = []
+                for proteinfile in proteinData.keys():
+                    binnedProteins.append(loadProteinData(proteinData[proteinfile], chromosome, bins, params))
                 proteinChromTag = proteinTag + "_" + chromosome
                 ### store binned proteins in base file
                 store = pd.HDFStore(basefile)
-                store.put(proteinChromTag, proteinData)
+                store.put(proteinChromTag, binnedProteins)
                 store.get_storer(proteinChromTag).attrs.metadata = params
                 store.close()
     print("\n")
 
-def getProteinFiles(proteinFiles, params):
+def getProteinFiles(pProteinFileList, pParams):
     """ function responsible of loading the protein files from the paths that
     were given
     Attributes:
         proteinfiles -- list of paths of the protein files to be processed
         params -- dictionary with parameters
     """
-    proteins = dict()
-    for path in proteinFiles:
-        a = pybedtools.BedTool(path)
-        malformedFeatures = [features for features in a if len(features.fields) not in [9,10]]
-        if malformedFeatures:
+    proteinData = dict()
+    for path in pProteinFileList:
+        if path.endswith('Peak'):
+            proteinData[path] = getProteinDataFromPeakFile(path, pParams)
+        if path.endswith('.bigwig'):
+            proteinData[path] = getProteinDataFromBigwigFile(path)
+    return proteinData
+
+def getProteinDataFromPeakFile(pPeakFilePath, pParams):
+    try:        
+        bedToolFile = pybedtools.BedTool(pPeakFilePath)
+        malformedFeatures = [features for features in bedToolFile if len(features.fields) not in [9,10]]
+    except:
+        msg = "could not parse protein peak file {0:s} \n"
+        msg += "probably no valid narrowPeak or broadPeak file"
+        raise ValueError(msg.format(pPeakFilePath))
+    if malformedFeatures:
             msg = "protein file {0:s} seems to be an invalid narrow- or broadPeak file\n"
             msg += "there are rows with more than 10 or less than 9 columns"
-            sys.exit(msg.format(path))
-        ### compute min and max for the normalization
-        b = a.to_dataframe()
-        c = b.iloc[:,params['peakColumn']]
-        minV = min(c)
-        maxV = max(c) - minV
-        if maxV == 0:
-            maxV = 1.0
-        items = []
-        if params['normalize']:
-            ### normalize rows if demanded
-            for row in a:
-                row[params['peakColumn']] = str((float(\
-                    row[params['peakColumn']]) - minV) / maxV)
-                items.append(row)
-            a = pybedtools.BedTool(items)
-        proteins[path] = a
-    return proteins
+            sys.exit(msg.format(pPeakFilePath))
+    ### compute min and max for the normalization
+    protData = bedToolFile.to_dataframe()
+    columnNames = ['chrom', 'chromStart', 'chromEnd', 'name', 'score',
+                            'strand', 'signalValue', 'pValue', 'qValue', 'peak']
+    if protData.shape[1] == 10: #narrowPeak format
+        protData.columns = columnNames
+        mask = protData['peak'] == -1 
+        if mask.any(): #no peak summit called
+            protData.loc[protData[mask]]['peak'] = ( (protData[mask]['chromEnd']-protData[mask]['chromStart'])/2 ).astype('uint32')
+    elif protData.shape[1] == 9: #broadPeak format, generally without peak summit
+        protData.columns = columnNames[0:8]
+        protData['peak'] = ((protData['chromEnd'] - protData['chromStart']) / 2).astype('uint32')
+    return protData
 
-def loadProtein(proteins, chromName, cutsStart, params):
+def getProteinDataFromBigwigFile(pBigwigFilePath):
+    try:
+        bigwigFile = pyBigWig.open(pBigwigFilePath)
+    except:
+        msg = "bigwig file {0:s} could not be parsed"
+        raise ValueError(msg.format(pBigwigFilePath))
+    if not bigwigFile.isBigWig():
+        msg = "bigwig file {0:s} is not a proper bigwig file"
+        raise ValueError(msg.format(pBigwigFilePath))
+    return bigwigFile
+
+def loadProteinData(pProteinDataObject, pChrom, pBins, pParams):
     """
     bin protein data and store for the given chromosome
     Attributes:
@@ -145,89 +162,29 @@ def loadProtein(proteins, chromName, cutsStart, params):
         cutsStart -- starting positions of bins
         params -- dictionary with parameters
     """
+    if isinstance(pProteinDataObject, pyBigWig.pyBigWig):
+        dataframe = loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams)
+    else:
+        dataframe = loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams)
+    return dataframe
+    
+def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams):
+    return pd.DataFrame()
 
-    i = 0
-    allProteins = []
-    ### create binning function as demanded
-    if params['mergeOperation'] == 'avg':
-        merge = np.mean
-    elif params['mergeOperation'] == 'max':
-        merge = np.max
-    ### create data structure
-    for cut in cutsStart:
-        allProteins.append(np.zeros(len(proteins) + 1))
-        allProteins[i][0] = cut
-        i += 1
-    i = 0
-    columns = ['start']
-    ### iterate proteins 
-    for tup in tqdm(proteins.items(), desc = 'Proteins converting'):
-        a = tup[1]
-        columns.append(str(i))
-        ### filter for specific chromosome and sort
-        a = a.filter(chrom_filter, c=str(chromName))
-        a = a.sort()
-        values = dict()
-        for feature in a:
-            peak = feature.start
-            if len(feature.fields) == 10 and int(feature.fields[9]) != -1: 
-                #narrowPeak files with called peaks
-                #the peak column (9) is an offset to "feature.start"
-                peak += int(feature.fields[9])
-            else:
-                #narrowPeak files without called peaks
-                #and broadPeak files, which have no peak column
-                peak += feature.stop
-                peak = int(peak / 2)
-            ### get bin index of peak
-            pos = bisect.bisect_right(cutsStart, peak)
-            if pos in values:
-                values[pos].append(float(feature[params['peakColumn']]))
-            else:
-                values[pos] = [float(feature[params['peakColumn']])]
-        #j = 0
-        for key, val in values.items():
-            ### bin proteins for each bin
-            score = merge(val)
-            allProteins[key - 1][i+1] = score
-        i += 1
-    data = pd.DataFrame(allProteins,columns=columns, index=range(len(cutsStart)))
-    return data
+def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams):    
+    #pProteinDataObject is a pandas dataframe
+    mask = pProteinDataObject['chrom'] == "chr" + str(pChrom)
+    proteinDf = pProteinDataObject[mask].copy()
+    proteinDf.drop(columns=['chrom','name', 'score', 'strand', 'pValue', 'qValue'], inplace=True)
+    resolution = int(pParams['resolution'])
+    proteinDf['bin_id'] = ((proteinDf['chromStart'] + proteinDf['peak'])/resolution).astype('uint32')
+    print(proteinDf.head(10))
+    if pParams['mergeOperation'] == 'max':
+        binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
+    else:
+        binnedDf = proteinDf.groupby('bin_id')[['signalValue']].mean()
+    return binnedDf
 
-def addGenome(matrixFile, baseFilePath, chromosomeList, outDirectory):
-    """
-    function that cuts genome HiC matrix into chromosomes and stores them
-    internally
-    Attributes:
-        matrixfile -- path to input HiC matrix
-        baseFilePath --  output path for base file
-        chromosomeList -- list of chromosomes to be processed
-        outDirectory --  output path for chromosomes
-    """
-
-    chromosomeDict = {}
-    with h5py.File(baseFilePath, 'a') as baseFile:
-        for i in tqdm(chromosomeList,desc='Converting chromosomes'):
-            filename = os.path.basename(matrixFile)
-            outMatrix = os.path.join(outDirectory, filename)
-            tag = outMatrix.rstrip(".cool") \
-                    +"_chr" + str(i) +".cool"
-            chromTag = "chr" + str(i)
-            ### create process to cut chromosomes
-            sub2 = "hicAdjustMatrix -m "+matrixFile +" --action keep" \
-                        +" --chromosomes " + chromTag + " -o " + tag
-            ### execute call if necessary
-            if not chromTag in baseFile:
-                subprocess.call(sub2,shell=True)
-                baseFile[chromTag] = tag
-            elif not os.path.isfile(baseFile[chromTag][()]):
-                subprocess.call(sub2,shell=True)
-            ### store HiC matrix
-            chromosomeDict[chromTag] =hm.hiCMatrix(tag)
-    return chromosomeDict
-
-def chrom_filter(feature, c):
-        return feature.chrom == c
 
 def getChromSizes(pChromNameList, pChromSizeFile):
     chromSizeDict = dict()
@@ -252,6 +209,16 @@ def getChromSizes(pChromNameList, pChromSizeFile):
                 msg = "entry for chromosome {0:s} in chrom.sizes is not an integer".format(chromName)
     return chromSizeDict
 
+def getBins(pChromSize, pResolution):
+    resolution = int(pResolution)
+    binStartList = list(range(0,pChromSize,resolution))
+    binEndList = list(range(resolution,pChromSize,resolution))
+    binEndList.append(pChromSize)
+    if not len(binStartList) == len(binEndList):
+        msg = "bug in getBins"
+        sys.exit(msg)
+    else:
+        return (binStartList, binEndList)
 
 if __name__ == '__main__':
     loadAllProteins()
