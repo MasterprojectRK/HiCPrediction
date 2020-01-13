@@ -169,7 +169,25 @@ def loadProteinData(pProteinDataObject, pChrom, pBins, pParams):
     return dataframe
     
 def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams):
-    return pd.DataFrame()
+    chrom = "chr" + str(pChrom)
+    resolution = int(pParams['resolution'])
+    tupList = pProteinDataObject.intervals(chrom)
+    chromStartList = [x[0] for x in tupList]
+    chromEndList = [x[1] for x in tupList]
+    signalValueList = [x[2] for x in tupList]
+    proteinDf = pd.DataFrame(columns = ['bin_id', 'chromStart', 'chromEnd', 'signalValue'])
+    proteinDf['chromStart'] = chromStartList
+    proteinDf['chromEnd'] = chromEndList
+    proteinDf['signalValue'] = signalValueList
+    #filter away zeros...TODO
+    proteinDf['bin_id'] = (proteinDf['chromEnd'] / resolution).astype('uint32')
+    print(proteinDf.head(10))
+    if pParams['mergeOperation'] == 'max':
+        binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
+    else:
+        binnedDf = proteinDf.groupby('bin_id')[['signalValue']].mean()
+    print(binnedDf.head(10))
+    return binnedDf
 
 def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams):    
     #pProteinDataObject is a pandas dataframe
@@ -178,7 +196,7 @@ def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams):
     proteinDf.drop(columns=['chrom','name', 'score', 'strand', 'pValue', 'qValue'], inplace=True)
     resolution = int(pParams['resolution'])
     proteinDf['bin_id'] = ((proteinDf['chromStart'] + proteinDf['peak'])/resolution).astype('uint32')
-    print(proteinDf.head(10))
+    #print(proteinDf.head(10))
     if pParams['mergeOperation'] == 'max':
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
     else:
