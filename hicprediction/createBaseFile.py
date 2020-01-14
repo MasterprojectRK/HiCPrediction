@@ -169,24 +169,60 @@ def loadProteinData(pProteinDataObject, pChrom, pBins, pParams):
     return dataframe
     
 def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams):
+    #pProteinDataObject is instance of class pyBigWig.pyBigWig
     chrom = "chr" + str(pChrom)
     resolution = int(pParams['resolution'])
+    chromsize = pProteinDataObject.chroms()[chrom]
+    startsList = list(range(0,chromsize,resolution))
+    endsList = list(range(resolution,chromsize,resolution))
+    endsList.append(chromsize)
+    valuesList = []
+    for starts,ends in zip(startsList,endsList):
+        valuesList.append(pProteinDataObject.stats(start))
     tupList = pProteinDataObject.intervals(chrom)
     chromStartList = [x[0] for x in tupList]
     chromEndList = [x[1] for x in tupList]
     signalValueList = [x[2] for x in tupList]
-    proteinDf = pd.DataFrame(columns = ['bin_id', 'chromStart', 'chromEnd', 'signalValue'])
+    proteinDf = pd.DataFrame(columns = ['bin_id', 'chromStart', 'chromEnd', 'signalValue', 'distance'])
     proteinDf['chromStart'] = chromStartList
     proteinDf['chromEnd'] = chromEndList
-    proteinDf['signalValue'] = signalValueList
-    #filter away zeros...TODO
-    proteinDf['bin_id'] = (proteinDf['chromEnd'] / resolution).astype('uint32')
-    print(proteinDf.head(10))
+    proteinDf['signalValue'] = signalValueList 
+    proteinDf['distance'] = proteinDf['chromEnd'] - proteinDf['chromStart']
+    print(proteinDf.shape, proteinDf.head(10))
+    #filter away zeros and near-zeros
+    zeroMask = proteinDf['signalValue'] < 0.01
+    proteinDf.drop(index=proteinDf[zeroMask].index,inplace=True)
+    bigwigBinSize = int(proteinDf.distance.min())
+    #sanity check
+    if bigwigBinSize > resolution:
+        msg = "bigwig bin size must be smaller than resolution"
+        raise ValueError(msg)
+    #process entries which span more than one bin of the bigwig file
+    moreThanOneBinMask = proteinDf['distance'] > bigwigBinSize
+    moreThanOneBinDf = proteinDf[moreThanOneBinMask].copy()
+    proteinDf.drop(index=proteinDf[moreThanOneBinMask].index, inplace=True)
+    for row in tqdm(moreThanOneBinDf.itertuples()):
+        startsList = list(range(row.chromStart, row.chromEnd, bigwigBinSize))
+        endsList = list(range(row.chromStart + bigwigBinSize, row.chromEnd, bigwigBinSize))
+        endsList.append(row.chromEnd)
+        appendDf = pd.DataFrame(columns = proteinDf.columns)
+        appendDf['chromStart'] = startsList
+        appendDf['chromEnd'] = endsList
+        appendDf['signalValue'] = row.signalValue
+        appendDf['distance'] = appendDf['chromEnd'] - appendDf['chromStart']
+        proteinDf.append(appendDf, ignore_index=True)
+    
+    #bin the data according to (target) resolution
+    proteinDf['bin_id'] = (proteinDf['chromStart'] / resolution).astype('uint32')
     if pParams['mergeOperation'] == 'max':
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
     else:
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].mean()
-    print(binnedDf.head(10))
+    #zero to one normalization, if required
+    if pParams['normalize']:
+        normalizeSignalValue(binnedDf)
+    ge1Mask = binnedDf['signalValue'] > float(binnedDf.signalValue.max()) / 2
+    print(binnedDf[ge1Mask].head(10))
     return binnedDf
 
 def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams):    
@@ -201,7 +237,26 @@ def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams):
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
     else:
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].mean()
+    if pParams['normalize']:
+        normalizeSignalValue(binnedDf)
     return binnedDf
+
+
+def normalizeSignalValue(pProteinDf):
+    #inplace zero-to-one normalization of signal value
+    try:
+        maxSignalValue = pProteinDf.signalValue.max()
+        minSignalValue = pProteinDf.signalValue.min()
+    except:
+        msg = "can't normalize Dataframe without signalValue"
+        raise Warning(msg)
+    if minSignalValue == maxSignalValue:
+        msg = "no variance in protein data file"
+        pProteinDf['signalValue'] = 0.0
+        raise Warning(msg)
+    else:
+        diff = maxSignalValue - minSignalValue
+        pProteinDf['signalValue'] = ((pProteinDf['signalValue'] - minSignalValue) / diff).astype('float32')
 
 
 def getChromSizes(pChromNameList, pChromSizeFile):
@@ -226,6 +281,7 @@ def getChromSizes(pChromNameList, pChromSizeFile):
             except ValueError:
                 msg = "entry for chromosome {0:s} in chrom.sizes is not an integer".format(chromName)
     return chromSizeDict
+
 
 def getBins(pChromSize, pResolution):
     resolution = int(pResolution)
