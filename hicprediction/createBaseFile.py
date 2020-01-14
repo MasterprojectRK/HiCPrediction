@@ -18,6 +18,7 @@ from hicprediction.tagCreator import createProteinTag
 from hicmatrix import HiCMatrix as hm
 import subprocess
 import pyBigWig
+import math
 
 """ Module responsible for the binning of proteins and the cutting of
     the genome HiC matrix into the chromosomes for easier access.
@@ -48,6 +49,9 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         outdir -- where the internally needed per-chromosome matrices are stored
     """
     ### checking extensions of files
+    if not conf.checkExtension(matrixfile, '.cool'):
+        msg = "input matrix {0:s} for binning must be a cooler file (.cool). Aborted"
+        sys.exit(msg.format(matrixfile))
     if not conf.checkExtension(basefile, '.ph5'):
         basefilename = os.path.splitext(basefile)[0]
         basefile = basefilename + ".ph5"
@@ -76,40 +80,44 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     params['chromList'] = chromosomeList
     params['chromSizes'] = getChromSizes(chromosomeList, chromsizefile)
 
-    with h5py.File(basefile, 'a'):
-        ### iterate over possible combinations for protein settings
-        for setting in conf.getBaseCombinations():
-            params['normalize'] = setting['normalize']
-            params['mergeOperation'] = setting['mergeOperation']
-            ### get protein files with given paths for each setting
-            proteinTag =createProteinTag(params)
-            ###load protein data from files 
-            proteinData = getProteinFiles(proteinfiles, params)
-            ### literate over all chromosomes in list
-            for chromosome in tqdm(params['chromList'], desc= 'Iterate chromosomes'):
-                ### get bins for the proteins
-                binnedProteins = []
-                for proteinfile in proteinData.keys():
-                    binnedProteins.append(loadProteinData(proteinData[proteinfile], chromosome, params))
-                maxBinInt = 0
-                for i in range(len(binnedProteins)):
-                    binnedProteins[i].columns = [str(i)]
-                    maxBinInt = max(maxBinInt, binnedProteins[i].shape[0])
-                proteinDf = pd.DataFrame(columns=['bin_id'])
-                proteinDf['bin_id'] = list(range(0,maxBinInt))
-                proteinDf.set_index('bin_id', inplace=True)
-                proteinDf = proteinDf.join(binnedProteins, how='outer')
-                proteinDf.fillna(0.0,inplace=True)
-                nzmask = proteinDf['0'] > 0.
-                print(proteinDf[nzmask].head(10))
-                print("chrom", chromosome, "norm", params['normalize'], "merge", params['mergeOperation'])
-                proteinChromTag = proteinTag + "_" + chromosome
-                ### store binned proteins in base file
-                store = pd.HDFStore(basefile)
-                store.put(proteinChromTag, proteinDf)
-                store.get_storer(proteinChromTag).attrs.metadata = params
-                store.close()
-    print("\n")
+    ### iterate over possible combinations for protein settings
+    for setting in conf.getBaseCombinations():
+        params['normalize'] = setting['normalize']
+        params['mergeOperation'] = setting['mergeOperation']
+        ### get protein files with given paths for each setting
+        proteinTag =createProteinTag(params)
+        ###load protein data from files 
+        proteinData = getProteinFiles(proteinfiles, params)
+        ### literate over all chromosomes in list
+        for chromosome in tqdm(params['chromList'], desc= 'Iterate chromosomes'):   
+            ### bin the proteins per file
+            binnedProteins = []
+            for proteinfile in proteinData.keys():
+                binnedProteins.append(loadProteinData(proteinData[proteinfile], chromosome, params))
+            ### merge the binned proteins into a single dataframe
+            for i in range(len(binnedProteins)):
+                binnedProteins[i].columns = [str(i)] #rename signalValue column to allow join
+            maxBinInt = math.ceil(params['chromSizes'][chromosome] / resolution)
+            proteinDf = pd.DataFrame(columns=['bin_id'])
+            proteinDf['bin_id'] = list(range(0,maxBinInt))
+            proteinDf.set_index('bin_id', inplace=True)
+            proteinDf = proteinDf.join(binnedProteins, how='outer')
+            proteinDf.fillna(0.0,inplace=True)
+            nzmask = proteinDf['0'] > 0.
+            print(proteinDf[nzmask].head(10))
+            print("chrom", chromosome, "norm", params['normalize'], "merge", params['mergeOperation'])
+            proteinChromTag = proteinTag + "_chr" + chromosome
+            ### store binned proteins in base file
+            store = pd.HDFStore(basefile)
+            store.put(proteinChromTag, proteinDf)
+            store.get_storer(proteinChromTag).attrs.metadata = params
+            store.close()
+
+    if matrixfile:
+        for chromosome in params['chromList']:
+            cutHicMatrix(matrixfile, chromosome, internaloutdir, basefile)    
+    
+             
 
 def getProteinFiles(pProteinFileList, pParams):
     """ function responsible of loading the protein files from the paths that
@@ -264,6 +272,22 @@ def getChromSizes(pChromNameList, pChromSizeFile):
                 msg = "entry for chromosome {0:s} in chrom.sizes is not an integer".format(chromName)
     return chromSizeDict
 
+
+def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
+    #cut HiC matrices for single chrom and store in outDir
+    chromTag = "chr" + str(pChrom)
+    inFileName = os.path.basename(pMatrixFile)
+    outFileName = os.path.splitext(inFileName)[0] + "_" + chromTag + ".cool"
+    outMatrixFileName = os.path.join(pOutDir, outFileName)
+    
+    ### create process to cut chromosomes
+    msg = "\nstoring Hi-C matrix for chrom {0:s} as {1:s}"
+    print(msg.format(chromTag, outMatrixFileName))
+    hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
+                            +" --chromosomes " + chromTag + " -o " + outMatrixFileName
+    subprocess.call(hicAdjustMatrixProcess, shell=True)
+    with h5py.File(pBasefile, 'a') as baseFile:
+         baseFile[chromTag] = outMatrixFileName    
 
 
 if __name__ == '__main__':
