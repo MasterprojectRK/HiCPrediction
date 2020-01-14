@@ -87,7 +87,6 @@ _allset_options = [
               type=click.Path(exists=True)),
 ]
 _set_options = [
-    click.option('--peakColumn' ,'-pc', default=6,hidden=True),
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
