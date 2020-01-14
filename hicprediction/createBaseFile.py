@@ -88,10 +88,9 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
             ### literate over all chromosomes in list
             for chromosome in tqdm(params['chromList'], desc= 'Iterate chromosomes'):
                 ### get bins for the proteins
-                bins = getBins(params['chromSizes'][chromosome], params['resolution'])
                 binnedProteins = []
                 for proteinfile in proteinData.keys():
-                    binnedProteins.append(loadProteinData(proteinData[proteinfile], chromosome, bins, params))
+                    binnedProteins.append(loadProteinData(proteinData[proteinfile], chromosome, params))
                 maxBinInt = 0
                 for i in range(len(binnedProteins)):
                     binnedProteins[i].columns = [str(i)]
@@ -164,7 +163,7 @@ def getProteinDataFromBigwigFile(pBigwigFilePath):
         raise ValueError(msg.format(pBigwigFilePath))
     return bigwigFile
 
-def loadProteinData(pProteinDataObject, pChrom, pBins, pParams):
+def loadProteinData(pProteinDataObject, pChrom, pParams):
     """
     bin protein data and store for the given chromosome
     Attributes:
@@ -174,12 +173,12 @@ def loadProteinData(pProteinDataObject, pChrom, pBins, pParams):
         params -- dictionary with parameters
     """
     if isinstance(pProteinDataObject, pyBigWig.pyBigWig):
-        dataframe = loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams)
+        dataframe = loadProteinDataFromBigwig(pProteinDataObject, pChrom, pParams)
     else:
-        dataframe = loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams)
+        dataframe = loadProteinDataFromPeaks(pProteinDataObject, pChrom, pParams)
     return dataframe
     
-def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams):
+def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pParams):
     #pProteinDataObject is instance of class pyBigWig.pyBigWig
     chrom = "chr" + str(pChrom)
     resolution = int(pParams['resolution'])
@@ -208,7 +207,7 @@ def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams):
         normalizeSignalValue(proteinDf)
     return proteinDf
 
-def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams):    
+def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pParams):    
     #pProteinDataObject is a pandas dataframe
     mask = pProteinDataObject['chrom'] == "chr" + str(pChrom)
     proteinDf = pProteinDataObject[mask].copy()
@@ -266,16 +265,6 @@ def getChromSizes(pChromNameList, pChromSizeFile):
     return chromSizeDict
 
 
-def getBins(pChromSize, pResolution):
-    resolution = int(pResolution)
-    binStartList = list(range(0,pChromSize,resolution))
-    binEndList = list(range(resolution,pChromSize,resolution))
-    binEndList.append(pChromSize)
-    if not len(binStartList) == len(binEndList):
-        msg = "bug in getBins"
-        sys.exit(msg)
-    else:
-        return (binStartList, binEndList)
 
 if __name__ == '__main__':
     loadAllProteins()
