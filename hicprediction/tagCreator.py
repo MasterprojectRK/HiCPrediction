@@ -27,8 +27,6 @@ def createProteinTag(params):
     tmp += 'M' + mergeOpStr
     if params['normalize']:
         tmp += '_N'
-    if params['peakColumn']  != 6:
-        tmp += '_PC' + str(params['peakColumn'])
     return tmp
 
 
