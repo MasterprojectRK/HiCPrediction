@@ -79,7 +79,6 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     with h5py.File(basefile, 'a'):
         ### iterate over possible combinations for protein settings
         for setting in conf.getBaseCombinations():
-            params['peakColumn'] = 6 #column with signal value in narrowPeak and broadPeak files
             params['normalize'] = setting['normalize']
             params['mergeOperation'] = setting['mergeOperation']
             ### get protein files with given paths for each setting
@@ -93,10 +92,22 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
                 binnedProteins = []
                 for proteinfile in proteinData.keys():
                     binnedProteins.append(loadProteinData(proteinData[proteinfile], chromosome, bins, params))
+                maxBinInt = 0
+                for i in range(len(binnedProteins)):
+                    binnedProteins[i].columns = [str(i)]
+                    maxBinInt = max(maxBinInt, binnedProteins[i].shape[0])
+                proteinDf = pd.DataFrame(columns=['bin_id'])
+                proteinDf['bin_id'] = list(range(0,maxBinInt))
+                proteinDf.set_index('bin_id', inplace=True)
+                proteinDf = proteinDf.join(binnedProteins, how='outer')
+                proteinDf.fillna(0.0,inplace=True)
+                nzmask = proteinDf['0'] > 0.
+                print(proteinDf[nzmask].head(10))
+                print("chrom", chromosome, "norm", params['normalize'], "merge", params['mergeOperation'])
                 proteinChromTag = proteinTag + "_" + chromosome
                 ### store binned proteins in base file
                 store = pd.HDFStore(basefile)
-                store.put(proteinChromTag, binnedProteins)
+                store.put(proteinChromTag, proteinDf)
                 store.get_storer(proteinChromTag).attrs.metadata = params
                 store.close()
     print("\n")
@@ -136,9 +147,9 @@ def getProteinDataFromPeakFile(pPeakFilePath, pParams):
         protData.columns = columnNames
         mask = protData['peak'] == -1 
         if mask.any(): #no peak summit called
-            protData.loc[protData[mask]]['peak'] = ( (protData[mask]['chromEnd']-protData[mask]['chromStart'])/2 ).astype('uint32')
-    elif protData.shape[1] == 9: #broadPeak format, generally without peak summit
-        protData.columns = columnNames[0:8]
+            protData[mask]['peak'] = ( (protData[mask]['chromEnd']-protData[mask]['chromStart'])/2 ).astype('uint32')
+    elif protData.shape[1] == 9: #broadPeak format, generally without peak column in the data
+        protData.columns = columnNames[0:9]
         protData['peak'] = ((protData['chromEnd'] - protData['chromStart']) / 2).astype('uint32')
     return protData
 
@@ -172,58 +183,30 @@ def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pBins, pParams):
     #pProteinDataObject is instance of class pyBigWig.pyBigWig
     chrom = "chr" + str(pChrom)
     resolution = int(pParams['resolution'])
-    chromsize = pProteinDataObject.chroms()[chrom]
-    startsList = list(range(0,chromsize,resolution))
-    endsList = list(range(resolution,chromsize,resolution))
-    endsList.append(chromsize)
-    valuesList = []
-    for starts,ends in zip(startsList,endsList):
-        valuesList.append(pProteinDataObject.stats(start))
-    tupList = pProteinDataObject.intervals(chrom)
-    chromStartList = [x[0] for x in tupList]
-    chromEndList = [x[1] for x in tupList]
-    signalValueList = [x[2] for x in tupList]
-    proteinDf = pd.DataFrame(columns = ['bin_id', 'chromStart', 'chromEnd', 'signalValue', 'distance'])
+    #compute signal values (stats) over resolution-sized bins
+    chromsize = pProteinDataObject.chroms(chrom)
+    chromStartList = list(range(0,chromsize,resolution))
+    chromEndList = list(range(resolution,chromsize,resolution))
+    chromEndList.append(chromsize)
+    if pParams['mergeOperation'] == 'max':
+        mergeType = 'max'
+    else:
+        mergeType = 'mean'
+    signalValueList = pProteinDataObject.stats(chrom, 0, chromsize, nBins=len(chromStartList), type=mergeType)
+    proteinDf = pd.DataFrame(columns = ['bin_id', 'chromStart', 'chromEnd', 'signalValue'])
     proteinDf['chromStart'] = chromStartList
     proteinDf['chromEnd'] = chromEndList
     proteinDf['signalValue'] = signalValueList 
-    proteinDf['distance'] = proteinDf['chromEnd'] - proteinDf['chromStart']
-    print(proteinDf.shape, proteinDf.head(10))
-    #filter away zeros and near-zeros
-    zeroMask = proteinDf['signalValue'] < 0.01
-    proteinDf.drop(index=proteinDf[zeroMask].index,inplace=True)
-    bigwigBinSize = int(proteinDf.distance.min())
-    #sanity check
-    if bigwigBinSize > resolution:
-        msg = "bigwig bin size must be smaller than resolution"
-        raise ValueError(msg)
-    #process entries which span more than one bin of the bigwig file
-    moreThanOneBinMask = proteinDf['distance'] > bigwigBinSize
-    moreThanOneBinDf = proteinDf[moreThanOneBinMask].copy()
-    proteinDf.drop(index=proteinDf[moreThanOneBinMask].index, inplace=True)
-    for row in tqdm(moreThanOneBinDf.itertuples()):
-        startsList = list(range(row.chromStart, row.chromEnd, bigwigBinSize))
-        endsList = list(range(row.chromStart + bigwigBinSize, row.chromEnd, bigwigBinSize))
-        endsList.append(row.chromEnd)
-        appendDf = pd.DataFrame(columns = proteinDf.columns)
-        appendDf['chromStart'] = startsList
-        appendDf['chromEnd'] = endsList
-        appendDf['signalValue'] = row.signalValue
-        appendDf['distance'] = appendDf['chromEnd'] - appendDf['chromStart']
-        proteinDf.append(appendDf, ignore_index=True)
-    
-    #bin the data according to (target) resolution
+    #print(proteinDf.shape, "\n", proteinDf.head(10))
+    #compute bin ids
     proteinDf['bin_id'] = (proteinDf['chromStart'] / resolution).astype('uint32')
-    if pParams['mergeOperation'] == 'max':
-        binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
-    else:
-        binnedDf = proteinDf.groupby('bin_id')[['signalValue']].mean()
+    #drop not required columns and switch index => same format as for peak file
+    proteinDf.drop(columns=['chromStart', 'chromEnd'], inplace=True)
+    proteinDf.set_index('bin_id',drop=True, inplace=True)
     #zero to one normalization, if required
     if pParams['normalize']:
-        normalizeSignalValue(binnedDf)
-    ge1Mask = binnedDf['signalValue'] > float(binnedDf.signalValue.max()) / 2
-    print(binnedDf[ge1Mask].head(10))
-    return binnedDf
+        normalizeSignalValue(proteinDf)
+    return proteinDf
 
 def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pBins, pParams):    
     #pProteinDataObject is a pandas dataframe
