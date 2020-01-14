@@ -58,6 +58,9 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         msg = "basefile must have .ph5 file extension\n"
         msg += "renamed to {0:s}"
         print(msg.format(basefile))
+    #remove existing basefile, if necessary
+    if os.path.isfile(basefile):
+        os.remove(basefile)
     protPeakFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName,'.narrowPeak', '.broadPeak')]
     bigwigFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName, 'bigwig')]
     wrongFileExtensionList = [fileName for fileName in proteinfiles \
