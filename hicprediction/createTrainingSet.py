@@ -467,16 +467,13 @@ def findValidProteinRegions(pProteins, pLenThreshold):
 def smoothenProteins(pProteins, pSmooth):
     smoothenedProtDf = pd.DataFrame(columns=pProteins.columns)
     for column in pProteins.columns:
-        if column == 'start':
-            smoothenedProtDf['start'] = pProteins['start']
-        else:
-            #compute window size. 
-            winSize = int(8*pSmooth) #try a window width of 8 sigma - 4 sigma on both sides
-            if winSize % 2 == 0:
-                winSize += 1 #window size should not be even, shifting the input otherwise
-            winSize = max(3, winSize) #window size should be at least 3, otherwise no smoothing
-            #use gaussian for smoothing
-            smoothenedProtDf[column] = pProteins[column].rolling(window=winSize, win_type='gaussian', center=True).mean(std=pSmooth)
+        #compute window size. 
+        winSize = int(8*pSmooth) #try a window width of 8 sigma - 4 sigma on both sides
+        if winSize % 2 == 0:
+            winSize += 1 #window size should not be even, shifting the input otherwise
+        winSize = max(3, winSize) #window size should be at least 3, otherwise no smoothing
+        #use gaussian for smoothing
+        smoothenedProtDf[column] = pProteins[column].rolling(window=winSize, win_type='gaussian', center=True).mean(std=pSmooth)
     smoothenedProtDf.fillna(method='bfill', inplace=True) #fill first (window/2) bins
     smoothenedProtDf.fillna(method='ffill', inplace=True) #fill last (window/2) bins
     return smoothenedProtDf
