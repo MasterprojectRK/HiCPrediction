@@ -31,7 +31,7 @@ used for the training sets. The base file from the former script
 def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, peakcolumn, cutoutlength, smooth):
+                   windowsize, cutoutlength, smooth):
     """
     Wrapper function
     calls function and can be called by click
@@ -39,12 +39,12 @@ def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
     createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, peakcolumn, cutoutlength, smooth)
+                   windowsize, cutoutlength, smooth)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,ignorecentromeres,normalize,
-                   internalInDir, windowoperation, mergeoperation, 
-                   windowsize, peakcolumn, pCutoutLength, pSmooth):
+                   centromeresfile,pIgnoreCentromeres,pNormalize,
+                   internalInDir, pWindowOperation, pMergeOperation, 
+                   pWindowsize, pCutoutLength, pSmooth):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -81,7 +81,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
     for chromosome in tqdm(chromosomeList, desc="Iterating chromosomes"):
         chromosome = int(chromosome)
         chromTag = "chr" +str(chromosome)
-        ### check if chromosme is along the 22 first chromosomes
+        ### check if chromosome is along the 22 first chromosomes
         if not chromosome in range(1,23):
             msg = 'Chromosome {0:d} is not in the range of 1 to 22.'
             msg += 'Please provide correct chromosomes'
@@ -89,18 +89,18 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         ### create parameter set
         params = dict()
         params['chrom'] = chromTag
-        params['windowOperation'] = windowoperation
-        params['mergeOperation'] = mergeoperation
-        params['normalize'] = normalize
-        params['ignoreCentromeres'] = ignorecentromeres
-        params['peakColumn'] = peakcolumn
-        params['windowSize'] = windowsize
+        params['windowOperation'] = pWindowOperation
+        params['mergeOperation'] = pMergeOperation
+        params['normalize'] = pNormalize
+        params['ignoreCentromeres'] = pIgnoreCentromeres
+        params['windowSize'] = pWindowsize
         proteinTag = createProteinTag(params)
         proteinChromTag = proteinTag + "_" + chromTag
         ### retrieve proteins and parameters from base file
         with pd.HDFStore(basefile) as store:
             proteins = store[proteinChromTag]
             params2 = store.get_storer(proteinChromTag).attrs.metadata
+        print(proteins.head())
         ###smoothen the proteins by gaussian filtering, if desired
         if pSmooth > 0.0:
             proteins = smoothenProteins(proteins, pSmooth)
@@ -108,90 +108,74 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         params = {**params, **params2}
         setTag = createSetTag(params) + ".z"
         datasetFileName = os.path.join(datasetoutputdirectory, setTag)
-        fileExists = os.path.isfile(datasetFileName)
-        dir_list = next(os.walk(datasetoutputdirectory))[1]
-        for path in dir_list:
-            tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
-            fileExists = fileExists or os.path.isfile(tmpPath)
-        fileExists = False
-        if not fileExists:
+        
+        ### try to load HiC matrix
+        hiCMatrix = None
+        reads = None
+        try:
             with h5py.File(basefile, 'r') as baseFile:
-                if chromTag not in baseFile:
-                    msg = 'The chromosome {} is not loaded yet. Please'\
-                            +'update your chromosome file {} using the script'\
-                            +'"getChroms"'
-                    sys.exit()
-                ### load HiC matrix
                 matrixfile = baseFile[chromTag][()]
-                if internalInDir:
-                    filename = os.path.basename(matrixfile)
-                    matrixfile = os.path.join(internalInDir, filename)
-                hiCMatrix = None
-                if os.path.isfile(matrixfile):
-                    hiCMatrix = hm.hiCMatrix(matrixfile)
-                else:
-                    msg = ("cooler file {0:s} is missing.\n" \
+        except:
+            #no matrix was present when creating the basefile 
+            #which is normal for test set basefiles
+            matrixfile = None 
+            
+        if matrixfile:
+            if internalInDir:
+                filename = os.path.basename(matrixfile)
+                matrixfile = os.path.join(internalInDir, filename)
+            if os.path.isfile(matrixfile):
+                hiCMatrix = hm.hiCMatrix(matrixfile)
+            else:
+                msg = ("cooler file {0:s} is missing.\n" \
                           + "Use --iif option to provide the directory where the internal matrices " \
                           +  "were stored when creating the basefile").format(matrixfile)
-                    sys.exit(msg)
-                
+                sys.exit(msg)  
             ### load reads and bins
             reads = hiCMatrix.matrix
-            cuts = hiCMatrix.cut_intervals
-            cuts = np.array([cut[1] for cut in cuts])
-            ### if user decided to cut out centromeres and if the chromosome
-            ### has one, create datasets for both chromatids and join them
-            if ignorecentromeres :
-                # start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
-                # for i in tqdm(range(2), desc = "Loading chromatids separately"):
-                #     if i == 0:
-                #         df = createDataset2(proteins, reads, windowoperation, windowsize,
-                #                 chromosome, pStart=0, pEnd=start)
-                #     elif i == 1:
-                #         df = df.append(createDataset2(proteins, reads,\
-                #                 windowoperation, windowsize,\
-                #                 chromosome, pStart=end + 1, pEnd=len(cuts)), ignore_index=True, sort=False)
-                ### check cutout length
-                resolution = int(params['resolution'])
-                if pCutoutLength < resolution:
-                    msg="Error: Cutout length must not be smaller than resolution. Aborting"
-                    sys.exit(msg)
-                elif pCutoutLength < 5*resolution:
-                    msg = "Warning: cutout length is smaller than 5x resolution\n"
-                    msg += "Many regions might be cut out."
-                    print(msg)
-                threshold = int(pCutoutLength / resolution)
-                starts, ends = findValidProteinRegions(proteins, threshold)
-                if not starts or not ends or len(starts) < 1 or len(ends) < 1:
-                    msg = "No valid protein peaks found. Aborting."
-                    sys.exit(msg)
-                else:
-                    dfList = []
-                    for s, e in zip(starts, ends):
-                        dfList.append(createDataset2(proteins, reads, windowoperation, windowsize,
-                         chromosome, pStart = s, pEnd = e))
-                    df = pd.concat(dfList, ignore_index=True, sort=False)     
-            else:
-                df = createDataset2(proteins, reads, windowoperation, windowsize,
-                               chromosome, pStart=0, pEnd=len(cuts))
-            if df.empty:
-                msg = "Could not create dataset. Aborting"
+        
+        ### if user decided to cut out centromeres and if the chromosome
+        ### has one, create datasets for both chromatids and join them
+        if pIgnoreCentromeres:
+            resolution = int(params['resolution'])
+            if pCutoutLength < resolution:
+                msg="Error: Cutout length must not be smaller than resolution. Aborting"
                 sys.exit(msg)
-
-            ### add average contact read stratified by distance to dataset
-            for i in tqdm(range(int(windowsize)),desc='Adding average read values'):
-                df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
-            
-            #one-hot encoding for the proteins / protein numbers
-            df['proteinNr'] = df['proteinNr'].astype('category')
-            df = pd.get_dummies(df, prefix='prot')
-            #print(df.head(10))
-            #print(df.tail(10))
-            
-            joblib.dump((df, params), datasetFileName,compress=True ) 
+            elif pCutoutLength < 5*resolution:
+                msg = "Warning: cutout length is smaller than 5x resolution\n"
+                msg += "Many regions might be cut out."
+                print(msg)
+            threshold = int(pCutoutLength / resolution)
+            starts, ends = findValidProteinRegions(proteins, threshold)
+            if not starts or not ends or len(starts) < 1 or len(ends) < 1:
+                msg = "No valid protein peaks found. Aborting."
+                sys.exit(msg)
+            else:
+                dfList = []
+                for s, e in zip(starts, ends):
+                    dfList.append(createDataset2(proteins, reads, pWindowOperation, pWindowsize,
+                                chromosome, pStart = s, pEnd = e))
+                df = pd.concat(dfList, ignore_index=True, sort=False)     
         else:
-            print("Skipped creating file that already existed: " + datasetFileName)
-    print("\n")
+            df = createDataset2(proteins, reads, pWindowOperation, pWindowsize,
+                               chromosome, pStart=0, pEnd=proteins.shape[0])
+        
+        if df.empty:
+            msg = "Could not create dataset. Aborting"
+            sys.exit(msg)
+
+        ### add average contact read stratified by distance to dataset
+        for i in tqdm(range(int(pWindowsize)),desc='Adding average read values'):
+            df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
+            
+        #one-hot encoding for the proteins / protein numbers
+        df['proteinNr'] = df['proteinNr'].astype('category')
+        df = pd.get_dummies(df, prefix='prot')
+        #print(df.head(10))
+        #print(df.tail(10))
+            
+        joblib.dump((df, params), datasetFileName,compress=True ) 
+
 
 def getCentromerePositions(centromeresfilepath, chromTag, cuts):
     """
@@ -295,10 +279,9 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
     df = pd.DataFrame()
     
     if pEnd > pStart and pEnd >= 0 and pStart >= 0: #end not >= start (greater equal), since we look at diagonals and need two non-equal values
-        proteins = pProteins[pStart:pEnd].drop('start', axis=1)
-        proteins.reset_index(inplace=True, drop=True) #otherwise access indices out of range when ignoring centromeres
+        proteins = pProteins[pStart:pEnd].reset_index(drop=False)
 
-        numberOfProteins = proteins.shape[1]
+        numberOfProteins = proteins.shape[1] - 1
 
         # Get those indices and corresponding read values of the HiC-matrix that shall be used 
         # for learning and predicting.
@@ -307,21 +290,24 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
         # are zero or close to zero. So, take the indices of the main diagonal 
         # and the next pWindowSize-1 side diagonals. This structure is a trapezoid
         numberOfDiagonals = min(pEnd-pStart,pWindowSize) #range might be smaller than window size, if centromere close to start / end of chromosome or if valid region small
-        readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
-        trapezIndices = np.mask_indices(readMatrix.shape[0],maskFunc,k=numberOfDiagonals)
-        reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
-
-        cols = ['first', 'second', 'chrom', 'startProt', 'middleProt', 'endProt', 'distance', 'reads', 'proteinNr']
+        trapezIndices = np.mask_indices(proteins.shape[0],maskFunc,k=numberOfDiagonals)
+        
+        reads = None
+        readMatrix = None
+        if pFullReads != None:
+            readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
+            reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
 
         dsList = []
-
+        cols = ['first', 'second', 'chrom', 'startProt', 'middleProt', 'endProt', 'distance', 'reads', 'proteinNr']
         for protein in tqdm(range(numberOfProteins)):
             protDf = pd.DataFrame(columns=cols,dtype=np.uint32)
             protDf['first'] = np.uint32(trapezIndices[0])
             protDf['second'] = np.uint32(trapezIndices[1])
             protDf['distance'] = protDf['second'] - protDf['first']
             protDf['chrom'] = np.uint8(pChrom)
-            protDf['reads'] = np.float32(reads)
+            if pFullReads != None:
+                protDf['reads'] = np.float32(reads)
             protDf['proteinNr'] = np.uint8(protein)
             
             #get the protein values for the row ("first") and column ("second") position
@@ -447,7 +433,7 @@ def findValidProteinRegions(pProteins, pLenThreshold):
     validEndIndices = []
     #remove unecessary columns and sum over the remaining protein peak columns
     #window column is 0, if none of the proteins has any peak within the (forward facing) window of length pLenThreshold
-    clearedProts = pProteins.drop('start', axis=1)
+    clearedProts = pProteins
     clearedProts['sum'] = clearedProts.sum(axis=1)
     clearedProts['window'] = clearedProts['sum'].rolling(window=pLenThreshold).max()
     
@@ -474,7 +460,8 @@ def findValidProteinRegions(pProteins, pLenThreshold):
             validStartIndices.insert(0, 0)
         if invalidEndIndices[-1] != maxIndex:
             validEndIndices.append(maxIndex) 
-
+    #drop the sum and max columns (since we've not copied the protein df)
+    clearedProts.drop(columns=['sum', 'window'], inplace=True)
     return (validStartIndices, validEndIndices)
     
 def smoothenProteins(pProteins, pSmooth):
