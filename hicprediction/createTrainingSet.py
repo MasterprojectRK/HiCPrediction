@@ -158,7 +158,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                 df = pd.concat(dfList, ignore_index=True, sort=False)     
         else:
             df = createDataset2(proteins, reads, pWindowOperation, pWindowsize,
-                               chromosome, pStart=0, pEnd=proteins.shape[0])
+                               chromosome, pStart=0, pEnd=proteins.shape[0]-1)
         
         if df.empty:
             msg = "Could not create dataset. Aborting"
