@@ -97,7 +97,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
             ### merge the binned proteins into a single dataframe
             for i in range(len(binnedProteins)):
                 binnedProteins[i].columns = [str(i)] #rename signalValue column to allow join
-            maxBinInt = math.ceil(params['chromSizes'][chromosome] / resolution)
+            maxBinInt = math.ceil(params['chromSizes'][chromosome] / int(resolution))
             proteinDf = pd.DataFrame(columns=['bin_id'])
             proteinDf['bin_id'] = list(range(0,maxBinInt))
             proteinDf.set_index('bin_id', inplace=True)
