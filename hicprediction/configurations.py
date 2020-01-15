@@ -101,7 +101,8 @@ _set_options = [
     click.option('--internalInDir', '-iid', type=click.Path(exists=True), \
                     help='path where internally used matrices are stored'),
     click.option('--cutoutLength','-cl', required=False, type=int, default=1000000, help="regions of this length will be cut out, if they have no protein peaks assigned"),
-    click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing")                
+    click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing"),                
+    click.option('--method',required=False, type=click.Choice(['oneHot', 'multiColumn']), default='multiColumn', help="how to build the dataset. MultiColumn = 3 columns for each protein (start, window, end), OneHot = 3 columns (start, window, end) + one-hot encoding for the proteins"),
 ]
 _train_options = [
     click.option('--trainDatasetFile', '-tdf',\
