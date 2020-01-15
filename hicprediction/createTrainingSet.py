@@ -31,7 +31,7 @@ used for the training sets. The base file from the former script
 def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, cutoutlength, smooth):
+                   windowsize, cutoutlength, smooth, method):
     """
     Wrapper function
     calls function and can be called by click
@@ -39,12 +39,12 @@ def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
     createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, cutoutlength, smooth)
+                   windowsize, cutoutlength, smooth, method)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,pIgnoreCentromeres,pNormalize,
                    internalInDir, pWindowOperation, pMergeOperation, 
-                   pWindowsize, pCutoutLength, pSmooth):
+                   pWindowsize, pCutoutLength, pSmooth, pMethod):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -134,6 +134,13 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             ### load reads and bins
             reads = hiCMatrix.matrix
         
+        ### pick the correct variant of the dataset creation function
+        if pMethod == 'oneHot':
+            buildDataset = createDataset2
+        else:
+            buildDataset = createDataset
+        params['method'] = pMethod
+
         ### if user decided to cut out centromeres and if the chromosome
         ### has one, create datasets for both chromatids and join them
         if pIgnoreCentromeres:
@@ -153,11 +160,11 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             else:
                 dfList = []
                 for s, e in zip(starts, ends):
-                    dfList.append(createDataset2(proteins, reads, pWindowOperation, pWindowsize,
+                    dfList.append(buildDataset(proteins, reads, pWindowOperation, pWindowsize,
                                 chromosome, pStart = s, pEnd = e))
                 df = pd.concat(dfList, ignore_index=True, sort=False)     
         else:
-            df = createDataset2(proteins, reads, pWindowOperation, pWindowsize,
+            df = buildDataset(proteins, reads, pWindowOperation, pWindowsize,
                                chromosome, pStart=0, pEnd=proteins.shape[0]-1)
         
         if df.empty:
@@ -169,8 +176,9 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
             
         #one-hot encoding for the proteins / protein numbers
-        df['proteinNr'] = df['proteinNr'].astype('category')
-        df = pd.get_dummies(df, prefix='prot')
+        if pMethod == 'oneHot':
+            df['proteinNr'] = df['proteinNr'].astype('category')
+            df = pd.get_dummies(df, prefix='prot')
         #print(df.head(10))
         #print(df.tail(10))
             
@@ -199,8 +207,8 @@ def getCentromerePositions(centromeresfilepath, chromTag, cuts):
     toEnd = cuts[cuts < end]
     return  len(toStart), len(toEnd)
 
-def createDataset(proteins, fullReads, windowOperation, windowSize,
-                   chrom, start, end):
+def createDataset(pProteins, pFullReads, pWindowOperation, pWindowSize,
+                   pChrom, pStart, pEnd):
     """
     function that creates the actual dataset for a specific
     chromosome/chromatid
@@ -213,64 +221,54 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
             start -- start position of interval to be processed
             end -- end  position of interval to be processed
     """
-
-    ### cut proteins according to centromere positions
-    proteins = proteins[start:end]
-    colNr = np.shape(proteins)[1]
-    proteinNr = colNr - 1
-    rows = np.shape(proteins)[0]
-    fullReads = fullReads.todense()
-    reads = fullReads[start:end, start:end]
-    ### create columns of dataset
-    strList = [str(x) for x in range(3*(proteinNr))]
-    cols = ['first', 'second','chrom'] + strList+['distance','reads']
-    ### get window bin operation
-    #if windowOperation == 'avg':
-    #    convertF = np.mean
-    #elif windowOperation == 'sum':
-    #    convertF = np.sum
-    #elif windowOperation == 'max':
-    #    convertF = np.max
+    df = pd.DataFrame()
+    if pEnd > pStart and pEnd >= 0 and pStart >= 0: #end not >= start (greater equal), since we look at diagonals and need two non-equal values
+        proteins = pProteins[pStart:pEnd].reset_index(drop=False)
+        numberOfProteins = proteins.shape[1] - 1
     
-    reach  = int(windowSize)
-    height = int((rows - reach) * reach +  reach * (reach +1) /2)
-    lst = range(rows - reach)
-    ### compute indices for all the possible contact pairs considering maximum
-    ### genomic distance etc.
-    idx1 = list(itertools.chain.from_iterable(itertools.repeat(x, reach) for x in lst))
-    for i in range(reach):
-        idx1.extend((reach - i) * [rows - reach + i])
-    idx2 =[]
-    for i in range(rows - reach):
-        idx2.extend(list(range(i, i + reach)))
-    for i in range(rows - reach, rows):
-        idx2.extend(list(range(i, rows)))
-    ### create data frame and fill with values and indices
-    df = pd.DataFrame(0, index=range(height), columns=cols)
-    df['chrom'] = str(chrom)
-    df['first'] = np.array(idx1)
-    df['second'] = np.array(idx2)
-    df['distance'] = (df['second'] - df['first']) 
-    df['reads'] = np.array(reads[df['first'],df['second']])[0]
-    ### load proteins
-    proteinMatrix = np.matrix(proteins)
-    starts = df['first'].values
-    ends = df['second'].values + 1
-    ### create generator that will compute the window proteins
-    middleGenerator = getMiddle(proteins.values.transpose(), starts, ends,
-                                windowOperation)
+        numberOfDiagonals = min(pEnd-pStart,pWindowSize) #range might be smaller than window size, if centromere close to start / end of chromosome or if valid region small
+        trapezIndices = np.mask_indices(proteins.shape[0],maskFunc,k=numberOfDiagonals)
+        
+        reads = None
+        readMatrix = None
+        if pFullReads != None:
+            readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
+            reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
+    
+        ### create data frame and fill with values and indices
+        strList = [str(x) for x in range(3*(numberOfProteins))]
+        cols = ['first', 'second','chrom'] + strList+ ['distance','reads']
+        df = pd.DataFrame(columns=cols)
+        df['first'] = np.uint32(trapezIndices[0])
+        df['second'] = np.uint32(trapezIndices[1])
+        df['distance'] = df['second'] - df['first']
+        df['chrom'] = np.uint8(pChrom)
+        if pFullReads != None:
+            df['reads'] = np.float32(reads)
+            df['reads'].fillna(0, inplace=True)
     ### iterate over all the proteins and fill the data frame
-    for i in tqdm(range(proteinNr), desc="Converting Proteins to dataset"):
-        # print(i)
-        # start = time.time()*1000
-        # print(start - time.time()*1000)
-        ### Could maybe iterate genomic distance instead of middleGenerator to speed
-        ### things up
-        df[str(i)] = np.array(proteinMatrix[df['first'], i+1]).flatten()
-        df[str(proteinNr + i)] = next(middleGenerator) 
-        df[str(proteinNr * 2 + i)] = np.array(proteinMatrix[df['second'], i+1]).flatten()
-    df['first'] += start
-    df['second'] += start
+        for protein in tqdm(range(numberOfProteins), desc="Converting Proteins to dataset"):
+            protIndex = str(protein)
+            #start proteins
+            df[protIndex] = list(proteins[protIndex][df['first']])
+            #end proteins
+            df[str(numberOfProteins * 2 + protein)] = list(proteins[protIndex][df['second']])
+        
+            #window proteins
+            winSize = min(pEnd-pStart, pWindowSize)
+            windowDf = buildWindowDataset(proteins, protein, winSize, pWindowOperation)
+            #get the window proteins into an array and slice it to get all values at once 
+            #there might be a more efficient way using pandas
+            distWindowArr = windowDf.to_numpy()
+            slice1 = list(df['second'])
+            slice2 = list(df['distance'])
+            slice3 = (slice1, slice2)
+            windowProteins = np.array(distWindowArr[slice3])
+            df[str(numberOfProteins + protein)] = np.float32(windowProteins)
+
+        #consider offset
+        df['first'] += pStart
+        df['second'] += pStart
     return df
 
 def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
@@ -308,6 +306,7 @@ def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
             protDf['chrom'] = np.uint8(pChrom)
             if pFullReads != None:
                 protDf['reads'] = np.float32(reads)
+                protDf['reads'].fillna(0, inplace=True)
             protDf['proteinNr'] = np.uint8(protein)
             
             #get the protein values for the row ("first") and column ("second") position
