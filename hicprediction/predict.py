@@ -64,7 +64,9 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         msg += "or cell lines.\n" 
         msg += "Compound datasets cannot be predicted. Aborting"
         sys.exit(msg) 
-    predictionTag = createPredictionTag(modelParams, setParams)
+    
+    #prepare dataframe for prediction results
+    df = None
     if resultsfilepath:
         if not conf.checkExtension(resultsfilepath, '.csv'):
             resultsfilename = os.path.splitext(resultsfilepath)[0]
@@ -99,31 +101,29 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         dists = sorted(list(testSet.distance.unique()))
         columns.extend(dists)
         columns.append('Tag')
-        fileexists = os.path.isfile(resultsfilepath)
-        fileexists = False
-        if fileexists:
-            df = pd.read_csv(resultsfilepath, index_col=0)
+        df = pd.DataFrame(columns=columns)
+        df = df.set_index('Tag')
+    
+    ### predict test dataset from model
+    prediction, score = predict(model, testSet, modelParams)
+    
+    predictionTag = createPredictionTag(modelParams, setParams)
+    ### convert prediction back to matrix, if output path set
+    if predictionoutputdirectory:
+        predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
+        if modelParams['method'] == 'oneHot':
+            convertToMatrix = predictionToMatrix2
+        elif modelParams['method'] == 'multiColumn':
+            convertToMatrix = predictionToMatrix
         else:
-            df = pd.DataFrame(columns=columns)
-            df = df.set_index('Tag')
-        exists = predictionTag in df.index
-    else:
-        exists =False
-    ### load model and set and predict
-    exists = False #always execute prediction for now
-    if not exists:
-        prediction, score = predict(model, testSet, modelParams)
-        if predictionoutputdirectory:
-            predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
-        ### call function to convert prediction to HiC matrix
-            predictionToMatrix(prediction, basefile, modelParams,\
+            raise NotImplementedError()
+        predictionToMatrix(prediction, basefile, modelParams,\
                            setParams['chrom'], predictionFilePath, internalInDir, sigma)
-        ### call function to store evaluation metrics
-        if resultsfilepath:
-
-            df = saveResults(predictionTag, df, modelParams, setParams, prediction,\
-                        score, columns)
-            df.to_csv(resultsfilepath)
+    
+    ### store evaluation metrics, if results path set
+    if resultsfilepath:
+        df = saveResults(predictionTag, df, modelParams, setParams, prediction, score, columns)
+        df.to_csv(resultsfilepath)
 
 
 def predict(model, testSet, pModelParams):
@@ -141,6 +141,7 @@ def predict(model, testSet, pModelParams):
     if nrOfRowsAfter != nrOfRowsBefore:
         msg = "Warning: Removed {0:d} rows from test set because they contained NaNs"
         print(msg.format(nrOfRowsBefore-nrOfRowsAfter))
+    
     ### Hide Columns that are not needed for prediction
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
     noDistance = 'noDistance' in pModelParams and pModelParams['noDistance'] == True
@@ -149,10 +150,25 @@ def predict(model, testSet, pModelParams):
     if noDistance:
         dropList.append('distance')
     if noMiddle:
-        dropList.append('middleProt')
+        if pModelParams['method'] == 'oneHot':
+            dropList.append('middleProt')
+        elif pModelParams['method'] == 'multiColumn':
+            numberOfProteins = int((testSet.shape[1] - 6) / 3)
+            for protein in range(numberOfProteins):
+                dropList.append(str(protein + numberOfProteins))
+        else:
+            raise NotImplementedError()
     if noStartEnd:
-        dropList.append('startProt')
-        dropList.append('endProt')
+        if pModelParams['method'] == 'oneHot':
+            dropList.append('startProt')
+            dropList.append('endProt')
+        elif pModelParams['method'] == 'multiColumn':
+            numberOfProteins = int((testSet.shape[1] - 6) / 3)
+            for protein in range(numberOfProteins):
+                dropList.append(str(protein))
+                dropList.append(str(protein + 2 * numberOfProteins))
+        else:
+            raise NotImplementedError()
     test_X = testSet[testSet.columns.difference(dropList)]
     test_y = testSet.copy(deep=True)
     ### convert reads to log reads
@@ -175,7 +191,7 @@ def predict(model, testSet, pModelParams):
     score = model.score(test_X,test_y[target])
     return test_y, score
 
-def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
+def predictionToMatrix2(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
 
     """
     Function to convert prediction to Hi-C matrix
@@ -244,6 +260,56 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
 
         originalMatrix.setMatrix(predMatrix, originalMatrix.cut_intervals)
         originalMatrix.save(predictionFilePath)
+
+def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
+
+    """
+    Function to convert prediction to Hi-C matrix
+    Attributes:
+            pred -- prediction dataframe
+            baseFilePath --  base file
+            conversion -- conversion technique that was used
+            chromosome -- chromosome that wwas predicted
+            predictionFilePath -- where to store the new matrix
+    """
+    with h5py.File(baseFilePath, 'r') as baseFile:
+        ### store conversion function
+        if pModelParams['conversion'] == "standardLog":
+            convert = lambda val: np.exp(val) - 1
+        elif pModelParams['conversion'] == "none":
+            convert = lambda val: val
+        ### get rows and columns (indices) for re-building the HiC matrix
+        rows = list(pred['first'])
+        columns = list(pred['second'])
+        matIndx = (rows,columns)
+        ### convert back
+        data = list(convert(pred['pred']))
+        ### create matrix with new values and overwrite original
+        matrixfile = baseFile[chromosome][()]
+        if internalInDir:
+            filename = os.path.basename(matrixfile)
+            matrixfile = os.path.join(internalInDir, filename)
+        originalMatrix = None
+        if os.path.isfile(matrixfile):
+            originalMatrix = hm.hiCMatrix(matrixfile)
+        else:
+            msg = ("cooler file {0:s} is missing.\n" \
+                    + "Use --iif option to provide the directory where the internal matrices " \
+                    +  "were stored when creating the basefile").format(matrixfile)
+            sys.exit(msg)        
+        
+        predMatrix = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
+        #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
+        if pSigma > 0.0:
+            upper = sparse.triu(predMatrix)
+            lower = sparse.triu(predMatrix, k=1).T
+            fullPredMatrix = (upper+lower).todense().astype('float32')
+            filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
+            predMatrix = sparse.triu(filteredPredMatrix)
+
+        originalMatrix.setMatrix(predMatrix, originalMatrix.cut_intervals)
+        originalMatrix.save(predictionFilePath)
+
 
 def getCorrelation(data, field1, field2,  resolution, method):
     """
