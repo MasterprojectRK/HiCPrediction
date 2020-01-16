@@ -266,6 +266,18 @@ def createDataset(pProteins, pFullReads, pWindowOperation, pWindowSize,
             windowProteins = np.array(distWindowArr[slice3])
             df[str(numberOfProteins + protein)] = np.float32(windowProteins)
 
+        #drop rows where start / end proteins are both zero
+        rowsBefore = df.shape[0]
+        mask = False    
+        for i in tqdm(range(numberOfProteins), desc="removing rows without start/end proteins"):    
+            m1 = df[str(i)] > 0
+            m2 = df[str(numberOfProteins * 2 + i)] > 0
+            mask = mask | (m1 & m2)
+        df = df[mask]
+        print()
+        print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
+        print( "{0:d} training samples left".format(df.shape[0]) )
+
         #consider offset
         df['first'] += pStart
         df['second'] += pStart
