@@ -77,7 +77,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     if chromosomes:
         chromosomeList = chromosomes.split(',')
     else:
-        chromosomeList = range(1, 23)
+        chromosomeList = [str(chrom) for chrom in range(1, 23)]
     #outDirectory = resource_filename('hicprediction',
                                                #'InternalStorage') +"/"
     params['chromList'] = chromosomeList
