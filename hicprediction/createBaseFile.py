@@ -105,16 +105,24 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
             proteinDf['bin_id'] = list(range(0,maxBinInt))
             proteinDf.set_index('bin_id', inplace=True)
             proteinDf = proteinDf.join(binnedProteins, how='outer')
-            proteinDf.fillna(0.0,inplace=True)
-            nzmask = proteinDf['0'] > 0.
-            print(proteinDf[nzmask].head(10))
-            print("chrom", chromosome, "norm", params['normalize'], "merge", params['mergeOperation'])
-            proteinChromTag = proteinTag + "_chr" + chromosome
+            proteinDf.fillna(0.0,inplace=True)       
+            
             ### store binned proteins in base file
+            proteinChromTag = proteinTag + "_chr" + chromosome
             store = pd.HDFStore(basefile)
             store.put(proteinChromTag, proteinDf)
             store.get_storer(proteinChromTag).attrs.metadata = params
             store.close()
+
+            #print some figures
+            msg = "chrom {0:s}, parameters: norm={1:b}, merge={2:s}"
+            print()
+            print(msg.format(chromosome, params['normalize'], params['mergeOperation']))
+            print("non-zero entries")
+            for protein in range(proteinDf.shape[1]):
+                nzmask = proteinDf[str(protein)] > 0.
+                nonzeroEntries = proteinDf[nzmask].shape[0]
+                print("protein {0:d}: {1:d} of {2:d}".format(protein, nonzeroEntries, proteinDf.shape[0]))    
 
     if matrixfile:
         for chromosome in params['chromList']:
