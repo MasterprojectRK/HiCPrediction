@@ -72,7 +72,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
             for protein in range(numberOfProteins):
                 dropList.append(str(protein + numberOfProteins))
         else:
-            raise NotImplementedError()
+            raise NotImplementedError("unknown param for 'method'")
     if noStartEnd:
         if params['method'] == 'oneHot':
             dropList.append('startProt')
