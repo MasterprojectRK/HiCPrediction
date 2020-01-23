@@ -100,7 +100,6 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         with pd.HDFStore(basefile) as store:
             proteins = store[proteinChromTag]
             params2 = store.get_storer(proteinChromTag).attrs.metadata
-        print(proteins.head())
         ###smoothen the proteins by gaussian filtering, if desired
         if pSmooth > 0.0:
             proteins = smoothenProteins(proteins, pSmooth)
