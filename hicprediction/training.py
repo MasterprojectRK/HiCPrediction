@@ -9,6 +9,9 @@ import sklearn.ensemble
 import numpy as np
 from hicprediction.tagCreator import createModelTag
 import sys
+import matplotlib.pyplot as plt
+from scipy.stats import expon
+import pandas as pd
 
 """ Module responsible for the training of the regressor with data sets.
 """
@@ -56,10 +59,44 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
                     n_estimators=pNrOfTrees, n_jobs=4, verbose=2, criterion='mse')
     
     ### replace infinity and nan values. There shouldn't be any.
-    rowsBefore = df.shape[0]
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.fillna(value=0, inplace=True)
 
+
+    ### oversampling
+    #plot the raw read distribution first
+    fig1, ax1 = plt.subplots(figsize=(8,6))
+    df.hist(column='reads', bins=100, ax=ax1, density=True)
+    ax1.set_xlabel("read counts")
+    ax1.set_ylabel("normalized frequency")
+    ax1.set_title("raw read distribution")
+    figureTag = createModelTag(params) + "_readDistributionBefore.png"        
+    fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
+    
+    #select all rows with read count >= oversamplingPercentage of max read count and add them oversamplingFactor times to the df
+    readMax = df.reads.max()
+    oversamplingPercentage = 0.2
+    oversamplingFactor = 4000
+    gtMask = df['reads'] > oversamplingPercentage * readMax
+    oversampledDf = df[gtMask]
+    
+    msg = "{0:d} values are > {1:.2f} * max. read count. Oversampling {2:d}x"
+    msg = msg.format(oversampledDf.shape[0], oversamplingPercentage, oversamplingFactor)
+    print(msg)
+
+    oversampledDf = pd.concat([oversampledDf]*oversamplingFactor, ignore_index=True)
+    df = df.append(oversampledDf, ignore_index=True, sort=False)
+    df.reset_index(inplace=True, drop=True)
+    
+    #plot the read distribution after oversampling
+    fig1, ax1 = plt.subplots(figsize=(8,6))
+    df.hist(column='reads', bins=100, ax=ax1, density=True)
+    ax1.set_xlabel("read counts")
+    ax1.set_ylabel("normalized frequency")
+    ax1.set_title("Read distribution after oversampling \n (where read count > {0:.2f}*maxCount; {1:d}x)".format(oversamplingPercentage, oversamplingFactor))
+    figureTag = createModelTag(params) + "_readDistributionAfter" + "_F" + str(oversamplingFactor) + "_P" + str(round(oversamplingPercentage*100)) + ".png"        
+    fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
+    
     ### drop columns that should not be used for training
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
     if noDist:
@@ -85,7 +122,10 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         else:
             raise NotImplementedError()
     X = df[df.columns.difference(dropList)]
-        
+
+    
+    
+
     ### apply conversion
     if conversion == 'none':
         y = df['reads']
