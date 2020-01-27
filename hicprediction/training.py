@@ -66,13 +66,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     ### oversampling
     #plot the raw read distribution first
     fig1, ax1 = plt.subplots(figsize=(8,6))
-    df.hist(column='reads', bins=100, ax=ax1, density=True)
-    readMax = df.reads.max()
-    testMask = df['reads'] > 0
-    helpDf = df[testMask]
-    loc, scale = expon.fit(df.reads, floc=0)
-    
-
+    df.hist(column='reads', bins=100, ax=ax1, density=True) 
     ax1.set_xlabel("read counts")
     ax1.set_ylabel("normalized frequency")
     ax1.set_title("raw read distribution")
@@ -80,32 +74,52 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
     
     #select all rows with read count >= oversamplingPercentage of max read count and add them oversamplingFactor times to the df
-    xvals = np.linspace(0,1,10)
-    yvals = expon.pdf(xvals * readMax, loc, scale)
-    ymirrored = yvals[::-1]
-    oversamplingPercentageList = xvals[2:]
-    minDings = min(ymirrored[2:])
-    oversamplingFactorList = np.uint32(np.round(1/minDings * ymirrored[2:]))
-    print(oversamplingFactorList)
-    for percentageLow, percentageHigh, factor in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:], oversamplingFactorList):
-        gtMask = df['reads'] > percentageLow * readMax
-        leqMask = df['reads'] <= percentageHigh * readMax
-        oversampledDf = df[gtMask & leqMask]
-    
-        msg = "{0:d} values are > {1:.2f} * max. read count and <= {2:.2f} * max. read count. Oversampling {3:d}x"
-        msg = msg.format(oversampledDf.shape[0], percentageLow, percentageHigh, factor)
-        print(msg)
+    readMax = df.reads.max()
+    cutPercentage = 0.5
+    smallCountSamples = df[df['reads']<= cutPercentage*readMax].shape[0]
+    highCountSamples = df[df['reads'] > cutPercentage*readMax].shape[0]
+    sampleRelation = highCountSamples / smallCountSamples
+    majorOversamplingFactor = 4
+    while sampleRelation < majorOversamplingFactor:
+        oversamplingPercentageList = np.linspace(cutPercentage,1.0,20)
+        #compute oversampling factors
+        totalNrSamples = df.shape[0]
+        oversamplingFactorList = []
+        for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
+            gtMask = df['reads'] > percentageLow * readMax
+            leqMask = df['reads'] <= percentageHigh * readMax
+            oversampledDf = df[gtMask & leqMask]
+            if not oversampledDf.empty:
+                nrSamples = oversampledDf.shape[0]
+                oversamplingFactorList.append(totalNrSamples / nrSamples) 
+            else:
+                oversamplingFactorList.append(np.inf)
+        
+        minOversamplingFactor = np.min(oversamplingFactorList)
+        oversamplingFactorList = np.uint32(np.round(oversamplingFactorList / minOversamplingFactor))
 
-        oversampledDf = pd.concat([oversampledDf]*factor, ignore_index=True)
-        df = df.append(oversampledDf, ignore_index=True, sort=False)
-        df.reset_index(inplace=True, drop=True)
-    
+        print("{0:.2f}".format(sampleRelation))
+        for percentageLow, percentageHigh, factor in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:], oversamplingFactorList):
+            gtMask = df['reads'] > percentageLow * readMax
+            leqMask = df['reads'] <= percentageHigh * readMax
+            oversampledDf = df[gtMask & leqMask]    
+            if not oversampledDf.empty:
+                msg = "{0:d} values are > {1:.2f} * max. read count and <= {2:.2f} * max. read count. Oversampling {3:d}x"
+                msg = msg.format(oversampledDf.shape[0], percentageLow, percentageHigh, factor)
+                print(msg)   
+                appendDf = pd.concat([oversampledDf]*factor, ignore_index=True)
+                df = df.append(appendDf, ignore_index=True, sort=False)
+                df.reset_index(inplace=True, drop=True)
+        
+        highCountSamples = df[df['reads'] > 0.2*readMax].shape[0]
+        sampleRelation = highCountSamples / smallCountSamples
+
     #plot the read distribution after oversampling
     fig1, ax1 = plt.subplots(figsize=(8,6))
     df.hist(column='reads', bins=100, ax=ax1, density=True)
     ax1.set_xlabel("read counts")
     ax1.set_ylabel("normalized frequency")
-    ax1.set_title("Read distribution after oversampling variable oversampling")
+    ax1.set_title("Read distribution after variable oversampling\n(cutP: " + str(cutPercentage) + " factor: " + str(majorOversamplingFactor) + ")")
     figureTag = createModelTag(params) + "_readDistributionAfterVariableOversampling.png"        
     fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
     
