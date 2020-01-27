@@ -67,6 +67,12 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     #plot the raw read distribution first
     fig1, ax1 = plt.subplots(figsize=(8,6))
     df.hist(column='reads', bins=100, ax=ax1, density=True)
+    readMax = df.reads.max()
+    testMask = df['reads'] > 0
+    helpDf = df[testMask]
+    loc, scale = expon.fit(df.reads, floc=0)
+    
+
     ax1.set_xlabel("read counts")
     ax1.set_ylabel("normalized frequency")
     ax1.set_title("raw read distribution")
@@ -74,27 +80,33 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
     
     #select all rows with read count >= oversamplingPercentage of max read count and add them oversamplingFactor times to the df
-    readMax = df.reads.max()
-    oversamplingPercentage = 0.2
-    oversamplingFactor = 4000
-    gtMask = df['reads'] > oversamplingPercentage * readMax
-    oversampledDf = df[gtMask]
+    xvals = np.linspace(0,1,10)
+    yvals = expon.pdf(xvals * readMax, loc, scale)
+    ymirrored = yvals[::-1]
+    oversamplingPercentageList = xvals[2:]
+    minDings = min(ymirrored[2:])
+    oversamplingFactorList = np.uint32(np.round(1/minDings * ymirrored[2:]))
+    print(oversamplingFactorList)
+    for percentageLow, percentageHigh, factor in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:], oversamplingFactorList):
+        gtMask = df['reads'] > percentageLow * readMax
+        leqMask = df['reads'] <= percentageHigh * readMax
+        oversampledDf = df[gtMask & leqMask]
     
-    msg = "{0:d} values are > {1:.2f} * max. read count. Oversampling {2:d}x"
-    msg = msg.format(oversampledDf.shape[0], oversamplingPercentage, oversamplingFactor)
-    print(msg)
+        msg = "{0:d} values are > {1:.2f} * max. read count and <= {2:.2f} * max. read count. Oversampling {3:d}x"
+        msg = msg.format(oversampledDf.shape[0], percentageLow, percentageHigh, factor)
+        print(msg)
 
-    oversampledDf = pd.concat([oversampledDf]*oversamplingFactor, ignore_index=True)
-    df = df.append(oversampledDf, ignore_index=True, sort=False)
-    df.reset_index(inplace=True, drop=True)
+        oversampledDf = pd.concat([oversampledDf]*factor, ignore_index=True)
+        df = df.append(oversampledDf, ignore_index=True, sort=False)
+        df.reset_index(inplace=True, drop=True)
     
     #plot the read distribution after oversampling
     fig1, ax1 = plt.subplots(figsize=(8,6))
     df.hist(column='reads', bins=100, ax=ax1, density=True)
     ax1.set_xlabel("read counts")
     ax1.set_ylabel("normalized frequency")
-    ax1.set_title("Read distribution after oversampling \n (where read count > {0:.2f}*maxCount; {1:d}x)".format(oversamplingPercentage, oversamplingFactor))
-    figureTag = createModelTag(params) + "_readDistributionAfter" + "_F" + str(oversamplingFactor) + "_P" + str(round(oversamplingPercentage*100)) + ".png"        
+    ax1.set_title("Read distribution after oversampling variable oversampling")
+    figureTag = createModelTag(params) + "_readDistributionAfterVariableOversampling.png"        
     fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
     
     ### drop columns that should not be used for training
