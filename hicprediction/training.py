@@ -132,6 +132,11 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
     readMax = np.float32(pInOutDataFrameWithReads.reads.max())
     #the range which doesn't get oversampled
     smallCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads']<= pCutPercentage*readMax].shape[0]
+    if smallCountSamples == 0:
+        print("Warning: no samples with read count less than {:.2f}*max read count in dataset".format(pCutPercentage))
+        print("No oversampling possible, continuing with next step")
+        print("Consider increasing oversamling percentage using -ovsP parameter")
+        return
     #the range we want to oversample, i.e. add repeatedly to the dataframe until sampleRelation >= pOversamplingFactor
     highCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].shape[0]
     sampleRelation = highCountSamples / smallCountSamples
