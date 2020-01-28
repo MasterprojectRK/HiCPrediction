@@ -65,12 +65,9 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.fillna(value=0, inplace=True)
 
-    ### oversampling to emphasize data with high read values
-    variableOversampling(df, params, pModeloutputdirectory=modeloutputdirectory, pPlotOutput=True)
-
-        
-    ### drop columns that should not be used for training
-    dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
+    ### drop columns that should not be used for training EXCEPT reads which are needed for oversampling
+    ### dropping also lowers the memory demand for oversampling
+    dropList = ['first', 'second', 'chrom', 'avgRead']
     if noDist:
         dropList.append('distance')    
     if noMiddle:
@@ -93,23 +90,22 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
                 dropList.append(str(protein + 2 * numberOfProteins))
         else:
             raise NotImplementedError()
-    X = df[df.columns.difference(dropList)]
+    X = df.drop(columns=dropList)
 
+    ### oversampling to emphasize data with high read counts
+    variableOversampling(X, params, pModeloutputdirectory=modeloutputdirectory, pPlotOutput=True)
     
-    
-
-    ### apply conversion
+    ### separate reads from data and convert, if necessary
     if conversion == 'none':
-        y = df['reads']
+        y = X['reads']
     elif conversion == 'standardLog':
-        y = np.log(df['reads']+1)
+        y = np.log(X['reads']+1)
+    X.drop(columns='reads', inplace=True)
 
-    ## train model and store it
     model.fit(X, y)
     modelTag = createModelTag(params)
     modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
     joblib.dump((model, params), modelFileName, compress=True ) 
-    print("\n")
 
     visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag)
 
