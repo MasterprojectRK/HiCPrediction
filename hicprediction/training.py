@@ -12,6 +12,8 @@ import sys
 import matplotlib.pyplot as plt
 from scipy.stats import expon
 import pandas as pd
+from sklearn.tree import export_graphviz
+import pydot
 
 """ Module responsible for the training of the regressor with data sets.
 """
@@ -161,10 +163,55 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
 
     ## train model and store it
     model.fit(X, y)
-    modelTag = createModelTag(params) + ".z"
-    modelFileName = os.path.join(modeloutputdirectory, modelTag)
+    modelTag = createModelTag(params)
+    modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
     joblib.dump((model, params), modelFileName, compress=True ) 
     print("\n")
+
+    visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag)
+
+
+def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
+    #plot visualizations of the trees to png files
+    #only up to depth 6 to keep memory demand low and image "readable"
+    #compare this tutorial: https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
+    print("plotting trees...")
+    for treeNr, tree in enumerate(pTreeBasedLearningModel.estimators_):
+        treeStrDot = pModelTag + "_tree" + str(treeNr + 1) + ".dot"
+        treeStrPng = pModelTag + "_tree" + str(treeNr + 1) + ".png"
+        export_graphviz(tree, out_file = os.path.join(pOutDir, treeStrDot), max_depth=6, feature_names=pFeatList, rounded = True, precision = 6)
+        (graph, ) = pydot.graph_from_dot_file(os.path.join(pOutDir,treeStrDot))
+        graph.write_png(treeStrPng)
+        os.remove(os.path.join(pOutDir, treeStrDot))
+
+    #print and plot feature importances
+    #compare https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html
+    importances = pTreeBasedLearningModel.feature_importances_
+    std = np.std([tree.feature_importances_ for tree in pTreeBasedLearningModel.estimators_],
+             axis=0)
+    indices = np.argsort(importances)[::-1]
+    if len(indices) != len(pFeatList):
+        msg = "Aborting while visualizing the model\n"
+        msg += "Number of feature names doesn't match number of features"
+        raise ValueError(msg)
+
+    print()
+    print("Feature importances:")
+    for f in range(len(pFeatList)):
+        print("{0:d}. feature {1:d} ({2:s}; {3:.2f})".format(f + 1, indices[f], pFeatList[indices[f]], importances[indices[f]]))
+    print()
+
+    nrTrees = len(pTreeBasedLearningModel.estimators_)
+    fig1, ax1 = plt.subplots()
+    ax1.set_title("Feature importances and std deviations ({:d} trees)".format(nrTrees))
+    ax1.bar(indices, importances[indices],
+            color="r", yerr=std[indices], align="center")
+    ax1.set_xticks(indices)
+    ax1.set_xticklabels(np.array(pFeatList)[indices])
+    ax1.set_xlabel("feature name")
+    ax1.set_ylabel("relative feature importance")
+    importanceFigStr = pModelTag + "_importanceGraph.png"
+    fig1.savefig(os.path.join(pOutDir, importanceFigStr))
 
 if __name__ == '__main__':
     train()
