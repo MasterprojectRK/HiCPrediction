@@ -188,7 +188,7 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
         pInOutDataFrameWithReads.hist(column='reads', bins=100, ax=ax1, density=True)
         ax1.set_xlabel("read counts")
         ax1.set_ylabel("normalized frequency")
-        ax1.set_title("Read distribution after variable oversampling\n(cutP: " + str(pCutPercentage) + " factor: " + str(pOversamplingFactor) + ")")
+        ax1.set_title("Read distribution after oversampling\n(cutP: {:.2f}, factor: {:.2f}, balanced: {})".format(pCutPercentage, float(pOversamplingFactor), pBalance))
         figureTag = createModelTag(pParams) + "_readDistributionAfterVariableOversampling.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
 
