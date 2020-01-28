@@ -65,6 +65,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
 
     ### oversampling
     #plot the raw read distribution first
+    print("oversampling")
     fig1, ax1 = plt.subplots(figsize=(8,6))
     df.hist(column='reads', bins=100, ax=ax1, density=True) 
     ax1.set_xlabel("read counts")
@@ -98,7 +99,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         minOversamplingFactor = np.min(oversamplingFactorList)
         oversamplingFactorList = np.uint32(np.round(oversamplingFactorList / minOversamplingFactor))
 
-        print("{0:.2f}".format(sampleRelation))
+        print("relation of 'values beyond threshold' / 'values below threshold': {0:.2f}".format(sampleRelation))
         for percentageLow, percentageHigh, factor in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:], oversamplingFactorList):
             gtMask = df['reads'] > percentageLow * readMax
             leqMask = df['reads'] <= percentageHigh * readMax
