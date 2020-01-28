@@ -14,6 +14,7 @@ from scipy.stats import expon
 import pandas as pd
 from sklearn.tree import export_graphviz
 import pydot
+import math
 
 """ Module responsible for the training of the regressor with data sets.
 """
@@ -64,68 +65,10 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.fillna(value=0, inplace=True)
 
+    ### oversampling to emphasize data with high read values
+    variableOversampling(df, params, pModeloutputdirectory=modeloutputdirectory, pPlotOutput=True)
 
-    ### oversampling
-    #plot the raw read distribution first
-    print("oversampling")
-    fig1, ax1 = plt.subplots(figsize=(8,6))
-    df.hist(column='reads', bins=100, ax=ax1, density=True) 
-    ax1.set_xlabel("read counts")
-    ax1.set_ylabel("normalized frequency")
-    ax1.set_title("raw read distribution")
-    figureTag = createModelTag(params) + "_readDistributionBefore.png"        
-    fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
-    
-    #select all rows with read count >= oversamplingPercentage of max read count and add them oversamplingFactor times to the df
-    readMax = df.reads.max()
-    cutPercentage = 0.5
-    smallCountSamples = df[df['reads']<= cutPercentage*readMax].shape[0]
-    highCountSamples = df[df['reads'] > cutPercentage*readMax].shape[0]
-    sampleRelation = highCountSamples / smallCountSamples
-    majorOversamplingFactor = 4
-    while sampleRelation < majorOversamplingFactor:
-        oversamplingPercentageList = np.linspace(cutPercentage,1.0,20)
-        #compute oversampling factors
-        totalNrSamples = df.shape[0]
-        oversamplingFactorList = []
-        for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
-            gtMask = df['reads'] > percentageLow * readMax
-            leqMask = df['reads'] <= percentageHigh * readMax
-            oversampledDf = df[gtMask & leqMask]
-            if not oversampledDf.empty:
-                nrSamples = oversampledDf.shape[0]
-                oversamplingFactorList.append(totalNrSamples / nrSamples) 
-            else:
-                oversamplingFactorList.append(np.inf)
         
-        minOversamplingFactor = np.min(oversamplingFactorList)
-        oversamplingFactorList = np.uint32(np.round(oversamplingFactorList / minOversamplingFactor))
-
-        print("relation of 'values beyond threshold' / 'values below threshold': {0:.2f}".format(sampleRelation))
-        for percentageLow, percentageHigh, factor in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:], oversamplingFactorList):
-            gtMask = df['reads'] > percentageLow * readMax
-            leqMask = df['reads'] <= percentageHigh * readMax
-            oversampledDf = df[gtMask & leqMask]    
-            if not oversampledDf.empty:
-                msg = "{0:d} values are > {1:.2f} * max. read count and <= {2:.2f} * max. read count. Oversampling {3:d}x"
-                msg = msg.format(oversampledDf.shape[0], percentageLow, percentageHigh, factor)
-                print(msg)   
-                appendDf = pd.concat([oversampledDf]*factor, ignore_index=True)
-                df = df.append(appendDf, ignore_index=True, sort=False)
-                df.reset_index(inplace=True, drop=True)
-        
-        highCountSamples = df[df['reads'] > 0.2*readMax].shape[0]
-        sampleRelation = highCountSamples / smallCountSamples
-
-    #plot the read distribution after oversampling
-    fig1, ax1 = plt.subplots(figsize=(8,6))
-    df.hist(column='reads', bins=100, ax=ax1, density=True)
-    ax1.set_xlabel("read counts")
-    ax1.set_ylabel("normalized frequency")
-    ax1.set_title("Read distribution after variable oversampling\n(cutP: " + str(cutPercentage) + " factor: " + str(majorOversamplingFactor) + ")")
-    figureTag = createModelTag(params) + "_readDistributionAfterVariableOversampling.png"        
-    fig1.savefig(os.path.join(modeloutputdirectory, figureTag))
-    
     ### drop columns that should not be used for training
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
     if noDist:
@@ -170,6 +113,88 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
 
     visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag)
 
+
+def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4, pBalance=True, pModeloutputdirectory=None, pPlotOutput=False):
+    #Select all rows (samples) from dataframe where "reads" (read counts) are in certain range,
+    #i.e. are higher than pCutPercentage*maxReadCount. This is the high-read-count-range.
+    #Emphasize this range by adding (copying) the respective rows to the dataframe such that the number of high-read-count rows 
+    #in the dataframe is at least pOversamplingFactor times greater than the number of low-read-count samples
+    #Additionally, the high-read-count-range can be approximately balanced in itself by binning it into regions 
+    #and emphasizing regions with lower numbers of samples more than the ones with higher number of samples.
+    print("Oversampling...")
+    if pModeloutputdirectory and pPlotOutput:
+        #plot the raw read distribution first
+        fig1, ax1 = plt.subplots(figsize=(8,6))
+        pInOutDataFrameWithReads.hist(column='reads', bins=100, ax=ax1, density=True) 
+        ax1.set_xlabel("read counts")
+        ax1.set_ylabel("normalized frequency")
+        ax1.set_title("raw read distribution")
+        figureTag = createModelTag(pParams) + "_readDistributionBefore.png"        
+        fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
+    
+    
+    readMax = np.float32(pInOutDataFrameWithReads.reads.max())
+    #the range which doesn't get oversampled
+    smallCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads']<= pCutPercentage*readMax].shape[0]
+    #the range we want to oversample, i.e. add repeatedly to the dataframe until sampleRelation >= pOversamplingFactor
+    highCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].shape[0]
+    sampleRelation = highCountSamples / smallCountSamples
+    print("=> relation high-read-count-range :: low-read-count-range before oversampling {:.2f}".format(sampleRelation))
+        
+    #if enabled, first balance the high-count samples among each other, i. e. bin them and oversample the bins
+    if pBalance and sampleRelation < pOversamplingFactor:
+        print("=> balancing the high-read-count samples among each other")
+        oversamplingPercentageList = np.linspace(pCutPercentage,1.0,30)
+        oversamplingFactorList = []
+        oversamlingDfList= []
+        #compute the balancing factors
+        for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
+            gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
+            leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
+            oversampledDf = pInOutDataFrameWithReads[gtMask & leqMask]
+            if not oversampledDf.empty:
+                oversamlingDfList.append(oversampledDf) 
+                nrOfSamplesInBin = oversampledDf.shape[0]
+                oversamplingFactorList.append(nrOfSamplesInBin)
+        maxNrSamplesInBins = np.max(oversamplingFactorList)
+        oversamplingFactorList = np.uint32([np.round(maxNrSamplesInBins/x) - 1 for x in oversamplingFactorList])    
+
+        #balance the high-read-count range by appending the individual bins factor times to the original dataframe
+        #the bin with the highest number will not be appended
+        for oversampledDf, factor in zip(oversamlingDfList, oversamplingFactorList): 
+            if not factor < 1:
+                appendDf = pd.concat([oversampledDf]*factor, ignore_index=True)
+                pInOutDataFrameWithReads = pInOutDataFrameWithReads.append(appendDf, ignore_index=True, sort=False)
+                pInOutDataFrameWithReads.reset_index(inplace=True, drop=True)
+        
+        #recompute the relation
+        highCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].shape[0]
+        sampleRelation = highCountSamples / smallCountSamples
+        print("=> relation high-read-count-range :: low-read-count-range after balancing {:.2f}".format(sampleRelation))
+
+    #if the relation between the samples in both ranges is (still) below the desired factor, proceed with oversampling
+    if sampleRelation < pOversamplingFactor:
+        factor = math.ceil(pOversamplingFactor / sampleRelation)
+        gtMask = pInOutDataFrameWithReads['reads'] > pCutPercentage * readMax
+        oversampledDf = pInOutDataFrameWithReads[gtMask]
+        appendDf = pd.concat([oversampledDf]*factor)
+        pInOutDataFrameWithReads = pInOutDataFrameWithReads.append(appendDf, ignore_index=True, sort=False)
+        pInOutDataFrameWithReads.reset_index(inplace=True, drop=True)
+        #recompute for printing the final result
+        highCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].shape[0]
+        sampleRelation = highCountSamples / smallCountSamples
+        print("=> relation high-read-count-range :: low-read-count-range after oversampling {:.2f}".format(sampleRelation))
+        print("oversampling done with factor {:d}".format(factor))
+
+    if pModeloutputdirectory and pPlotOutput:
+        #plot the read distribution after oversampling
+        fig1, ax1 = plt.subplots(figsize=(8,6))
+        pInOutDataFrameWithReads.hist(column='reads', bins=100, ax=ax1, density=True)
+        ax1.set_xlabel("read counts")
+        ax1.set_ylabel("normalized frequency")
+        ax1.set_title("Read distribution after variable oversampling\n(cutP: " + str(pCutPercentage) + " factor: " + str(pOversamplingFactor) + ")")
+        figureTag = createModelTag(pParams) + "_readDistributionAfterVariableOversampling.png"        
+        fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
 
 def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
     #plot visualizations of the trees to png files
