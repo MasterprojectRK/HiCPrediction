@@ -234,6 +234,8 @@ def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
             color="r", yerr=std[indices], align="center")
     ax1.set_xticks(indices)
     ax1.set_xticklabels(np.array(pFeatList)[indices])
+    ax1.set_ylim([0.0,1.0]) #allow comparing results from different params, datasets etc.
+    ax1.set_yticks(np.linspace(0,1,11))
     ax1.set_xlabel("feature name")
     ax1.set_ylabel("relative feature importance")
     importanceFigStr = pModelTag + "_importanceGraph.png"
