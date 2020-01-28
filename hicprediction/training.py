@@ -20,15 +20,15 @@ import math
 """
 @conf.train_options
 @click.command()
-def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend):
+def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance):
     """
     Wrapper function for click
     """
     if maxfeat == 'none':
         maxfeat = None
-    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend)
+    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance)
 
-def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle, noStartEnd):
+def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance):
     """
     Train function
     Attributes:
@@ -66,7 +66,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     df.fillna(value=0, inplace=True)
 
     ### drop columns that should not be used for training EXCEPT reads which are needed for oversampling
-    ### dropping also lowers the memory demand for oversampling
+    ### dropping also reduces the memory demand for subsequent oversampling
     dropList = ['first', 'second', 'chrom', 'avgRead']
     if noDist:
         dropList.append('distance')    
@@ -93,7 +93,8 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     X = df.drop(columns=dropList)
 
     ### oversampling to emphasize data with high read counts
-    variableOversampling(X, params, pModeloutputdirectory=modeloutputdirectory, pPlotOutput=True)
+    if pOvsPercentage > 0.0 and pOvsPercentage < 1.0:
+        variableOversampling(X, params, pCutPercentage=pOvsPercentage, pOversamplingFactor=pOvsFactor, pBalance=pOvsBalance, pModeloutputdirectory=modeloutputdirectory, pPlotOutput=True)
     
     ### separate reads from data and convert, if necessary
     if conversion == 'none':
@@ -110,7 +111,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag)
 
 
-def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4, pBalance=True, pModeloutputdirectory=None, pPlotOutput=False):
+def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
     #Select all rows (samples) from dataframe where "reads" (read counts) are in certain range,
     #i.e. are higher than pCutPercentage*maxReadCount. This is the high-read-count-range.
     #Emphasize this range by adding (copying) the respective rows to the dataframe such that the number of high-read-count rows 
@@ -127,7 +128,6 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
         ax1.set_title("raw read distribution")
         figureTag = createModelTag(pParams) + "_readDistributionBefore.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
-    
     
     readMax = np.float32(pInOutDataFrameWithReads.reads.max())
     #the range which doesn't get oversampled
