@@ -228,12 +228,14 @@ def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
     print()
 
     nrTrees = len(pTreeBasedLearningModel.estimators_)
-    fig1, ax1 = plt.subplots()
+    imgWidth = max(5, np.round(len(indices)/7))
+    imgHeight = 0.75*imgWidth
+    fig1, ax1 = plt.subplots(constrained_layout=True, figsize=(imgWidth,imgHeight))
     ax1.set_title("Feature importances and std deviations ({:d} trees)".format(nrTrees))
-    ax1.bar(indices, importances[indices],
-            color="r", yerr=std[indices], align="center")
-    ax1.set_xticks(indices)
-    ax1.set_xticklabels(np.array(pFeatList)[indices])
+    ax1.bar(2*indices, importances[indices],
+            color="r", yerr=std[indices], align="center", width=1.5)
+    ax1.set_xticks(2*indices)
+    ax1.set_xticklabels(np.array(pFeatList)[indices], rotation=90, fontsize=6)
     ax1.set_ylim([0.0,1.0]) #allow comparing results from different params, datasets etc.
     ax1.set_yticks(np.linspace(0,1,11))
     ax1.set_xlabel("feature name")
