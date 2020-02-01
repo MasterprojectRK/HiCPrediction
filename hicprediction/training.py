@@ -10,7 +10,6 @@ import numpy as np
 from hicprediction.tagCreator import createModelTag
 import sys
 import matplotlib.pyplot as plt
-from scipy.stats import expon
 import pandas as pd
 from sklearn.tree import export_graphviz
 import pydot
