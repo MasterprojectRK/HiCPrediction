@@ -95,16 +95,16 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     params['chromList'] = chromosomeList
     params['chromSizes'] = getChromSizes(chromosomeList, chromsizefile)
 
+    ###load protein data from files and store into python objects
+    proteinData = getProteinFiles(protPeakFileList + bigwigFileList)
+    
     ### iterate over all possible combinations of settings (merging, normalization etc.)
     for setting in conf.getBaseCombinations():
         ### get settings and file tag for each combination
         params['normalize'] = setting['normalize']
         params['mergeOperation'] = setting['mergeOperation']
-        ### get protein files with given paths for each setting
         proteinTag =createProteinTag(params)
-        ###load protein data from files 
-        proteinData = getProteinFiles(proteinfiles, params)
-        ### literate over all chromosomes in list
+       
         for chromosome in tqdm(params['chromList'], desc= 'Iterate chromosomes'):   
             ### get protein data from each object into a dataframe and store in a list
             binnedProteins = []
