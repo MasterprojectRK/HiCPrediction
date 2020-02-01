@@ -303,17 +303,13 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
                     +  "were stored when creating the basefile").format(matrixfile)
             sys.exit(msg)        
         
-        predMatrix = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
-        #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
-        if pSigma > 0.0:
-            upper = sparse.triu(predMatrix)
-            lower = sparse.triu(predMatrix, k=1).T
+def smoothenMatrix(pSparseMatrix, pSigma):
+        upper = sparse.triu(pSparseMatrix)
+        lower = sparse.triu(pSparseMatrix, k=1).T
             fullPredMatrix = (upper+lower).todense().astype('float32')
             filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
             predMatrix = sparse.triu(filteredPredMatrix)
-
-        originalMatrix.setMatrix(predMatrix, originalMatrix.cut_intervals)
-        originalMatrix.save(predictionFilePath)
+        return predMatrix
 
 
 def getCorrelation(data, field1, field2,  resolution, method):
