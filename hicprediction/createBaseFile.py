@@ -15,7 +15,7 @@ np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 import bisect
 from hicprediction.tagCreator import createProteinTag
-from hicmatrix import HiCMatrix as hm
+import cooler.fileops
 import subprocess
 import pyBigWig
 import math
@@ -49,9 +49,6 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         outdir -- where the internally needed per-chromosome matrices are stored
     """
     ### checking extensions of files
-    if not conf.checkExtension(matrixfile, '.cool'):
-        msg = "input matrix {0:s} for binning must be a cooler file (.cool). Aborted"
-        sys.exit(msg.format(matrixfile))
     if not conf.checkExtension(basefile, '.ph5'):
         basefilename = os.path.splitext(basefile)[0]
         basefile = basefilename + ".ph5"
@@ -286,6 +283,12 @@ def getChromSizes(pChromNameList, pChromSizeFile):
 
 def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
     #cut HiC matrices for single chrom and store in outDir
+    if not cooler.fileops.is_cooler(pMatrixFile):
+        msg = "Warning: {:s} is no cooler file and therefore ignored"
+        msg = msg.format(pMatrixFile)
+        print(msg)
+        return
+    
     chromTag = "chr" + str(pChrom)
     inFileName = os.path.basename(pMatrixFile)
     outFileName = os.path.splitext(inFileName)[0] + "_" + chromTag + ".cool"
