@@ -30,7 +30,7 @@ import math
 @click.argument('proteinFiles', nargs=-1)#, help='Pass all of the protein'\
                # +' files you want to use for the prediction. They should be '+\
                # 'defined for the whole genome or at least, for the chromosomes'\
-               # + ' you defined in thee options. Format must be "narrowPeak"')
+               # + ' you defined in the options. Format must be "narrowPeak, broadPeak or bigwig"')
 @click.command()
 def loadAllProteins(proteinfiles, basefile, chromosomes,
                    matrixfile,celltype,resolution,internaloutdir,chromsizefile):
@@ -42,22 +42,24 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     Attributes:
         proteinfiles -- list of paths of the protein files to be processed
         basefile --  output path for base file
-        chromosomes -- list of chromosomes to be processed
+        chromosomes -- list of chromosomes to be processed (without 'chr')
         matrixfile -- path to input HiC matrix
         celltype -- cell line of the input matrix
         resolution -- resolution of the input matrix
-        outdir -- where the internally needed per-chromosome matrices are stored
+        internaloutdir -- where the internally needed per-chromosome matrices are stored
+        chromsizefile -- chromosome.sizes file for binning the proteins
     """
     ### checking extensions of files
     if not conf.checkExtension(basefile, '.ph5'):
         basefilename = os.path.splitext(basefile)[0]
         basefile = basefilename + ".ph5"
         msg = "basefile must have .ph5 file extension\n"
-        msg += "renamed to {0:s}"
+        msg += "renamed to {:s}"
         print(msg.format(basefile))
-    #remove existing basefile, if necessary
+    #remove existing basefiles, since they sometimes caused problems
     if os.path.isfile(basefile):
         os.remove(basefile)
+    
     protPeakFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName,'.narrowPeak', '.broadPeak')]
     bigwigFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName, 'bigwig')]
     wrongFileExtensionList = [fileName for fileName in proteinfiles \
@@ -80,8 +82,9 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     params['chromList'] = chromosomeList
     params['chromSizes'] = getChromSizes(chromosomeList, chromsizefile)
 
-    ### iterate over possible combinations for protein settings
+    ### iterate over all possible combinations of settings (merging, normalization etc.)
     for setting in conf.getBaseCombinations():
+        ### get settings and file tag for each combination
         params['normalize'] = setting['normalize']
         params['mergeOperation'] = setting['mergeOperation']
         ### get protein files with given paths for each setting
@@ -90,13 +93,13 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         proteinData = getProteinFiles(proteinfiles, params)
         ### literate over all chromosomes in list
         for chromosome in tqdm(params['chromList'], desc= 'Iterate chromosomes'):   
-            ### bin the proteins per file
+            ### get protein data from each object into a dataframe and store in a list
             binnedProteins = []
             for proteinfile in proteinData.keys():
                 binnedProteins.append(loadProteinData(proteinData[proteinfile], chromosome, params))
-            ### merge the binned proteins into a single dataframe
+            ### merge the binned protein dataframes from the list into a single dataframe
             for i in range(len(binnedProteins)):
-                binnedProteins[i].columns = [str(i)] #rename signalValue column to allow join
+                binnedProteins[i].columns = [str(i)] #rename signalValue columns to make joining easy
             maxBinInt = math.ceil(params['chromSizes'][chromosome] / int(resolution))
             proteinDf = pd.DataFrame(columns=['bin_id'])
             proteinDf['bin_id'] = list(range(0,maxBinInt))
@@ -121,6 +124,9 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
                 nonzeroEntries = proteinDf[nzmask].shape[0]
                 print("protein {0:d}: {1:d} of {2:d}".format(protein, nonzeroEntries, proteinDf.shape[0]))    
 
+    #if a matrixfile has been provided, cut it into chromosomes
+    #and store the resulting matrices internally
+    #these matrices can later be used for training
     if matrixfile:
         for chromosome in params['chromList']:
             cutHicMatrix(matrixfile, chromosome, internaloutdir, basefile)    
@@ -131,8 +137,9 @@ def getProteinFiles(pProteinFileList, pParams):
     """ function responsible of loading the protein files from the paths that
     were given
     Attributes:
-        proteinfiles -- list of paths of the protein files to be processed
-        params -- dictionary with parameters
+        pProteinFileList -- list of paths of the protein files to be processed
+    returns:
+        dict with filenames as keys and python objects as values
     """
     proteinData = dict()
     for path in pProteinFileList:
@@ -168,7 +175,7 @@ def getProteinDataFromPeakFile(pPeakFilePath, pParams):
         protData['peak'] = ((protData['chromEnd'] - protData['chromStart']) / 2).astype('uint32')
     return protData
 
-def getProteinDataFromBigwigFile(pBigwigFilePath):
+def getDataFromBigwigFile(pBigwigFilePath):
     try:
         bigwigFile = pyBigWig.open(pBigwigFilePath)
     except:
