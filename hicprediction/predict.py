@@ -187,8 +187,7 @@ def predict(model, testSet, pModelParams):
         reads = y_pred
     elif pModelParams['conversion'] == 'standardLog':
         target = 'standardLog'
-        reads = y_pred
-        reads = np.exp(reads) - 1
+        reads = np.exp(y_pred) - 1
     ### store into new dataframe
     test_y['predReads'] = reads
     if testSetHasTargetValues:
