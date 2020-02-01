@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
+import math
 import os
+import subprocess
+import sys
+
+import click
+import cooler.fileops
+import h5py
+import hicprediction.configurations as conf
+import numpy as np
+import pandas as pd
+import pybedtools
+import pyBigWig
+from hicprediction.tagCreator import createProteinTag
+from tqdm import tqdm
+
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
-import sys
-import hicprediction.configurations as conf
-import click
-import h5py
-from tqdm import tqdm
-import pandas as pd
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
-import pybedtools
-import numpy as np
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
-import bisect
-from hicprediction.tagCreator import createProteinTag
-import cooler.fileops
-import subprocess
-import pyBigWig
-import math
 
 """ Module responsible for the binning of proteins and the cutting of
     the genome HiC matrix into the chromosomes for easier access.
@@ -327,4 +328,3 @@ def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
 
 if __name__ == '__main__':
     loadAllProteins()
-
