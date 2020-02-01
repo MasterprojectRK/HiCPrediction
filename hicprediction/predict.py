@@ -143,12 +143,7 @@ def predict(model, testSet, pModelParams):
     testSetHasTargetValues =  testSet[nanreadMask].empty    
     
     ### Eliminate NaNs - there should be none
-    nrOfRowsBefore = testSet.shape[0]
     testSet.fillna(value=0, inplace=True)
-    nrOfRowsAfter = testSet.shape[0]
-    if nrOfRowsAfter != nrOfRowsBefore:
-        msg = "Warning: Removed {0:d} rows from test set because they contained NaNs"
-        print(msg.format(nrOfRowsBefore-nrOfRowsAfter))
     
     ### Hide Columns that are not needed for prediction
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
