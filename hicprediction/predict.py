@@ -122,7 +122,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
     
     ### store evaluation metrics, if results path set
     if resultsfilepath:
-        df = saveResults(predictionTag, df, modelParams, setParams, prediction, score, columns)
+        if score:
         df.to_csv(resultsfilepath)
 
 
@@ -134,6 +134,10 @@ def predict(model, testSet, pModelParams):
         testSet -- testSet to be predicted
         conversion -- conversion function used when training the model
     """
+    ### check if the test set contains reads, only then can we compute score later on
+    nanreadMask = testSet['reads'] == np.nan
+    testSetHasTargetValues =  testSet[nanreadMask].empty    
+    
     ### Eliminate NaNs - there should be none
     nrOfRowsBefore = testSet.shape[0]
     testSet.fillna(value=0, inplace=True)
@@ -188,7 +192,10 @@ def predict(model, testSet, pModelParams):
         reads = np.exp(reads) - 1
     ### store into new dataframe
     test_y['predReads'] = reads
+    if testSetHasTargetValues:
     score = model.score(test_X,test_y[target])
+    else:
+        score = None
     return test_y, score
 
 def predictionToMatrix2(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
