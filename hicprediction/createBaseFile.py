@@ -66,14 +66,21 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     if os.path.isfile(basefile):
         os.remove(basefile)
     
+    #split up the inputs and separate by file extensions
     protPeakFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName,'.narrowPeak', '.broadPeak')]
     bigwigFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName, 'bigwig')]
     wrongFileExtensionList = [fileName for fileName in proteinfiles \
         if not fileName in protPeakFileList and not fileName in bigwigFileList]
     if wrongFileExtensionList:
-        msg = "Aborted. The following input files are neither narrowPeak / broadPeak nor bigwig files:\n"
+        msg = "The following input files are neither narrowPeak / broadPeak nor bigwig files and cannot be processed:\n"
         msg += ", ".join(wrongFileExtensionList)
-        sys.exit(msg)
+        print(msg)
+    if not protPeakFileList and not bigwigFileList:
+        msg = "Nothing to process. Exiting"
+        print(msg)
+        return 
+
+  
     ### creation of parameter set
     params = dict()
     params['resolution'] = resolution
