@@ -55,13 +55,13 @@ _allpredict_options = [
                 "If set, sets are only calculated for these chromosomes instead of all"),
 ]
 _protein_options = [
-    click.option('--internalOutDir', '-iod', required=True, type=click.Path(writable=True), \
+    click.option('--internalOutDir', '-iod', required=False, type=click.Path(writable=True, exists=True), \
                     help='path where internally used matrices will be stored'),
-    click.option('--resolution' ,'-r', required=True,\
+    click.option('--resolution' ,'-r', required=True, type=click.IntRange(min=1), \
                 help = "Store resolution for analysis and documentation"),
-    click.option('--cellType' ,'-ct', required=True, \
+    click.option('--cellType' ,'-ct', required=True, type=str,\
                 help="Store cell type for analysis and documentation"),
-    click.option('--matrixFile', '-mf',required=True,type=click.Path(exists=True),\
+    click.option('--matrixFile', '-mf',required=False,type=click.Path(exists=True),\
                  help='Input file with the whole HiC-matrix '),
     click.option('--chromsizeFile', '-csf', required=True, type=click.Path(exists=True), help="chrom.sizes file for binning the proteins")
 ]
