@@ -146,7 +146,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     
              
 
-def getProteinFiles(pProteinFileList, pParams):
+def getProteinFiles(pProteinFileList):
     """ function responsible of loading the protein files from the paths that
     were given
     Attributes:
@@ -157,12 +157,12 @@ def getProteinFiles(pProteinFileList, pParams):
     proteinData = dict()
     for path in pProteinFileList:
         if path.endswith('Peak'):
-            proteinData[path] = getProteinDataFromPeakFile(path, pParams)
+            proteinData[path] = getDataFromPeakFile(path)
         if path.endswith('.bigwig'):
-            proteinData[path] = getProteinDataFromBigwigFile(path)
+            proteinData[path] = getDataFromBigwigFile(path)
     return proteinData
 
-def getProteinDataFromPeakFile(pPeakFilePath, pParams):
+def getDataFromPeakFile(pPeakFilePath):
     try:        
         bedToolFile = pybedtools.BedTool(pPeakFilePath)
         malformedFeatures = [features for features in bedToolFile if len(features.fields) not in [9,10]]
