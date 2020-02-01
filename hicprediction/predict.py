@@ -8,7 +8,7 @@ from hicprediction.tagCreator import createPredictionTag
 import joblib
 import pandas as pd
 import numpy as np
-import h5py
+#import h5py
 from scipy import sparse
 from scipy import ndimage
 from hicmatrix import HiCMatrix as hm
