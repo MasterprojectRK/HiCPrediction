@@ -35,10 +35,14 @@ def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
         msg = "prediction file {0:s} does not have a .z file extension. Aborted"
         sys.exit(msg.format(predictionsetpath))
 
+    #load trained model and testSet (target for prediction)
+    try:
     model, modelParams = joblib.load(modelfilepath)
     testSet, setParams = joblib.load(predictionsetpath)
-    executePrediction(model, modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, internalindir, sigma)
+    except Exception as e:
+        print(e)
+        msg = "Failed loading model and test set. Wrong format?"
+        sys.exit(msg)
 
 def executePrediction(model,modelParams, basefile, testSet, setParams,
                       predictionoutputdirectory, resultsfilepath, internalInDir, sigma):
