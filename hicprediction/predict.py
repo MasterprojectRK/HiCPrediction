@@ -14,6 +14,8 @@ from scipy import ndimage
 from hicmatrix import HiCMatrix as hm
 import sklearn.metrics as metrics
 import sys
+import math
+import cooler
 
 """
 Module responsible for the prediction of test set, their evaluation and the
@@ -22,8 +24,8 @@ conversion of prediction to HiC matrices
 
 @conf.predict_options
 @click.command()
-def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
-                      predictionoutputdirectory, resultsfilepath, internalindir, sigma):
+def executePredictionWrapper(modelfilepath, predictionsetpath,
+                      predictionoutputdirectory, resultsfilepath, sigma):
     """
     Wrapper function for Cli
     """
@@ -37,15 +39,18 @@ def executePredictionWrapper(modelfilepath, basefile, predictionsetpath,
 
     #load trained model and testSet (target for prediction)
     try:
-    model, modelParams = joblib.load(modelfilepath)
-    testSet, setParams = joblib.load(predictionsetpath)
+        model, modelParams = joblib.load(modelfilepath)
+        testSet, setParams = joblib.load(predictionsetpath)
     except Exception as e:
         print(e)
         msg = "Failed loading model and test set. Wrong format?"
         sys.exit(msg)
 
-def executePrediction(model,modelParams, basefile, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, internalInDir, sigma):
+    executePrediction(model, modelParams, testSet, setParams,
+                      predictionoutputdirectory, resultsfilepath, sigma)
+
+def executePrediction(model,modelParams, testSet, setParams,
+                      predictionoutputdirectory, resultsfilepath, sigma):
     """ 
     Main function
     calls prediction, evaluation and conversion methods and stores everything
@@ -57,10 +62,7 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         predictionoutputdirectory -- path to store prediction
         resultsfilepath --  path to results file for evaluation storage
     """
-    ### check extensions
-    if not conf.checkExtension(basefile, '.ph5'):
-        msg = "basefile {0:s} must have a .ph5 file extension"
-        sys.exit(msg.format(basefile))
+
     #check if the test set is a compound dataset (e.g. concatenated from diverse sets). 
     #this is not allowed for now
     if isinstance(setParams["chrom"], list) or isinstance(setParams["cellType"], list):
@@ -109,25 +111,56 @@ def executePrediction(model,modelParams, basefile, testSet, setParams,
         df = df.set_index('Tag')
     
     ### predict test dataset from model
-    prediction, score = predict(model, testSet, modelParams)
+    predictionDf, score = predict(model, testSet, modelParams)
     
+    #prediction Tag for storing results
     predictionTag = createPredictionTag(modelParams, setParams)
+    
     ### convert prediction back to matrix, if output path set
     if predictionoutputdirectory:
         predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
-        if modelParams['method'] == 'oneHot':
+        #get target chromsize / max bin index, since the target matrix might be larger than the predicted one
+        #because rows with zero protein entries may have been dropped at the front / end
+        chromosome = setParams['chrom']
+        resolutionInt = int(modelParams['resolution'])
+        try:
+            chromsize = modelParams['chromSizes'][chromosome[3:]]
+        except:
+            msg = "No entry for original size of chromosome chr{:s} found.\n"
+            msg += "Using size of predicted data, which may yield a smaller or larger predicted matrix"
+            msg = msg.format(chromosome)
+            print(msg)
+            maxShapeIndx = max(int(predictionDf['first'].max()), int(predictionDf['second'].max()))
+            chromsize = maxShapeIndx * resolutionInt
+        #set the correct matrix conversion function and convert
+        if modelParams['method']:
+            method = modelParams['method']
+        if method and method == 'oneHot':
             convertToMatrix = predictionToMatrix2
-        elif modelParams['method'] == 'multiColumn':
+        elif method and method == 'multiColumn':
             convertToMatrix = predictionToMatrix
         else:
-            raise NotImplementedError()
-        predictionToMatrix(prediction, basefile, modelParams,\
-                           setParams['chrom'], predictionFilePath, internalInDir, sigma)
-    
+            msg = "Warning: model creation method unknown. Falling back to multiColumn"
+            print(msg)
+            convertToMatrix = predictionToMatrix
+        #create a sparse matrix from the prediction dataframe
+        predMatrix = convertToMatrix(predictionDf, modelParams['conversion'], chromsize, resolutionInt)
+        #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
+        if sigma > 0.0:
+            predMatrix = smoothenMatrix(predMatrix, sigma)
+        #create and store final predicted matrix in cooler format
+        createCooler(predMatrix, chromosome, chromsize, resolutionInt, predictionFilePath)
+
     ### store evaluation metrics, if results path set
     if resultsfilepath:
         if score:
-        df.to_csv(resultsfilepath)
+            df = saveResults(predictionTag, df, modelParams, setParams, predictionDf, score, columns)
+            df.to_csv(resultsfilepath)
+        else:
+            msg = "Cannot evaluate prediction without target read values\n"
+            msg += "Please provide a test set which contains target values\n"
+            msg += "(or omit resultsfilepath)"
+            print(msg)
 
 
 def predict(model, testSet, pModelParams):
@@ -144,7 +177,7 @@ def predict(model, testSet, pModelParams):
     
     ### Eliminate NaNs - there should be none
     testSet.fillna(value=0, inplace=True)
-    
+
     ### Hide Columns that are not needed for prediction
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
     noDistance = 'noDistance' in pModelParams and pModelParams['noDistance'] == True
@@ -191,103 +224,94 @@ def predict(model, testSet, pModelParams):
     ### store into new dataframe
     test_y['predReads'] = reads
     if testSetHasTargetValues:
-    score = model.score(test_X,test_y[target])
+        score = model.score(test_X,test_y[target])
     else:
         score = None
     return test_y, score
 
-def predictionToMatrix2(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
+def predictionToMatrix2(pPredictionDf, pConversion, pChromSize, pResolution):
 
     """
     Function to convert prediction to Hi-C matrix
     Attributes:
-            pred -- prediction dataframe
-            baseFilePath --  base file
-            conversion -- conversion technique that was used
-            chromosome -- chromosome that wwas predicted
-            predictionFilePath -- where to store the new matrix
+            pPredictionDf = Dataframe with predicted read counts in column 'pred'
+            pConversion = Name of conversion function
+            pChromSize = (int) size of chromosome
+            pResolution = (int) resolution of target HiC-Matrix in basepairs
     """
-    with h5py.File(baseFilePath, 'r') as baseFile:
-        ### store conversion function
-        if pModelParams['conversion'] == "standardLog":
-            convert = lambda val: np.exp(val) - 1
-        elif pModelParams['conversion'] == "none":
-            convert = lambda val: val
-        ### get individual predictions for the counts from each protein
-        resList = []
-        numberOfProteins = pred.shape[1] - 13
-        for protein in range(numberOfProteins):
-            colName = 'prot_' + str(protein)
-            mask = pred[colName] == 1
-            resDf = pd.DataFrame()
-            resDf['first'] = pred[mask]['first']
-            resDf['second'] = pred[mask]['second']
-            ### convert back
-            predStr = 'pred_' + str(protein)
-            resDf[predStr] = convert(pred[mask]['pred'])
-            resDf.set_index(['first','second'],inplace=True)
-            resList.append(resDf)
-        #join the results on indices
-        predictionDf = pd.DataFrame(columns=['first', 'second'])
-        predictionDf.set_index(['first', 'second'], inplace=True)
-        predictionDf = predictionDf.join(resList,how='outer')
-        predictionDf.fillna(0.0, inplace=True)
-        predictionDf['merged'] = predictionDf.mean(axis=1)
-        #get the indices for the predicted counts
-        predictionDf.reset_index(inplace=True)
-        rows = list(predictionDf['first'])
-        columns = list(predictionDf['second'])
-        matIndx = (rows,columns)
-        #get the predicted counts
-        data = list(predictionDf['merged'])
-        ### create matrix with new values and overwrite original
-        matrixfile = baseFile[chromosome][()]
-        if internalInDir:
-            filename = os.path.basename(matrixfile)
-            matrixfile = os.path.join(internalInDir, filename)
-        originalMatrix = None
-        if os.path.isfile(matrixfile):
-            originalMatrix = hm.hiCMatrix(matrixfile)
-        else:
-            msg = ("cooler file {0:s} is missing.\n" \
-                    + "Use --iif option to provide the directory where the internal matrices " \
-                    +  "were stored when creating the basefile").format(matrixfile)
-            sys.exit(msg)        
+    ### store conversion function
+    if pConversion == "standardLog":
+        convert = lambda val: np.exp(val) - 1
+    elif pConversion == "none":
+        convert = lambda val: val
+    else:
+        msg = "unknown conversion type {:s}".format(str(pConversion))
+        raise ValueError(msg)
+    ### get individual predictions for the counts from each protein
+    resList = []
+    numberOfProteins = pPredictionDf.shape[1] - 13
+    for protein in range(numberOfProteins):
+        colName = 'prot_' + str(protein)
+        mask = pPredictionDf[colName] == 1
+        resDf = pd.DataFrame()
+        resDf['first'] = pPredictionDf[mask]['first']
+        resDf['second'] = pPredictionDf[mask]['second']
+        ### convert back            
+        predStr = 'pred_' + str(protein)
+        resDf[predStr] = convert(pPredictionDf[mask]['pred'])
+        resDf.set_index(['first','second'],inplace=True)
+        resList.append(resDf)
+
+    #join the results on indices
+    mergedPredictionDf = pd.DataFrame(columns=['first', 'second'])
+    mergedPredictionDf.set_index(['first', 'second'], inplace=True)
+    mergedPredictionDf = mergedPredictionDf.join(resList,how='outer')
+    mergedPredictionDf.fillna(0.0, inplace=True)
+    mergedPredictionDf['merged'] = mergedPredictionDf.mean(axis=1)
+    #get the indices for the predicted counts
+    mergedPredictionDf.reset_index(inplace=True)
+    rows = list(mergedPredictionDf['first'])
+    columns = list(mergedPredictionDf['second'])
+    matIndx = (rows,columns)
+    #get the predicted counts
+    data = list(mergedPredictionDf['merged'])
         
-        predMatrix = sparse.csr_matrix((data, matIndx), shape=originalMatrix.matrix.shape)
-        #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
-        if pSigma > 0.0:
-            upper = sparse.triu(predMatrix)
-            lower = sparse.triu(predMatrix, k=1).T
-            fullPredMatrix = (upper+lower).todense().astype('float32')
-            filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
-            predMatrix = sparse.triu(filteredPredMatrix)
+    #create predicted matrix
+    maxShapeIndx = math.ceil(pChromSize / pResolution)
+    predMatrix = sparse.csr_matrix((data, matIndx), shape=(maxShapeIndx, maxShapeIndx))
+    return predMatrix
 
-        originalMatrix.setMatrix(predMatrix, originalMatrix.cut_intervals)
-        originalMatrix.save(predictionFilePath)
 
-def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionFilePath, internalInDir, pSigma):
+def predictionToMatrix(pPredictionDf, pConversion, pChromSize, pResolution):
 
     """
     Function to convert prediction to Hi-C matrix
     Attributes:
-            pred -- prediction dataframe
-            baseFilePath --  base file
-            conversion -- conversion technique that was used
-            chromosome -- chromosome that wwas predicted
-            predictionFilePath -- where to store the new matrix
+            pPredictionDf = Dataframe with predicted read counts in column 'pred'
+            pConversion = Name of conversion function
+            pChromSize = (int) size of chromosome
+            pResolution = (int) resolution of target HiC-Matrix in basepairs
     """
-    with h5py.File(baseFilePath, 'r') as baseFile:
-        ### store conversion function
-        if pModelParams['conversion'] == "standardLog":
-            convert = lambda val: np.exp(val) - 1
-        elif pModelParams['conversion'] == "none":
-            convert = lambda val: val
-        ### get rows and columns (indices) for re-building the HiC matrix
-        rows = list(pred['first'])
-        columns = list(pred['second'])
-        matIndx = (rows,columns)
-        ### convert back
+    if pConversion == "standardLog":
+        convert = lambda val: np.exp(val) - 1
+    elif pConversion == "none":
+        convert = lambda val: val
+    else:
+        msg = "unknown conversion type {:s}".format(str(pConversion))
+        raise ValueError(msg)
+
+    ### get rows and columns (indices) for re-building the HiC matrix
+    rows = list(pPredictionDf['first'])
+    columns = list(pPredictionDf['second'])
+    matIndx = (rows,columns)
+    ### convert back
+    data = list(convert(pPredictionDf['pred']))
+    ### create predicted matrix
+    maxShapeIndx = math.ceil(pChromSize / pResolution)
+    predMatrix = sparse.csr_matrix((data, matIndx), shape=(maxShapeIndx, maxShapeIndx))
+    return predMatrix
+
+
 def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile):
     #get indices of upper triangular matrix
     triu_Indices = np.triu_indices(pSparseMatrix.shape[0])
@@ -312,13 +336,13 @@ def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile):
     #write out the cooler
     cooler.create_cooler(pOutfile, bins=bins, pixels=pixels)
 
-        
+
 def smoothenMatrix(pSparseMatrix, pSigma):
         upper = sparse.triu(pSparseMatrix)
         lower = sparse.triu(pSparseMatrix, k=1).T
-            fullPredMatrix = (upper+lower).todense().astype('float32')
-            filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
-            predMatrix = sparse.triu(filteredPredMatrix)
+        fullPredMatrix = (upper+lower).todense().astype('float32')
+        filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
+        predMatrix = sparse.triu(filteredPredMatrix)
         return predMatrix
 
 

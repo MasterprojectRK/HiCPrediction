@@ -37,11 +37,6 @@ _predict_base_options = [
     click.option('--resultsFilePath', '-rfp', default=None,show_default=True,\
               help='File where to store evaluation metrics. If not set'\
                 +' no evaluation is executed'),
-    click.option('--baseFile','-bf', required=True,type=click.Path(exists=True),
-        help='Base file used to create the predicted set'),
-    click.option('--internalInDir', '-iid', required=False, type=click.Path(exists=True),
-                help='path where internally used matrices are stored')
-
 ]
 _predict_options = [
     click.option('--modelFilePath', '-mfp', required=True,type=click.Path(exists=True),\
