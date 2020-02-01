@@ -288,20 +288,30 @@ def predictionToMatrix(pred, baseFilePath, pModelParams, chromosome, predictionF
         columns = list(pred['second'])
         matIndx = (rows,columns)
         ### convert back
-        data = list(convert(pred['pred']))
-        ### create matrix with new values and overwrite original
-        matrixfile = baseFile[chromosome][()]
-        if internalInDir:
-            filename = os.path.basename(matrixfile)
-            matrixfile = os.path.join(internalInDir, filename)
-        originalMatrix = None
-        if os.path.isfile(matrixfile):
-            originalMatrix = hm.hiCMatrix(matrixfile)
-        else:
-            msg = ("cooler file {0:s} is missing.\n" \
-                    + "Use --iif option to provide the directory where the internal matrices " \
-                    +  "were stored when creating the basefile").format(matrixfile)
-            sys.exit(msg)        
+def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile):
+    #get indices of upper triangular matrix
+    triu_Indices = np.triu_indices(pSparseMatrix.shape[0])
+    
+    #create the bins for cooler
+    bins = pd.DataFrame(columns=['chrom','start','end'])
+    binStartList = list(range(0, pChromSize, int(pResolution)))
+    binEndList = list(range(int(pResolution), pChromSize, int(pResolution)))
+    binEndList.append(pChromSize)
+    bins['start'] = binStartList
+    bins['end'] = binEndList
+    bins['chrom'] = str(pChromosome)
+
+    #create the pixels for cooler
+    pixels = pd.DataFrame(columns=['bin1_id','bin2_id','count'])
+    pixels['bin1_id'] = triu_Indices[0]
+    pixels['bin2_id'] = triu_Indices[1]
+    readCounts = np.array(pSparseMatrix[triu_Indices])[0]
+    pixels['count'] = np.float32(readCounts)
+    pixels.sort_values(by=['bin1_id','bin2_id'],inplace=True)
+
+    #write out the cooler
+    cooler.create_cooler(pOutfile, bins=bins, pixels=pixels)
+
         
 def smoothenMatrix(pSparseMatrix, pSigma):
         upper = sparse.triu(pSparseMatrix)
