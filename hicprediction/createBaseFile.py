@@ -49,6 +49,12 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         internaloutdir -- where the internally needed per-chromosome matrices are stored
         chromsizefile -- chromosome.sizes file for binning the proteins
     """
+    #if matrixfile has been provided, internalOutDir must also be present
+    if matrixfile and not internaloutdir:
+        msg = "Error: If --matrixFile / -mif is provided, --internalOutDir / -iod cannot be empty\n"
+        sys.exit(msg)
+
+
     ### checking extensions of files
     if not conf.checkExtension(basefile, '.ph5'):
         basefilename = os.path.splitext(basefile)[0]
