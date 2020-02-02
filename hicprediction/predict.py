@@ -131,16 +131,14 @@ def executePrediction(model,modelParams, testSet, setParams,
             maxShapeIndx = max(int(predictionDf['first'].max()), int(predictionDf['second'].max()))
             chromsize = maxShapeIndx * resolutionInt
         #set the correct matrix conversion function and convert
-        if modelParams['method']:
-            method = modelParams['method']
-        if method and method == 'oneHot':
-            convertToMatrix = predictionToMatrix2
-        elif method and method == 'multiColumn':
-            convertToMatrix = predictionToMatrix
+        if modelParams['method'] and modelParams['method'] == 'oneHot':
+            convertToMatrix = predictionToMatrixOneHot
+        elif modelParams['method'] and modelParams['method'] == 'multiColumn':
+            convertToMatrix = predictionToMatrixMultiColumn
         else:
             msg = "Warning: model creation method unknown. Falling back to multiColumn"
             print(msg)
-            convertToMatrix = predictionToMatrix
+            convertToMatrix = predictionToMatrixMultiColumn
         #create a sparse matrix from the prediction dataframe
         predMatrix = convertToMatrix(predictionDf, modelParams['conversion'], chromsize, resolutionInt)
         #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
@@ -203,7 +201,7 @@ def predict(model, testSet, pModelParams):
                 dropList.append(str(protein + 2 * numberOfProteins))
         else:
             raise NotImplementedError()
-    test_X = testSet[testSet.columns.difference(dropList)]
+    test_X = testSet[testSet.columns.difference(dropList)] #also works if one of the columns to drop is not present
     test_y = testSet.copy(deep=True)
     ### convert reads to log reads
     test_y['standardLog'] = np.log(testSet['reads']+1)
@@ -227,7 +225,7 @@ def predict(model, testSet, pModelParams):
         score = None
     return test_y, score
 
-def predictionToMatrix2(pPredictionDf, pConversion, pChromSize, pResolution):
+def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution):
 
     """
     Function to convert prediction to Hi-C matrix
@@ -280,7 +278,7 @@ def predictionToMatrix2(pPredictionDf, pConversion, pChromSize, pResolution):
     return predMatrix
 
 
-def predictionToMatrix(pPredictionDf, pConversion, pChromSize, pResolution):
+def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResolution):
 
     """
     Function to convert prediction to Hi-C matrix
