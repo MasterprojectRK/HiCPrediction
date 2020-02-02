@@ -13,3 +13,4 @@ InternalStorage/*
 *.csv
 *.broadPeak
 *.bigwig
+*.chrom.sizes
