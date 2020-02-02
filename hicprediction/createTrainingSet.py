@@ -171,6 +171,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             sys.exit(msg)
 
         ### add average contact read stratified by distance to dataset
+        if matrixfile:
         for i in tqdm(range(int(pWindowsize)),desc='Adding average read values'):
             df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
             
