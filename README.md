@@ -63,6 +63,9 @@ depending on the resolution of the HiC-matrix. Must be used if matrixfile is spe
 
     List of protein peaks in narrowPeak, broadPeak or bigwig format. The proteins must be the same for training / test datasets and they must be in the same order, see examples.
 
+Returns:
+ * basefile with user-defined name (see option -bf)
+
 ### 2. createTrainingSet.py
 This script creates the datasets that are required later both for training the regression model and for predicting HiC-matrices from given models. 
 
@@ -72,20 +75,20 @@ This script creates the datasets that are required later both for training the r
 * -iid, --internalInDir PATH [required]
 
     path to directory where the internal matrices from createBaseFile are stored
-* -ws, --windowSize INT [required]
+* -ws, --windowSize INT [optional]
     
     Maximum bin distance which will be considered for learning and prediction [default: 200; corresponds to 1.000.000 bp at 5kb resolution]
-* -wo, --windowOperation {avg\|max\|sum} [required]
+* -wo, --windowOperation {avg\|max\|sum} [optional]
 
     How the proteins between two bins should be considered during binning [default: avg]
 
-* --ignoreCentromeres BOOL [required]
+* --ignoreCentromeres BOOL [optional]
     
     Cut out the centroid arms for training [default: True]
 * --normalize BOOL
     
-    normalize protein signal values to a 0-1 range [default: False]
-* -mo, --mergeOperation {avg\|max} [required]
+    normalize protein signal values to a 0-1 range; default: False
+* -mo, --mergeOperation {avg\|max} [optional]
     
     This parameter defines how the proteins are binned [default: avg]
 * -chs, --chromosomes LIST OF TEXT [optional]
@@ -101,21 +104,24 @@ This script creates the datasets that are required later both for training the r
     Text file containing centromer regions. See centromeres.txt in InternalStorage for formatting
 * --cutoutLength 
 
-    currently undocumented
-* --smooth FLOAT [optional]
+    currently undocumented, don't use
+* --smooth FLOAT [0, 10] [optional]
 
     std. deviation for gaussian smoothing of protein inputs
     default=0.0, which means no smoothing
 
-* --method {multiColumn, oneHot} [required]
+* --method {multiColumn, oneHot} [optional]
 
     Method to use for building the dataset.
     OneHot = 3 columns for start protein, window protein and end protein plus a one-hot vector encoding for the corresponding protein plus distance;
     MultiColumn = start, window and end for each protein separately, plus distance.
-    Default = MultiColumn
+    Default: MultiColumn
 * --help
     
     Show this message and exit.
+
+Returns:
+ * .z-compressed dataset for each chromosome in directory -dod, with name dependending on the chosen options
 
 ### 3. training.py
 This script builds and trains the regression model. A training set as created above by createTrainingSet.py must be given as well as the output directory for the model.
@@ -128,49 +134,84 @@ Options:
  
     File from which training data is loaded
                                   
- * -co, --conversion {standardLog|none} [required]
+ * -co, --conversion {standardLog|none} [optional]
     
-    Define a conversion function for the read
-    values  [default: none]
+    conversion function for the read
+    values; default: none
 
  * -mod, --modelOutputDirectory PATH [required]
      
     Output directory for model files  
- * --trees
- * --maxfeat
- * --nodist
- * --nomiddle
- * --nostartend
- * --ovspercentage
- * --ovsfactor
- * --ovsbalance
+ * --trees UINT [optional]
+
+    number of trees in the random forest; default: 10
+ * --maxfeat {sqrt|none} [optional]
+
+    The number of features to consider when looking for the best split in the random forest (see sklearn). Default: none, i.e. use all features, if required
+ * --nodist BOOL [optional]
+
+    Do not use distance between start and end bin of each position as a feature to learn from. Default: False
+ * --nomiddle BOOL [optional]
+
+    Do not use window protein value between start and end bin of each position as a feature to learn from. Default: False
+ * --nostartend BOOL [optional]
+
+    Do not use signal values at the start and end bin of each position as a feature to learn from. Default: False
+ * --ovspercentage FLOAT [0, 1] [optional]
+
+    Split the samples at ovspercentage times max. read count in train matrix and oversample the upper part.
+    Default: 0.0, i.e., no oversampling
+
+ * --ovsfactor FLOAT [0.0, inf) [optional]
+
+    add the samples selected by ovspercentage to the original dataframe such that (number of samples in upper range) / (number of samples in lower range) >= ovsfactor. Default: 0.0, i.e., no oversampling
+
+ * --ovsbalance BOOL [optional]
+
+    Balance the samples in the oversampled range, such that they are equally frequent. Only effective, if ovsfactor > 0.0 and ovspercentage in (0,1). Default: False, i.e., no balancing
+
  * --help                        
  
     Show this message and exit.
 
+Returns:
+ * .z-compressed trained model with name dependent on chosen options, stored in directory given by -mod
+ * Feature importance graph (.png) in the same directory as the model
+
 ### 4. predict.py
-This script predicts HiC-matrices based on the chosen model. It requires a test dataset (created above by createTrainingSet.py) and a model (created above by training.py) and will output the predicted matrix in cooler format.
+This script predicts HiC-matrices from the chosen model. It requires a test dataset (created by createTrainingSet.py, see above) and a model (created by training.py, see above) and will output the predicted matrix in cooler format.
 Optionally a CSV-file can be defined as output for evaluation metrics, if the test dataset contains target values.
 
 Options:
- * -rfp, --resultsFilePath PATH     
- 
-    File where evaluation metrics are stored. Must have a csv file extension (.csv). If not set, no evaluation is executed
- * -pod, --predictionOutputDirectory PATH
+ * -pod, --predictionOutputDirectory PATH [optional]
                                  
     Output directory for prediction files. If
      not set, no predicted Hi-C matrices are stored.
      Otherwise, the output will be a predicted HiC-matrix in cooler format.
+
+ * -rfp, --resultsFilePath PATH [optional]    
+ 
+    File where evaluation metrics are stored. Must have a csv file extension (.csv). If not set, no evaluation is executed
+ 
  * -psp, --predictionSetPath PATH  [required]
     Test Data set used as input for prediction.
                                   
  * -mfp, --modelFilePath PATH [required]
 
     Model used for prediction  
+ 
+ * -sigma FLOAT [0, 10] [optional]
+
+    Smoothen the resulting matrix using gaussian filter with std. deviation sigma; default: 0.0, i.e., no smoothing
 
  * --help                          
  
     Show this message and exit.
+
+Returns:
+* Predicted matrix in cooler format in directory -pod, if specified
+* csv-file -rfp, if specified and target values available 
+
 
 ### 5. Example Usage
 
@@ -195,11 +236,32 @@ $ createBaseFile.py -bf Gm12878_5kb.ph5 -ct Gm12878 -r 5000 -csf ./hg19.chrom.si
 $ createBaseFile.py -bf K562_5kb.ph5 -ct K562 -r 5000 -chs 2 -csf ./hg19.chrom.sizes K562_Rad21.narrowPeak K562_Ctcf.broadPeak K562_H3k9me3.bigwig
 
 #create dataset for training
+#use the basefile created above and the output directory of
+#of the HiC-matrices as inputs to -bf and --iid, respectively.
+#word size set to 500 just as an example
+$createTrainingSet.py -bf Gm12878_5kb.ph5 -dod ./ -iid hicMatrices/ -ws 500 --ignoreCentromeres False
 
-#create datasetfor prediction (test set) 
+#create dataset for prediction (test set) 
+#word size must be the same as for the training dataset
+#iid is not required here, since no matrix was passed when
+#creating the basefile
+$createTrainingSet.py -bf K562_5kb.ph5 -dod ./ -ws 500 --ignoreCentromeres False
 
 #build and train the model
+#createTrainingSet.py outputs a dataset for all chromosomes
+#since the test set has been created for chr2 only, we also
+#use the train data set for chr2
+#using default params as a start is usually a good idea 
+$training.py -tdf GM12878_20000_Mavg_Wavg500_Bchr2.z -mod ./ 
 
 #predict target matrix from model using input from test set
+#use the model output from training.py for GM12878 and the dataset created by createTrainingSet.py for K562
+$predict.py -psp K562_20000_Mavg_Wavg500_Bchr2.z -mfp GM12878_20000_Mavg_Wavg500_Bchr2_Cnone.z -pod ./
+
+#after this completes, you should have the predicted matrix
+#Model_GM12878_20000_Mavg_Wavg500_Cnone_Bchr17_PredictionOn_K562_chr17.cool 
+#in your -pod directory ./
 
 ```
+
+You might then want to use e.g. pygenometracks to plot the predicted matrix vs. the real matrix (if you have one) and/or vs. the protein inputs.
