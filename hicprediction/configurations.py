@@ -37,17 +37,13 @@ _predict_base_options = [
     click.option('--resultsFilePath', '-rfp', default=None,show_default=True,\
               help='File where to store evaluation metrics. If not set'\
                 +' no evaluation is executed'),
-    click.option('--baseFile','-bf', required=True,type=click.Path(exists=True),
-        help='Base file used to create the predicted set'),
-    click.option('--internalInDir', '-iid', required=False, type=click.Path(exists=True),
-                help='path where internally used matrices are stored')
-
 ]
 _predict_options = [
     click.option('--modelFilePath', '-mfp', required=True,type=click.Path(exists=True),\
               help='Choose model on which to predict'),
     click.option('--predictionSetPath','-psp', required=True,type=click.Path(exists=True),
         help='Data set that is to be predicted.'),
+    click.option('--sigma', type=click.FloatRange(min=0.0,max=10.0), default=0.0)
 ]
 
 _allpredict_options = [
@@ -59,14 +55,15 @@ _allpredict_options = [
                 "If set, sets are only calculated for these chromosomes instead of all"),
 ]
 _protein_options = [
-    click.option('--internalOutDir', '-iod', required=True, type=click.Path(writable=True), \
+    click.option('--internalOutDir', '-iod', required=False, type=click.Path(writable=True, exists=True), \
                     help='path where internally used matrices will be stored'),
-    click.option('--resolution' ,'-r', required=True,\
+    click.option('--resolution' ,'-r', required=True, type=click.IntRange(min=1), \
                 help = "Store resolution for analysis and documentation"),
-    click.option('--cellType' ,'-ct', required=True, \
+    click.option('--cellType' ,'-ct', required=True, type=str,\
                 help="Store cell type for analysis and documentation"),
-    click.option('--matrixFile', '-mf',required=True,type=click.Path(exists=True),\
-                 help='Input file with the whole HiC-matrix ')
+    click.option('--matrixFile', '-mf',required=False,type=click.Path(exists=True),\
+                 help='Input file with the whole HiC-matrix '),
+    click.option('--chromsizeFile', '-csf', required=True, type=click.Path(exists=True), help="chrom.sizes file for binning the proteins")
 ]
 
 _set_base_options = [
@@ -85,7 +82,6 @@ _allset_options = [
               type=click.Path(exists=True)),
 ]
 _set_options = [
-    click.option('--peakColumn' ,'-pc', default=6,hidden=True),
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
@@ -98,7 +94,10 @@ _set_options = [
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
     click.option('--internalInDir', '-iid', type=click.Path(exists=True), \
-                    help='path where internally used matrices are stored')
+                    help='path where internally used matrices are stored'),
+    click.option('--cutoutLength','-cl', required=False, type=int, default=1000000, help="regions of this length will be cut out, if they have no protein peaks assigned"),
+    click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing"),                
+    click.option('--method',required=False, type=click.Choice(['oneHot', 'multiColumn']), default='multiColumn', help="how to build the dataset. MultiColumn = 3 columns for each protein (start, window, end), OneHot = 3 columns (start, window, end) + one-hot encoding for the proteins"),
 ]
 _train_options = [
     click.option('--trainDatasetFile', '-tdf',\
@@ -107,7 +106,10 @@ _train_options = [
                  ,type=click.Path(exists=True)),
     click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model"),
     click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model"),
-    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model")
+    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model"),
+    click.option('--ovsPercentage', '-ovsP', required=False, type=click.FloatRange(min=0.0, max=1.0), default=0.2, help="samples with read count > ovsP*(max. read count) and read count <= (max. read count) will be emphasized by oversampling, ovsP = 0.0 = 1.0 = no Oversampling"),
+    click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=4.0, help="(nr. of samples in oversampled range) = ovsF*(nr of elements in non-oversampled range)"),
+    click.option('--ovsBalance', '-ovsB', required=False, type=bool, default=False, help="balance while oversampling, such that all samples in oversampled range have approx. same frequency"),
 ]
 _alltrain_options = [
     click.option('--setDirectory', '-sd',type=click.Path(exists=True),\
@@ -180,7 +182,6 @@ def getBaseCombinations():
     params = {
         'mergeOperation': ["avg", "max"],
         'normalize': [True, False],
-        'peakColumn': [6],
     }
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):

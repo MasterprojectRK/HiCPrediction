@@ -30,18 +30,21 @@ used for the training sets. The base file from the former script
 @click.command()
 def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   internalindir, windowoperation, mergeoperation, windowsize, peakcolumn):
+                   internalindir, windowoperation, mergeoperation, 
+                   windowsize, cutoutlength, smooth, method):
     """
     Wrapper function
     calls function and can be called by click
     """
     createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    centromeresfile,ignorecentromeres,normalize,
-                   internalindir, windowoperation, mergeoperation, windowsize, peakcolumn)
+                   internalindir, windowoperation, mergeoperation, 
+                   windowsize, cutoutlength, smooth, method)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,ignorecentromeres,normalize,
-                   internalInDir, windowoperation, mergeoperation, windowsize, peakcolumn):
+                   centromeresfile,pIgnoreCentromeres,pNormalize,
+                   internalInDir, pWindowOperation, pMergeOperation, 
+                   pWindowsize, pCutoutLength, pSmooth, pMethod):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -56,7 +59,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             windowoperation -- bin operation for windows
             mergeoperation --  bin operations for protein binning
             windowsize --  maximal genomic distance
-            peakcolumn -- Column in bed file tha contains peak values
+            peakcolumn -- Column in bed file that contains peak values
     """
     ### check extensions
     if not centromeresfile:
@@ -73,11 +76,12 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         chromosomeList = chromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
+
     ### Iterate over chromosomes
     for chromosome in tqdm(chromosomeList, desc="Iterating chromosomes"):
         chromosome = int(chromosome)
         chromTag = "chr" +str(chromosome)
-        ### check if chromosme is along the 22 first chromosomes
+        ### check if chromosome is along the 22 first chromosomes
         if not chromosome in range(1,23):
             msg = 'Chromosome {0:d} is not in the range of 1 to 22.'
             msg += 'Please provide correct chromosomes'
@@ -85,74 +89,100 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         ### create parameter set
         params = dict()
         params['chrom'] = chromTag
-        params['windowOperation'] = windowoperation
-        params['mergeOperation'] = mergeoperation
-        params['normalize'] = normalize
-        params['ignoreCentromeres'] = ignorecentromeres
-        params['peakColumn'] = peakcolumn
-        params['windowSize'] = windowsize
-        proteinTag =createProteinTag(params)
+        params['windowOperation'] = pWindowOperation
+        params['mergeOperation'] = pMergeOperation
+        params['normalize'] = pNormalize
+        params['ignoreCentromeres'] = pIgnoreCentromeres
+        params['windowSize'] = pWindowsize
+        proteinTag = createProteinTag(params)
         proteinChromTag = proteinTag + "_" + chromTag
         ### retrieve proteins and parameters from base file
         with pd.HDFStore(basefile) as store:
             proteins = store[proteinChromTag]
             params2 = store.get_storer(proteinChromTag).attrs.metadata
+        ###smoothen the proteins by gaussian filtering, if desired
+        if pSmooth > 0.0:
+            proteins = smoothenProteins(proteins, pSmooth)
         ### join parameters
         params = {**params, **params2}
         setTag = createSetTag(params) + ".z"
         datasetFileName = os.path.join(datasetoutputdirectory, setTag)
-        fileExists = os.path.isfile(datasetFileName)
-        dir_list = next(os.walk(datasetoutputdirectory))[1]
-        for path in dir_list:
-            tmpPath = os.path.join(datasetoutputdirectory, path, setTag)
-            fileExists = fileExists or os.path.isfile(tmpPath)
-        if not fileExists:
+        
+        ### try to load HiC matrix
+        hiCMatrix = None
+        reads = None
+        try:
             with h5py.File(basefile, 'r') as baseFile:
-                if chromTag not in baseFile:
-                    msg = 'The chromosome {} is not loaded yet. Please'\
-                            +'update your chromosome file {} using the script'\
-                            +'"getChroms"'
-                    sys.exit()
-                ### load HiC matrix
                 matrixfile = baseFile[chromTag][()]
-                if internalInDir:
-                    filename = os.path.basename(matrixfile)
-                    matrixfile = os.path.join(internalInDir, filename)
-                hiCMatrix = None
-                if os.path.isfile(matrixfile):
-                    hiCMatrix = hm.hiCMatrix(matrixfile)
-                else:
-                    msg = ("cooler file {0:s} is missing.\n" \
+        except:
+            #no matrix was present when creating the basefile 
+            #which is normal for test set basefiles
+            matrixfile = None 
+            
+        if matrixfile:
+            if internalInDir:
+                filename = os.path.basename(matrixfile)
+                matrixfile = os.path.join(internalInDir, filename)
+            if os.path.isfile(matrixfile):
+                hiCMatrix = hm.hiCMatrix(matrixfile)
+            else:
+                msg = ("cooler file {0:s} is missing.\n" \
                           + "Use --iif option to provide the directory where the internal matrices " \
                           +  "were stored when creating the basefile").format(matrixfile)
-                    sys.exit(msg)
-                
+                sys.exit(msg)  
             ### load reads and bins
             reads = hiCMatrix.matrix
-            cuts = hiCMatrix.cut_intervals
-            cuts = np.array([cut[1] for cut in cuts])
-            ### if user decided to cut out centromeres and if the chromosome
-            ### has one, create datasets for both chromatids and join them
-            if ignorecentromeres :
-                start, end = getCentromerePositions(centromeresfile, chromTag,cuts)
-                for i in tqdm(range(2), desc = "Loading chromatids separately"):
-                    if i == 0:
-                        df = createDataset(proteins, reads, windowoperation, windowsize,
-                                chromosome, start=0, end=start)
-                    elif i == 1:
-                        df = df.append(createDataset(proteins, reads,\
-                                windowoperation, windowsize,\
-                                chromosome, start=end + 1, end=len(cuts)))
-            else:
-                df = createDataset(proteins, reads, windowoperation, windowsize,
-                               chromosome, start=0, end =len(cuts))
-            ### add average contact read stratified by distance to dataset
-            for i in range(int(windowsize)):
-                df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
-            joblib.dump((df, params), datasetFileName,compress=True ) 
+        
+        ### pick the correct variant of the dataset creation function
+        if pMethod == 'oneHot':
+            createDataset = createDatasetOneHot
         else:
-            print("Skipped creating file that already existed: " + datasetFileName)
-    print("\n")
+            createDataset = createDatasetMultiColumn
+        params['method'] = pMethod
+
+        ### if user decided to cut out centromeres and if the chromosome
+        ### has one, create datasets for both chromatids and join them
+        if pIgnoreCentromeres:
+            resolution = int(params['resolution'])
+            if pCutoutLength < resolution:
+                msg="Error: Cutout length must not be smaller than resolution. Aborting"
+                sys.exit(msg)
+            elif pCutoutLength < 5*resolution:
+                msg = "Warning: cutout length is smaller than 5x resolution\n"
+                msg += "Many regions might be cut out."
+                print(msg)
+            threshold = int(pCutoutLength / resolution)
+            starts, ends = findValidProteinRegions(proteins, threshold)
+            if not starts or not ends or len(starts) < 1 or len(ends) < 1:
+                msg = "No valid protein peaks found. Aborting."
+                sys.exit(msg)
+            else:
+                dfList = []
+                for s, e in zip(starts, ends):
+                    dfList.append(createDataset(proteins, reads, pWindowOperation, pWindowsize,
+                                chromosome, pStart = s, pEnd = e))
+                df = pd.concat(dfList, ignore_index=True, sort=False)     
+        else:
+            df = createDataset(proteins, reads, pWindowOperation, pWindowsize,
+                               chromosome, pStart=0, pEnd=proteins.shape[0]-1)
+        
+        if df.empty:
+            msg = "Could not create dataset. Aborting"
+            sys.exit(msg)
+
+        ### add average contact read stratified by distance to dataset
+        if matrixfile:
+            for i in tqdm(range(int(pWindowsize)),desc='Adding average read values'):
+                df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
+            
+        #one-hot encoding for the proteins / protein numbers
+        if pMethod == 'oneHot':
+            df['proteinNr'] = df['proteinNr'].astype('category')
+            df = pd.get_dummies(df, prefix='prot')
+
+        #finally, store the dataset    
+        joblib.dump((df, params), datasetFileName,compress=True ) 
+
 
 def getCentromerePositions(centromeresfilepath, chromTag, cuts):
     """
@@ -176,8 +206,8 @@ def getCentromerePositions(centromeresfilepath, chromTag, cuts):
     toEnd = cuts[cuts < end]
     return  len(toStart), len(toEnd)
 
-def createDataset(proteins, fullReads, windowOperation, windowSize,
-                   chrom, start, end):
+def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSize,
+                   pChrom, pStart, pEnd):
     """
     function that creates the actual dataset for a specific
     chromosome/chromatid
@@ -190,64 +220,144 @@ def createDataset(proteins, fullReads, windowOperation, windowSize,
             start -- start position of interval to be processed
             end -- end  position of interval to be processed
     """
-
-    ### cut proteins according to centromere positions
-    proteins = proteins[start:end]
-    colNr = np.shape(proteins)[1]
-    proteinNr = colNr - 1
-    rows = np.shape(proteins)[0]
-    fullReads = fullReads.todense()
-    reads = fullReads[start:end, start:end]
-    ### create columns of dataset
-    strList = [str(x) for x in range(3*(proteinNr))]
-    cols = ['first', 'second','chrom'] + strList+['distance','reads']
-    ### get window bin operation
-    #if windowOperation == 'avg':
-    #    convertF = np.mean
-    #elif windowOperation == 'sum':
-    #    convertF = np.sum
-    #elif windowOperation == 'max':
-    #    convertF = np.max
+    df = pd.DataFrame()
+    if pEnd > pStart and pEnd >= 0 and pStart >= 0: #end not >= start (greater equal), since we look at diagonals and need two non-equal values
+        proteins = pProteins[pStart:pEnd].reset_index(drop=False)
+        numberOfProteins = proteins.shape[1] - 1
     
-    reach  = min(end-start, int(windowSize))
-    height = int((rows - reach) * reach +  reach * (reach +1) /2)
-    lst = range(rows - reach)
-    ### compute indices for all the possible contact pairs considering maximum
-    ### genomic distance etc.
-    idx1 = list(itertools.chain.from_iterable(itertools.repeat(x, reach) for x in lst))
-    for i in range(reach):
-        idx1.extend((reach - i) * [rows - reach + i])
-    idx2 =[]
-    for i in range(rows - reach):
-        idx2.extend(list(range(i, i + reach)))
-    for i in range(rows - reach, rows):
-        idx2.extend(list(range(i, rows)))
-    ### create data frame and fill with values and indices
-    df = pd.DataFrame(0, index=range(height), columns=cols)
-    df['chrom'] = str(chrom)
-    df['first'] = np.array(idx1)
-    df['second'] = np.array(idx2)
-    df['distance'] = (df['second'] - df['first']) 
-    df['reads'] = np.array(reads[df['first'],df['second']])[0]
-    ### load proteins
-    proteinMatrix = np.matrix(proteins)
-    starts = df['first'].values
-    ends = df['second'].values + 1
-    ### create generator that will compute the window proteins
-    middleGenerator = getMiddle(proteins.values.transpose(), starts, ends,
-                                windowOperation)
+        numberOfDiagonals = min(pEnd-pStart,pWindowSize) #range might be smaller than window size, if centromere close to start / end of chromosome or if valid region small
+        trapezIndices = np.mask_indices(proteins.shape[0],maskFunc,k=numberOfDiagonals)
+        
+        reads = None
+        readMatrix = None
+        if pFullReads != None:
+            readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
+            reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
+    
+        ### create data frame and fill with values and indices
+        strList = [str(x) for x in range(3*(numberOfProteins))]
+        cols = ['first', 'second','chrom'] + strList+ ['distance','reads']
+        df = pd.DataFrame(columns=cols)
+        df['first'] = np.uint32(trapezIndices[0])
+        df['second'] = np.uint32(trapezIndices[1])
+        df['distance'] = df['second'] - df['first']
+        df['chrom'] = np.uint8(pChrom)
+        if pFullReads != None:
+            df['reads'] = np.float32(reads)
+            df['reads'].fillna(0, inplace=True)
     ### iterate over all the proteins and fill the data frame
-    for i in tqdm(range(proteinNr), desc="Converting Proteins to dataset"):
-        # print(i)
-        # start = time.time()*1000
-        # print(start - time.time()*1000)
-        ### Could maybe iterate genomic distance instead of middleGenerator to speed
-        ### things up
-        df[str(i)] = np.array(proteinMatrix[df['first'], i+1]).flatten()
-        df[str(proteinNr + i)] = next(middleGenerator) 
-        df[str(proteinNr * 2 + i)] = np.array(proteinMatrix[df['second'], i+1]).flatten()
-    df['first'] += start
-    df['second'] += start
+        for protein in tqdm(range(numberOfProteins), desc="Converting Proteins to dataset"):
+            protIndex = str(protein)
+            #start proteins
+            df[protIndex] = list(proteins[protIndex][df['first']])
+            #end proteins
+            df[str(numberOfProteins * 2 + protein)] = list(proteins[protIndex][df['second']])
+        
+            #window proteins
+            winSize = min(pEnd-pStart, pWindowSize)
+            windowDf = buildWindowDataset(proteins, protein, winSize, pWindowOperation)
+            #get the window proteins into an array and slice it to get all values at once 
+            #there might be a more efficient way using pandas
+            distWindowArr = windowDf.to_numpy()
+            slice1 = list(df['second'])
+            slice2 = list(df['distance'])
+            slice3 = (slice1, slice2)
+            windowProteins = np.array(distWindowArr[slice3])
+            df[str(numberOfProteins + protein)] = np.float32(windowProteins)
+
+        #drop rows where start / end proteins are both zero
+        rowsBefore = df.shape[0]
+        mask = False    
+        for i in tqdm(range(numberOfProteins), desc="removing rows without start/end proteins"):    
+            m1 = df[str(i)] > 0
+            m2 = df[str(numberOfProteins * 2 + i)] > 0
+            mask = mask | (m1 & m2)
+        df = df[mask]
+        print()
+        print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
+        print( "{0:d} training samples left".format(df.shape[0]) )
+
+        #consider offset
+        df['first'] += pStart
+        df['second'] += pStart
+    return df
+
+def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
+                   pChrom, pStart, pEnd):
+    
+    df = pd.DataFrame()
+    
+    if pEnd > pStart and pEnd >= 0 and pStart >= 0: #end not >= start (greater equal), since we look at diagonals and need two non-equal values
+        proteins = pProteins[pStart:pEnd].reset_index(drop=False)
+
+        numberOfProteins = proteins.shape[1] - 1
+
+        # Get those indices and corresponding read values of the HiC-matrix that shall be used 
+        # for learning and predicting.
+        # Since HiC matrices are symmetric, looking at the upper triangular matrix is sufficient
+        # It has been shown that taking the full triangle is not good, since most values 
+        # are zero or close to zero. So, take the indices of the main diagonal 
+        # and the next pWindowSize-1 side diagonals. This structure is a trapezoid
+        numberOfDiagonals = min(pEnd-pStart,pWindowSize) #range might be smaller than window size, if centromere close to start / end of chromosome or if valid region small
+        trapezIndices = np.mask_indices(proteins.shape[0],maskFunc,k=numberOfDiagonals)
+        
+        reads = None
+        readMatrix = None
+        if pFullReads != None:
+            readMatrix = pFullReads[pStart:pEnd,pStart:pEnd]
+            reads = np.array(readMatrix[trapezIndices])[0] # get only the relevant reads
+
+        dsList = []
+        cols = ['first', 'second', 'chrom', 'startProt', 'middleProt', 'endProt', 'distance', 'reads', 'proteinNr']
+        for protein in tqdm(range(numberOfProteins)):
+            protDf = pd.DataFrame(columns=cols,dtype=np.uint32)
+            protDf['first'] = np.uint32(trapezIndices[0])
+            protDf['second'] = np.uint32(trapezIndices[1])
+            protDf['distance'] = protDf['second'] - protDf['first']
+            protDf['chrom'] = np.uint8(pChrom)
+            if pFullReads != None:
+                protDf['reads'] = np.float32(reads)
+                protDf['reads'].fillna(0, inplace=True)
+            protDf['proteinNr'] = np.uint8(protein)
+            
+            #get the protein values for the row ("first") and column ("second") position
+            #in the HiC matrix
+            protIndex = str(protein)
+            startProts = list(proteins[protIndex][protDf['first']])
+            protDf['startProt'] = startProts
+            endProts = list(proteins[protIndex][protDf['second']])
+            protDf['endProt'] = endProts
+
+            #compute window proteins for all positions ending at "second"
+            #and all window sizes between 1 and pWindowSize
+            #windowDf[x,y] = middle protein values for "second" = x and "distance" = y
+            protDf['middleProt'] = 0.
+            winSize = min(pEnd-pStart, pWindowSize)
+            windowDf = buildWindowDataset(proteins, protein, winSize, pWindowOperation)
+        
+            #get the window proteins into an array and slice it to get all values at once 
+            #there might be a more efficient way using pandas
+            distWindowArr = windowDf.to_numpy()
+            slice1 = list(protDf['second'])
+            slice2 = list(protDf['distance'])
+            slice3 = (slice1, slice2)
+            windowProteins = np.array(distWindowArr[slice3])
+            protDf['middleProt'] = np.float32(windowProteins)
+
+            dsList.append(protDf)
+        
+        df = pd.concat(dsList, ignore_index=True, sort=False)
+        df['first'] += pStart
+        df['second'] += pStart
+
+        #drop all rows where start and end protein are both zero
+        mask1 = df['startProt'] > 0 
+        mask2 = df['endProt'] > 0
+        rowsBefore = df.shape[0]
+        df = df[mask1 & mask2]
+        print()
+        print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
+        print( "{0:d} training samples left".format(df.shape[0]) )
     return df
 
 def get_ranges(starts,ends):
@@ -304,6 +414,81 @@ def getMiddle(proteins,starts,ends, windowOperation):
             yield bin_count
         # elif windowOperation == "max":
             # yield bin_count
+
+def maskFunc(pArray, pWindowSize=0):
+    maskArray = np.zeros(pArray.shape)
+    upperTriaInd = np.triu_indices(maskArray.shape[0])
+    notRequiredTriaInd = np.triu_indices(maskArray.shape[0], k=pWindowSize)
+    maskArray[upperTriaInd] = 1
+    maskArray[notRequiredTriaInd] = 0
+    return maskArray
+
+def buildWindowDataset(pProteinsDf, pProteinNr, pWindowSize, pWindowOperation):
+    df = pd.DataFrame()
+    proteinIndex = str(pProteinNr)
+    for winSize in range(pWindowSize):
+        if pWindowOperation == "max":
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).max()
+        elif pWindowOperation == "sum":
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).sum()
+        else:
+            windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).mean()
+        df[str(winSize)] = windowColumn.round(3).astype('float32')
+    return df
+
+def findValidProteinRegions(pProteins, pLenThreshold):
+    ###filter out regions of length larger than pLenThreshold
+    ###where none of the proteins has a peak
+    ###return start and end incdices of valid regions
+    maxIndex = pProteins.shape[0]-1
+    validStartIndices = []
+    validEndIndices = []
+    #remove unecessary columns and sum over the remaining protein peak columns
+    #window column is 0, if none of the proteins has any peak within the (forward facing) window of length pLenThreshold
+    clearedProts = pProteins
+    clearedProts['sum'] = clearedProts.sum(axis=1)
+    clearedProts['window'] = clearedProts['sum'].rolling(window=pLenThreshold).max()
+    
+    #there are hopefully more valid then invalid regions, so it makes
+    #sense to filter for invalid regions and compute valid regions from there
+    invalidMask = clearedProts['window'] <= 1.0
+    endList = list( clearedProts[invalidMask].index ) 
+    if len(endList) == 0:
+        #no invalid regions, i. e. whole chromosome is valid
+        validStartIndices = [0]
+        validEndIndices = [maxIndex]
+    elif len(endList) > 0 and len(endList) < pProteins.shape[0]:
+        startList = endList[1:] + [endList[-1]+1] #endList[1:] = [] for lists of length 1
+        invalidStartIndices = [endList[0]-pLenThreshold+1]
+        invalidEndIndices = []
+        for end, start in zip(endList, startList):
+            if start - end > 1:
+                invalidEndIndices.append(end)
+                invalidStartIndices.append(start-pLenThreshold+1)
+        invalidEndIndices.append(endList[-1])
+        validStartIndices = [x+1 for x in invalidEndIndices if x < maxIndex]
+        validEndIndices = [x-1 for x in invalidStartIndices if x > 0 ]
+        if invalidStartIndices[0] != 0:
+            validStartIndices.insert(0, 0)
+        if invalidEndIndices[-1] != maxIndex:
+            validEndIndices.append(maxIndex) 
+    #drop the sum and max columns (since we've not copied the protein df)
+    clearedProts.drop(columns=['sum', 'window'], inplace=True)
+    return (validStartIndices, validEndIndices)
+    
+def smoothenProteins(pProteins, pSmooth):
+    smoothenedProtDf = pd.DataFrame(columns=pProteins.columns)
+    for column in pProteins.columns:
+        #compute window size. 
+        winSize = int(8*pSmooth) #try a window width of 8 sigma - 4 sigma on both sides
+        if winSize % 2 == 0:
+            winSize += 1 #window size should not be even, shifting the input otherwise
+        winSize = max(3, winSize) #window size should be at least 3, otherwise no smoothing
+        #use gaussian for smoothing
+        smoothenedProtDf[column] = pProteins[column].rolling(window=winSize, win_type='gaussian', center=True).mean(std=pSmooth)
+    smoothenedProtDf.fillna(method='bfill', inplace=True) #fill first (window/2) bins
+    smoothenedProtDf.fillna(method='ffill', inplace=True) #fill last (window/2) bins
+    return smoothenedProtDf
 
 
 if __name__ == '__main__':

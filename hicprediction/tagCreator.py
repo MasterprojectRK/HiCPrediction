@@ -8,7 +8,7 @@ def createSetTag(params):
     cellTypeStr = "_".join(cellTypeList)
     windowOpStr = "_".join(windowOpList)
     chromStr = "_".join(chromList)
-    tmp = cellTypeStr + '_' + params['resolution']
+    tmp = cellTypeStr + '_' + str(params['resolution'])
     tmp +='_'+ createProteinTag(params)
     tmp += '_W' + windowOpStr
     tmp += str(params['windowSize'])
@@ -27,8 +27,6 @@ def createProteinTag(params):
     tmp += 'M' + mergeOpStr
     if params['normalize']:
         tmp += '_N'
-    if params['peakColumn']  != 6:
-        tmp += '_PC' + str(params['peakColumn'])
     return tmp
 
 
