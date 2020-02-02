@@ -92,7 +92,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     X = df.drop(columns=dropList)
 
     ### oversampling to emphasize data with high read counts
-    if pOvsPercentage > 0.0 and pOvsPercentage < 1.0:
+    if pOvsPercentage > 0.0 and pOvsPercentage < 1.0 and pOvsFactor > 0.0:
         variableOversampling(X, params, pCutPercentage=pOvsPercentage, pOversamplingFactor=pOvsFactor, pBalance=pOvsBalance, pModeloutputdirectory=modeloutputdirectory, pPlotOutput=True)
     
     ### separate reads from data and convert, if necessary
