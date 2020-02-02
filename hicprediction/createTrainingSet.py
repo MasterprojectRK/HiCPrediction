@@ -135,9 +135,9 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         
         ### pick the correct variant of the dataset creation function
         if pMethod == 'oneHot':
-            buildDataset = createDataset2
+            createDataset = createDatasetOneHot
         else:
-            buildDataset = createDataset
+            createDataset = createDatasetMultiColumn
         params['method'] = pMethod
 
         ### if user decided to cut out centromeres and if the chromosome
@@ -159,11 +159,11 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             else:
                 dfList = []
                 for s, e in zip(starts, ends):
-                    dfList.append(buildDataset(proteins, reads, pWindowOperation, pWindowsize,
+                    dfList.append(createDataset(proteins, reads, pWindowOperation, pWindowsize,
                                 chromosome, pStart = s, pEnd = e))
                 df = pd.concat(dfList, ignore_index=True, sort=False)     
         else:
-            df = buildDataset(proteins, reads, pWindowOperation, pWindowsize,
+            df = createDataset(proteins, reads, pWindowOperation, pWindowsize,
                                chromosome, pStart=0, pEnd=proteins.shape[0]-1)
         
         if df.empty:
@@ -172,16 +172,15 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
 
         ### add average contact read stratified by distance to dataset
         if matrixfile:
-        for i in tqdm(range(int(pWindowsize)),desc='Adding average read values'):
-            df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
+            for i in tqdm(range(int(pWindowsize)),desc='Adding average read values'):
+                df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
             
         #one-hot encoding for the proteins / protein numbers
         if pMethod == 'oneHot':
             df['proteinNr'] = df['proteinNr'].astype('category')
             df = pd.get_dummies(df, prefix='prot')
-        #print(df.head(10))
-        #print(df.tail(10))
-            
+
+        #finally, store the dataset    
         joblib.dump((df, params), datasetFileName,compress=True ) 
 
 
@@ -207,7 +206,7 @@ def getCentromerePositions(centromeresfilepath, chromTag, cuts):
     toEnd = cuts[cuts < end]
     return  len(toStart), len(toEnd)
 
-def createDataset(pProteins, pFullReads, pWindowOperation, pWindowSize,
+def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd):
     """
     function that creates the actual dataset for a specific
@@ -283,7 +282,7 @@ def createDataset(pProteins, pFullReads, pWindowOperation, pWindowSize,
         df['second'] += pStart
     return df
 
-def createDataset2(pProteins, pFullReads, pWindowOperation, pWindowSize,
+def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd):
     
     df = pd.DataFrame()
