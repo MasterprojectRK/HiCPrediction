@@ -58,15 +58,17 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         
     ### create model with desired parameters
     model = sklearn.ensemble.RandomForestRegressor(max_features=pMaxFeat, random_state=5,\
-                    n_estimators=pNrOfTrees, n_jobs=4, verbose=2, criterion='mse')
+                    n_estimators=pNrOfTrees, n_jobs=-1, verbose=2, criterion='mse')
     
     ### replace infinity and nan values. There shouldn't be any.
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.fillna(value=0, inplace=True)
 
-    ### drop columns that should not be used for training EXCEPT reads which are needed for oversampling
-    ### dropping also reduces the memory demand for subsequent oversampling
-    dropList = ['first', 'second', 'chrom', 'avgRead']
+    ### add weights and over-emphasize some of them, if requested
+    variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
+
+    ### drop columns that should not be used for training
+    dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'weights']
     if noDist:
         dropList.append('distance')    
     if noMiddle:
@@ -89,23 +91,23 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
                 dropList.append(str(protein + 2 * numberOfProteins))
         else:
             raise NotImplementedError()
-    X = df.drop(columns=dropList)
-
-    ### oversampling to emphasize data with high read counts
-    if pOvsPercentage > 0.0 and pOvsPercentage < 1.0 and pOvsFactor > 0.0:
-        variableOversampling(X, params, pCutPercentage=pOvsPercentage, pOversamplingFactor=pOvsFactor, pBalance=pOvsBalance, pModeloutputdirectory=modeloutputdirectory, pPlotOutput=True)
+    X = df[df.columns.difference(dropList)]
     
-    ### separate reads from data and convert, if necessary
-    if conversion == 'none':
-        y = X['reads']
-    elif conversion == 'standardLog':
-        y = np.log(X['reads']+1)
-    X.drop(columns='reads', inplace=True)
+    #weights
+    weights = df['weights']
 
-    model.fit(X, y)
+    ### apply conversion
+    if conversion == 'none':
+        y = df['reads']
+    elif conversion == 'standardLog':
+        y = np.log(df['reads']+1)
+
+    ## train model and store it
+    model.fit(X, y, weights)
     modelTag = createModelTag(params)
     modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
     joblib.dump((model, params), modelFileName, compress=True ) 
+    print("\n")
 
     visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag)
 
@@ -113,87 +115,95 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
 def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
     #Select all rows (samples) from dataframe where "reads" (read counts) are in certain range,
     #i.e. are higher than pCutPercentage*maxReadCount. This is the high-read-count-range.
-    #Emphasize this range by adding (copying) the respective rows to the dataframe such that the number of high-read-count rows 
-    #in the dataframe is at least pOversamplingFactor times greater than the number of low-read-count samples
+    #Emphasize this range by adjusting the weights such that (sum of high-read-count-weights)/(sum of low-read-count-weights) = pOversamplingFactor
     #Additionally, the high-read-count-range can be approximately balanced in itself by binning it into regions 
     #and emphasizing regions with lower numbers of samples more than the ones with higher number of samples.
+    
+    #if nothing works, all weights equally = 1.0
+    pInOutDataFrameWithReads['weights'] = 1.0
+
+    if pCutPercentage <= 0.0 or pCutPercentage >= 1.0 or pOversamplingFactor <= 0.0:
+        return
+
+    readMax = np.float32(pInOutDataFrameWithReads.reads.max())
     print("Oversampling...")
     if pModeloutputdirectory and pPlotOutput:
-        #plot the raw read distribution first
+        #plot the weight vs. read count distribution first
         fig1, ax1 = plt.subplots(figsize=(8,6))
-        pInOutDataFrameWithReads.hist(column='reads', bins=100, ax=ax1, density=True) 
+        binSize = math.ceil(readMax / 100)
+        bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
+        printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
+        printDf.reset_index(inplace=True, drop=False)
+        ax1.bar(printDf.reads, printDf.weights, width=binSize)
         ax1.set_xlabel("read counts")
-        ax1.set_ylabel("normalized frequency")
-        ax1.set_title("raw read distribution")
-        figureTag = createModelTag(pParams) + "_readDistributionBefore.png"        
+        ax1.set_ylabel("weight sum")
+        ax1.set_yscale('log')
+        ax1.set_title("weight sum vs. read counts")
+        figureTag = createModelTag(pParams) + "_weightSumDistributionBefore.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
     
-    readMax = np.float32(pInOutDataFrameWithReads.reads.max())
+    
     #the range which doesn't get oversampled
-    smallCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads']<= pCutPercentage*readMax].shape[0]
-    if smallCountSamples == 0:
+    smallCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads']<= pCutPercentage*readMax].weights.sum()
+    if smallCountWeightSum == 0:
         print("Warning: no samples with read count less than {:.2f}*max read count in dataset".format(pCutPercentage))
-        print("No oversampling possible, continuing with next step")
+        print("No oversampling possible, continuing with next step and all weights = 1.0")
         print("Consider increasing oversamling percentage using -ovsP parameter")
         return
-    #the range we want to oversample, i.e. add repeatedly to the dataframe until sampleRelation >= pOversamplingFactor
-    highCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].shape[0]
-    sampleRelation = highCountSamples / smallCountSamples
-    print("=> relation high-read-count-range :: low-read-count-range before oversampling {:.2f}".format(sampleRelation))
-        
-    #if enabled, first balance the high-count samples among each other, i. e. bin them and oversample the bins
-    if pBalance and sampleRelation < pOversamplingFactor:
-        print("=> balancing the high-read-count samples among each other")
-        oversamplingPercentageList = np.linspace(pCutPercentage,1.0,30)
-        oversamplingFactorList = []
-        oversamlingDfList= []
-        #compute the balancing factors
-        for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
-            gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
-            leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
-            oversampledDf = pInOutDataFrameWithReads[gtMask & leqMask]
-            if not oversampledDf.empty:
-                oversamlingDfList.append(oversampledDf) 
-                nrOfSamplesInBin = oversampledDf.shape[0]
-                oversamplingFactorList.append(nrOfSamplesInBin)
-        maxNrSamplesInBins = np.max(oversamplingFactorList)
-        oversamplingFactorList = np.uint32([np.round(maxNrSamplesInBins/x) - 1 for x in oversamplingFactorList])    
+    #the range we want to oversample, i.e. adjust the weights
+    highCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].weights.sum()
+    sampleRelation = highCountWeightSum / smallCountWeightSum
+    print("=> weight sum relation high-read-count-range :: low-read-count-range before oversampling {:.2f}".format(sampleRelation))
+    
+    #if balancing enabled, split the high-count samples into a reasonable number of bins, 
+    #then adjust the weights for the bins separately
+    #such that all bins have the same weight sum and all samples within each bin have the same weight
+    #if balancing disabled => corner case with just one bin
+    if pBalance:
+        binsizePercent = 0.025
+        nrOfBins = math.ceil( (1.0-pCutPercentage) / binsizePercent)
+    else:
+        nrOfBins = 1 
+    msg = "splitting the the high-read-count range into {:d} bins and adjusting weights"
+    msg = msg.format(nrOfBins)
+    print(msg)
+    oversamplingPercentageList = np.linspace(pCutPercentage,1.0, nrOfBins + 1)
+    #find the number of bins which have reads in them and compute the target weight sum
+    #at least one bin will have reads
+    nrOfNonzeroBins = nrOfBins
+    for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
+        gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
+        leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
+        if pInOutDataFrameWithReads[gtMask & leqMask].empty:
+            nrOfNonzeroBins -= 1
+    targetWeightSum = pOversamplingFactor * smallCountWeightSum / nrOfNonzeroBins #target weight sum for each bin
+    #adjust the weights for each bin separately
+    for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
+        gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
+        leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
+        if not pInOutDataFrameWithReads[gtMask & leqMask].empty:
+            currentNrOfSamples = pInOutDataFrameWithReads[gtMask & leqMask].shape[0]
+            pInOutDataFrameWithReads.loc[gtMask & leqMask, 'weights'] = targetWeightSum / currentNrOfSamples     
 
-        #balance the high-read-count range by appending the individual bins factor times to the original dataframe
-        #the bin with the highest number will not be appended
-        for oversampledDf, factor in zip(oversamlingDfList, oversamplingFactorList): 
-            if not factor < 1:
-                appendDf = pd.concat([oversampledDf]*factor, ignore_index=True)
-                pInOutDataFrameWithReads = pInOutDataFrameWithReads.append(appendDf, ignore_index=True, sort=False)
-                pInOutDataFrameWithReads.reset_index(inplace=True, drop=True)
-        
-        #recompute the relation
-        highCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].shape[0]
-        sampleRelation = highCountSamples / smallCountSamples
-        print("=> relation high-read-count-range :: low-read-count-range after balancing {:.2f}".format(sampleRelation))
-
-    #if the relation between the samples in both ranges is (still) below the desired factor, proceed with oversampling
-    if sampleRelation < pOversamplingFactor:
-        factor = math.ceil(pOversamplingFactor / sampleRelation)
-        gtMask = pInOutDataFrameWithReads['reads'] > pCutPercentage * readMax
-        oversampledDf = pInOutDataFrameWithReads[gtMask]
-        appendDf = pd.concat([oversampledDf]*factor)
-        pInOutDataFrameWithReads = pInOutDataFrameWithReads.append(appendDf, ignore_index=True, sort=False)
-        pInOutDataFrameWithReads.reset_index(inplace=True, drop=True)
-        #recompute for printing the final result
-        highCountSamples = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].shape[0]
-        sampleRelation = highCountSamples / smallCountSamples
-        print("=> relation high-read-count-range :: low-read-count-range after oversampling {:.2f}".format(sampleRelation))
-        print("oversampling done with factor {:d}".format(factor))
+    #recompute and print the new weight sums
+    highCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].weights.sum()
+    msg = "Sum of weights in low-read-count range (<={:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, smallCountWeightSum)
+    msg += "Sum of weights in high-read-count range (>{:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, highCountWeightSum)
+    msg += "weight factor = {:.2f}\n".format(highCountWeightSum/smallCountWeightSum)
+    print(msg)
 
     if pModeloutputdirectory and pPlotOutput:
-        #plot the read distribution after oversampling
-        fig1, ax1 = plt.subplots(figsize=(8,6))
-        pInOutDataFrameWithReads.hist(column='reads', bins=100, ax=ax1, density=True)
+        #plot the weight vs. read count distribution after oversampling
+        binSize = math.ceil(readMax / 100)
+        bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
+        printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
+        printDf.reset_index(inplace=True, drop=False)
+        ax1.bar(printDf.reads, printDf.weights, width=binSize)
         ax1.set_xlabel("read counts")
-        ax1.set_ylabel("normalized frequency")
-        ax1.set_title("Read distribution after oversampling\n(cutP: {:.2f}, factor: {:.2f}, balanced: {})".format(pCutPercentage, float(pOversamplingFactor), pBalance))
-        figureTag = createModelTag(pParams) + "_readDistributionAfterVariableOversampling.png"        
+        ax1.set_ylabel("weight sum")
+        ax1.set_yscale('log')
+        ax1.set_title("weight sum vs. read counts")
+        figureTag = createModelTag(pParams) + "_weightSumDistributionAfter.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
 
 def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
