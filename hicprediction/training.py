@@ -164,7 +164,7 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
         nrOfBins = math.ceil( (1.0-pCutPercentage) / binsizePercent)
     else:
         nrOfBins = 1 
-    msg = "splitting the the high-read-count range into {:d} bins and adjusting weights"
+    msg = "=> splitting the the high-read-count range into {:d} bins and adjusting weights"
     msg = msg.format(nrOfBins)
     print(msg)
     oversamplingPercentageList = np.linspace(pCutPercentage,1.0, nrOfBins + 1)
@@ -187,9 +187,9 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
 
     #recompute and print the new weight sums
     highCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].weights.sum()
-    msg = "Sum of weights in low-read-count range (<={:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, smallCountWeightSum)
-    msg += "Sum of weights in high-read-count range (>{:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, highCountWeightSum)
-    msg += "weight factor = {:.2f}\n".format(highCountWeightSum/smallCountWeightSum)
+    msg = "=> Sum of weights in low-read-count range (<={:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, smallCountWeightSum)
+    msg += "=> Sum of weights in high-read-count range (>{:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, highCountWeightSum)
+    msg += "=> weight factor = {:.2f}\n".format(highCountWeightSum/smallCountWeightSum)
     print(msg)
 
     if pModeloutputdirectory and pPlotOutput:
