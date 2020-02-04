@@ -40,7 +40,18 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         msg = "Aborted. Data set {0:s} must have .z file extension"
         sys.exit(msg.format(traindatasetfile))
     ### load data set and set parameters
-    df, params = joblib.load(traindatasetfile)
+    try:
+        df, params = joblib.load(traindatasetfile)
+    except Exception as e:
+        print(e)
+        msg = "Failed loading dataset. Wrong format?"
+        sys.exit(msg)
+    if not isinstance(df, pd.DataFrame):
+        msg = "Aborting. Input {:s} is not a dataset\n"
+        if isinstance(df, sklearn.ensemble.forest.RandomForestRegressor):
+            msg += "Maybe a trained model was entered instead of a dataset?"
+        msg = msg.format(traindatasetfile)
+        sys.exit(msg)
     ### check if the dataset contains reads, otherwise it cannot be used for training
     nanreadMask = df['reads'] == np.nan
     if not df[nanreadMask].empty:
