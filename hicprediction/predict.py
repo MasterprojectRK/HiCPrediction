@@ -215,7 +215,8 @@ def predict(model, testSet, pModelParams):
                 dropList.append(str(protein + 2 * numberOfProteins))
         else:
             raise NotImplementedError()
-    test_X = testSet[testSet.columns.difference(dropList)] #also works if one of the columns to drop is not present
+    #test_X = testSet[testSet.columns.difference(dropList)] #also works if one of the columns to drop is not present
+    test_X = testSet.drop(columns=dropList, errors='ignore')
     test_y = testSet.copy(deep=True)
     ### convert reads to log reads
     test_y['standardLog'] = np.log(testSet['reads']+1)

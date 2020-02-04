@@ -102,8 +102,8 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
                 dropList.append(str(protein + 2 * numberOfProteins))
         else:
             raise NotImplementedError()
-    X = df[df.columns.difference(dropList)]
-    
+    X = df.drop(columns=dropList, errors='ignore')
+
     #weights
     weights = df['weights']
 
