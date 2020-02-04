@@ -225,10 +225,12 @@ def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
     for treeNr, tree in enumerate(pTreeBasedLearningModel.estimators_):
         treeStrDot = pModelTag + "_tree" + str(treeNr + 1) + ".dot"
         treeStrPng = pModelTag + "_tree" + str(treeNr + 1) + ".png"
-        export_graphviz(tree, out_file = os.path.join(pOutDir, treeStrDot), max_depth=6, feature_names=pFeatList, rounded = True, precision = 6)
-        (graph, ) = pydot.graph_from_dot_file(os.path.join(pOutDir,treeStrDot))
-        graph.write_png(treeStrPng)
-        os.remove(os.path.join(pOutDir, treeStrDot))
+        dotfile = os.path.join(pOutDir, treeStrDot)
+        pngfile = os.path.join(pOutDir, treeStrPng)
+        export_graphviz(tree, out_file = dotfile, max_depth=6, feature_names=pFeatList, rounded = True, precision = 6)
+        (graph, ) = pydot.graph_from_dot_file(dotfile)
+        graph.write_png(pngfile)
+        os.remove(dotfile)
 
     #print and plot feature importances
     #compare https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html
