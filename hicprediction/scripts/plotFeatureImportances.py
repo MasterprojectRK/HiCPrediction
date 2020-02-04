@@ -3,11 +3,13 @@ import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
 
 @click.option('--modelFile', '-mif', required=True, type=click.Path(exists=True), help="model file with feature importances to plot")
 @click.option('--outPath', '-o', required=False, type=click.Path(writable=True), default=None, help="path and filename (.png) where result will be written to")
+@click.option('--protNames', '-pn', required=False, type=click.Path(exists=True), default=None, help="textfile with protein/histone names")
 @click.command()
-def plotFeatureImportances(modelfile, outpath):
+def plotFeatureImportances(modelfile, outpath, protnames):
     try:
         model, params = joblib.load(modelfile)
     except Exception as e:
@@ -26,54 +28,89 @@ def plotFeatureImportances(modelfile, outpath):
              axis=0)
     indices = np.argsort(importances)[::-1]
     
-    #find out number of proteins and name features accordingly
+    protNamesDf = None
+    try:
+        if protnames:
+            protNamesDf = pd.read_csv(protnames)
+    except Exception as e:
+        msg = "protein name file invalid, falling back to generic names"
+        print(e, "\n", msg)
+        protNamesDf = pd.DataFrame()
+    
+
+    try: #old models may not have the 'method' in their params
+        #find out number of proteins and name features accordingly
+        method = params['method']
+        noMiddle = params['noMiddle']
+        noStartEnd = params['noStartEnd']
+        noDistance = params['noDistance']
+    except:
+        method = 'generic'
+        msg = "could not load method and other params\n" 
+        msg += "falling back to generic naming"
+        print(msg)   
+        
     featNameList = []
     nrOfProteins = None
-    try: #not all models have the 'method' in their params
-        if params['method'] == "multiColumn":
-            #compute number of proteins first
-            divisor = 3 #3 features start, end, window for each protein
-            if params['noMiddle'] == True:
-                divisor -= 1
-            if params['noStartEnd'] == True:
-                divisor -= 2
-            subtraction = 1
-            if params['noDistance'] == True:
-                subtraction = 0
-            nrOfProteins = int((len(indices) - subtraction) / max(divisor,1))
-            #now build the feature name list
+
+    if method == 'multiColumn':
+        startProtList = []
+        endProtList = []
+        windowProtList = []
+        buildNameList = []
+        #compute target number of proteins first
+        divisor = 3 #3 features start, end, window for each protein
+        if noMiddle:
+            divisor -= 1
+        if noStartEnd:
+            divisor -= 2
+        subtraction = 1
+        if noDistance:
+            subtraction = 0
+        nrOfProteins = int((len(indices) - subtraction) / max(divisor,1))
+        #now build the feature name list
+        if not protNamesDf.empty and protNamesDf.shape[0] == nrOfProteins:
             #feature 0 = prot0 startProt, feature 1 = prot1 start Prot etc.
-            startProtList = ["startProt" + str(x) for x in range(nrOfProteins)]
-            endProtList = ["endProt" + str(x) for x in range(nrOfProteins)]
-            windowProtList = ["windowProt" + str(x) for x in range(nrOfProteins)]
-            buildNameList = [startProtList, windowProtList, endProtList]
-            if params['noMiddle'] == True:
-                buildNameList.remove(windowProtList)
-            if params['noStartEnd'] == True:
-                buildNameList.remove(startProtList)
-                buildNameList.remove(endProtList)
-            for nameList in buildNameList:
-                featNameList.extend(nameList)
-            if not params['noDistance'] == True:
-                featNameList.append("distance")
+            startProtList = ["start_" + str(x) for x in protNamesDf['name']]
+            endProtList = ["end_" + str(x) for x in protNamesDf['name']]
+            windowProtList = ["window_" + str(x) for x in protNamesDf['name']]
+        else:    
+            startProtList = ["startProt_" + str(x) for x in range(nrOfProteins)]
+            endProtList = ["endProt_" + str(x) for x in range(nrOfProteins)]
+            windowProtList = ["windowProt_" + str(x) for x in range(nrOfProteins)]
+        #build the final name list
+        buildNameList = [startProtList, windowProtList, endProtList]
+        if noMiddle:
+            buildNameList.remove(windowProtList)
+        if noStartEnd:
+            buildNameList.remove(startProtList)
+            buildNameList.remove(endProtList)
+        for nameList in buildNameList:
+            featNameList.extend(nameList)
+        if not noDistance:
+            featNameList.append("distance")
             
-        if params['method'] == 'oneHot':
-            nrOfProteins = len(indices) - 4 #distance, start, stop, window
-            featNameList = ["startProt", "windowProt", "endProt", "distance"]
-            if params['noDistance'] == True:
-                nrOfProteins += 1
-                featNameList.remove("distance")
-            if params['noMiddle'] == True:
-                nrOfProteins += 1
-                featNameList.remove("windowProt")
-            if params['noStartEnd'] == True:
-                nrOfProteins += 2
-                featNameList.remove("startProt")
-                featNameList.remove("endProt")
-            featNameList.extend(["prot" + str(x) for x in range(nrOfProteins)])
-    except:
-        print("Could not load required parameters for naming features. Falling back to enumeration")
-        featNameList = [str(x) for x in range(len(indices))] 
+    elif method == 'oneHot':
+        featNameList = ["startProt", "windowProt", "endProt", "distance"]
+        #compute target number of proteins first
+        nrOfProteins = len(indices) - 4 #distance, start, stop, window
+        if noDistance:
+            featNameList.remove("distance")
+            nrOfProteins += 1
+        if noMiddle:
+            featNameList.remove("windowProt")
+            nrOfProteins += 1
+        if noStartEnd:
+            featNameList.remove("startProt")
+            featNameList.remove("endProt")
+            nrOfProteins += 2
+        if not protNamesDf.empty and protNamesDf.shape[0] == nrOfProteins:
+            featNameList.extend([str(x) for x in protNamesDf['name']])    
+        else:
+            featNameList.extend(["prot" + str(x) for x in range(nrOfProteins)])     
+    else: #generic names
+        featNameList = [ str(x) for x in range(len(indices)) ]
+
     
     print()
     print("Feature importances:")
@@ -96,7 +133,7 @@ def plotFeatureImportances(modelfile, outpath):
     ax1.set_ylabel("relative feature importance")
     importanceFigStr = os.path.splitext(modelfile)[0] + "_importanceGraph.png"
     if outpath:
-        if not outpath.endswith(".png"):
+        if not outpath.endswith(".png") or outpath.endswith(".svg") or outpath.endswith(".pdf"):
             outpath += ".png"
         importanceFigStr = outpath
     fig1.savefig(importanceFigStr)
