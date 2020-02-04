@@ -14,6 +14,7 @@ import sklearn.metrics as metrics
 import sys
 import math
 import cooler
+import sklearn.ensemble.forest
 
 """
 Module responsible for the prediction of test set, their evaluation and the
@@ -42,6 +43,19 @@ def executePredictionWrapper(modelfilepath, predictionsetpath,
     except Exception as e:
         print(e)
         msg = "Failed loading model and test set. Wrong format?"
+        sys.exit(msg)
+    #check if model and test set have been swapped
+    if not isinstance(model, sklearn.ensemble.forest.RandomForestRegressor):
+        msg = "Aborting. Input {:s} does not contain a Random Forest Regressor\n"
+        if isinstance(model,pd.DataFrame):
+            msg += "Maybe a dataset was entered instead of a trained model?"
+        msg = msg.format(modelfilepath)
+        sys.exit(msg)
+    if not isinstance(testSet, pd.DataFrame):
+        msg = "Aborting. Input {:s} is not a test dataset\n"
+        if isinstance(testSet, sklearn.ensemble.forest.RandomForestRegressor):
+            msg += "Maybe a trained model was entered instead of a dataset?"
+        msg = msg.format(predictionsetpath)
         sys.exit(msg)
 
     executePrediction(model, modelParams, testSet, setParams,
