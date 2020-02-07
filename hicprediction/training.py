@@ -48,7 +48,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         sys.exit(msg)
     if not isinstance(df, pd.DataFrame):
         msg = "Aborting. Input {:s} is not a dataset\n"
-        if isinstance(df, sklearn.ensemble.forest.RandomForestRegressor):
+        if isinstance(df, sklearn.ensemble.forest.ForestRegressor):
             msg += "Maybe a trained model was entered instead of a dataset?"
         msg = msg.format(traindatasetfile)
         sys.exit(msg)
@@ -68,7 +68,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     params['noStartEnd'] = noStartEnd
         
     ### create model with desired parameters
-    model = sklearn.ensemble.RandomForestRegressor(max_features=pMaxFeat, random_state=5,\
+    model = sklearn.ensemble.ExtraTreesRegressor(max_features=pMaxFeat, random_state=5,\
                     n_estimators=pNrOfTrees, n_jobs=-1, verbose=2, criterion='mse')
     
     ### replace infinity and nan values. There shouldn't be any.
