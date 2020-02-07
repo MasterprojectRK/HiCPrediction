@@ -305,11 +305,11 @@ def getChromSizes(pChromNameList, pChromSizeFile):
 
 def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
     #cut HiC matrices for single chrom and store in outDir
-    if not cooler.fileops.is_cooler(pMatrixFile):
-        msg = "Warning: {:s} is no cooler file and therefore ignored"
-        msg = msg.format(pMatrixFile)
-        print(msg)
-        return
+#    if not cooler.fileops.is_cooler(pMatrixFile):
+#        msg = "Warning: {:s} is no cooler file and therefore ignored"
+#        msg = msg.format(pMatrixFile)
+#        print(msg)
+#        return
     
     chromTag = "chr" + str(pChrom)
     inFileName = os.path.basename(pMatrixFile)
