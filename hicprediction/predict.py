@@ -53,7 +53,7 @@ def executePredictionWrapper(modelfilepath, predictionsetpath,
         sys.exit(msg)
     if not isinstance(testSet, pd.DataFrame):
         msg = "Aborting. Input {:s} is not a test dataset\n"
-        if isinstance(testSet, sklearn.ensemble.ForestRegressor):
+        if isinstance(testSet, sklearn.ensemble.BaseEnsemble):
             msg += "Maybe a trained model was entered instead of a dataset?"
         msg = msg.format(predictionsetpath)
         sys.exit(msg)
