@@ -342,6 +342,9 @@ def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile):
     pixels['bin2_id'] = triu_Indices[1]
     readCounts = np.array(pSparseMatrix[triu_Indices])[0]
     pixels['count'] = np.float32(readCounts)
+    if max(pixels['count']) <= 1.0:
+        #workaround, since pygenometracks is unable to plot matrices with counts <= 1.0
+        pixels['count'] *= 1000
     pixels.sort_values(by=['bin1_id','bin2_id'],inplace=True)
 
     #write out the cooler
