@@ -136,35 +136,42 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
     if pCutPercentage <= 0.0 or pCutPercentage >= 1.0 or pOversamplingFactor <= 0.0:
         return
 
-    readMax = np.float32(pInOutDataFrameWithReads.reads.max())
+    protNameStart = '0' #0 = ctcf start narrowpeak
+    protNameEnd = '48' #48 = ctcf end narrowpeak
+    startPeakMax = np.float32(max(pInOutDataFrameWithReads[protNameStart]))
+    endPeakMax = np.float32(max(pInOutDataFrameWithReads[protNameEnd]))
+    #maxPeak = max(startPeakMax, endPeakMax)
+
     print("Oversampling...")
     if pModeloutputdirectory and pPlotOutput:
         #plot the weight vs. read count distribution first
         fig1, ax1 = plt.subplots(figsize=(8,6))
-        binSize = readMax / 100
-        bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
+        binSize = startPeakMax / 100
+        bins = pd.cut(pInOutDataFrameWithReads[protNameStart], bins=np.arange(0,startPeakMax + binSize, binSize), labels=np.arange(0,startPeakMax,binSize), include_lowest=True)
         printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
         printDf.reset_index(inplace=True, drop=False)
-        ax1.bar(printDf.reads, printDf.weights, width=binSize)
-        ax1.set_xlabel("read counts")
+        ax1.bar(printDf[protNameStart], printDf.weights, width=binSize)
+        ax1.set_xlabel("start protein signal value")
         ax1.set_ylabel("weight sum")
         ax1.set_yscale('log')
-        ax1.set_title("weight sum vs. read counts")
+        ax1.set_title("weight sum vs. signal value")
         figureTag = createModelTag(pParams) + "_weightSumDistributionBefore.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
     
     
     #the range which doesn't get oversampled
-    smallCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads']<= pCutPercentage*readMax].weights.sum()
+    startMask = pInOutDataFrameWithReads[protNameStart]<= pCutPercentage * startPeakMax
+    endMask = pInOutDataFrameWithReads[protNameEnd] <= pCutPercentage * endPeakMax
+    smallCountWeightSum = pInOutDataFrameWithReads[startMask | endMask].weights.sum()
     if smallCountWeightSum == 0:
-        print("Warning: no samples with read count less than {:.2f}*max read count in dataset".format(pCutPercentage))
+        print("Warning: no samples with signal value less than {:.2f}*max signal value in dataset".format(pCutPercentage))
         print("No oversampling possible, continuing with next step and all weights = 1.0")
         print("Consider increasing oversamling percentage using -ovsP parameter")
         return
     #the range we want to oversample, i.e. adjust the weights
-    highCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].weights.sum()
+    highCountWeightSum = pInOutDataFrameWithReads[~startMask & ~endMask].weights.sum()
     sampleRelation = highCountWeightSum / smallCountWeightSum
-    print("=> weight sum relation high-read-count-range :: low-read-count-range before oversampling {:.2f}".format(sampleRelation))
+    print("=> weight sum relation high-signal-value range :: low-signal-value-range before oversampling {:.2f}".format(sampleRelation))
     
     #if balancing enabled, split the high-count samples into a reasonable number of bins, 
     #then adjust the weights for the bins separately
@@ -175,45 +182,51 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
         nrOfBins = math.ceil( (1.0-pCutPercentage) / binsizePercent)
     else:
         nrOfBins = 1 
-    msg = "=> splitting the the high-read-count range into {:d} bins and adjusting weights"
+    msg = "=> splitting the the high-signal-value range into {:d} bins and adjusting weights"
     msg = msg.format(nrOfBins)
     print(msg)
     oversamplingPercentageList = np.linspace(pCutPercentage,1.0, nrOfBins + 1)
     #find the number of bins which have reads in them and compute the target weight sum
     #at least one bin will have reads
-    nrOfNonzeroBins = nrOfBins
+    nrOfNonzeroBins = nrOfBins**2
     for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
-        gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
-        leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
-        if pInOutDataFrameWithReads[gtMask & leqMask].empty:
-            nrOfNonzeroBins -= 1
+        gtMaskStart = pInOutDataFrameWithReads[protNameStart] > percentageLow * startPeakMax
+        leqMaskStart = pInOutDataFrameWithReads[protNameStart] <= percentageHigh * startPeakMax
+        for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
+            gtMaskEnd = pInOutDataFrameWithReads[protNameEnd] > percentageLow * endPeakMax
+            leqMaskEnd = pInOutDataFrameWithReads[protNameEnd] <= percentageHigh * endPeakMax
+            if pInOutDataFrameWithReads[gtMaskStart & gtMaskEnd & leqMaskStart & leqMaskEnd].empty:
+                nrOfNonzeroBins -= 1
     targetWeightSum = pOversamplingFactor * smallCountWeightSum / nrOfNonzeroBins #target weight sum for each bin
     #adjust the weights for each bin separately
     for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
-        gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
-        leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
-        if not pInOutDataFrameWithReads[gtMask & leqMask].empty:
-            currentNrOfSamples = pInOutDataFrameWithReads[gtMask & leqMask].shape[0]
-            pInOutDataFrameWithReads.loc[gtMask & leqMask, 'weights'] = targetWeightSum / currentNrOfSamples     
+        gtMaskStart = pInOutDataFrameWithReads[protNameStart] > percentageLow * startPeakMax
+        leqMaskStart = pInOutDataFrameWithReads[protNameStart] <= percentageHigh * startPeakMax
+        for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
+            gtMaskEnd = pInOutDataFrameWithReads[protNameEnd] > percentageLow * endPeakMax
+            leqMaskEnd = pInOutDataFrameWithReads[protNameEnd] <= percentageHigh * endPeakMax
+            if not pInOutDataFrameWithReads[gtMaskStart & gtMaskEnd & leqMaskStart & leqMaskEnd].empty:
+                currentNrOfSamples = pInOutDataFrameWithReads[gtMaskStart & gtMaskEnd & leqMaskStart & leqMaskEnd].shape[0]
+                pInOutDataFrameWithReads.loc[gtMaskStart & gtMaskEnd & leqMaskStart & leqMaskEnd, 'weights'] = targetWeightSum / currentNrOfSamples     
 
     #recompute and print the new weight sums
-    highCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].weights.sum()
-    msg = "=> Sum of weights in low-read-count range (<={:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, smallCountWeightSum)
-    msg += "=> Sum of weights in high-read-count range (>{:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, highCountWeightSum)
+    highCountWeightSum = pInOutDataFrameWithReads[~startMask & ~endMask].weights.sum()
+    msg = "=> Sum of weights in low-signal-value range (<={:.2f}*max. signal value) was and is {:.2f}\n".format(pCutPercentage, smallCountWeightSum)
+    msg += "=> Sum of weights in high-signal-value range (>{:.2f}*max. signal value) is now {:.2f}\n".format(pCutPercentage, highCountWeightSum)
     msg += "=> weight factor = {:.2f}\n".format(highCountWeightSum/smallCountWeightSum)
     print(msg)
 
     if pModeloutputdirectory and pPlotOutput:
         #plot the weight vs. read count distribution after oversampling
-        binSize = readMax / 100
-        bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
+        binSize = startPeakMax / 100
+        bins = pd.cut(pInOutDataFrameWithReads[protNameStart], bins=np.arange(0,startPeakMax + binSize, binSize), labels=np.arange(0,startPeakMax,binSize), include_lowest=True)
         printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
         printDf.reset_index(inplace=True, drop=False)
-        ax1.bar(printDf.reads, printDf.weights, width=binSize)
-        ax1.set_xlabel("read counts")
+        ax1.bar(printDf[protNameStart], printDf.weights, width=binSize)
+        ax1.set_xlabel("start protein signal value")
         ax1.set_ylabel("weight sum")
         ax1.set_yscale('log')
-        ax1.set_title("weight sum vs. read counts")
+        ax1.set_title("weight sum vs. signal value")
         figureTag = createModelTag(pParams) + "_weightSumDistributionAfter.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
 
