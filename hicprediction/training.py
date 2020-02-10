@@ -141,7 +141,7 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
     if pModeloutputdirectory and pPlotOutput:
         #plot the weight vs. read count distribution first
         fig1, ax1 = plt.subplots(figsize=(8,6))
-        binSize = math.ceil(readMax / 100)
+        binSize = readMax / 100
         bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
         printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
         printDf.reset_index(inplace=True, drop=False)
@@ -205,7 +205,7 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
 
     if pModeloutputdirectory and pPlotOutput:
         #plot the weight vs. read count distribution after oversampling
-        binSize = math.ceil(readMax / 100)
+        binSize = readMax / 100
         bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
         printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
         printDf.reset_index(inplace=True, drop=False)
