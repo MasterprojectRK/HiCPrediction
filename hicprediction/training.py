@@ -19,15 +19,15 @@ import math
 """
 @conf.train_options
 @click.command()
-def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance):
+def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, taddomainfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance):
     """
     Wrapper function for click
     """
     if maxfeat == 'none':
         maxfeat = None
-    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance)
+    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, taddomainfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance)
 
-def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance):
+def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, taddomainfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance):
     """
     Train function
     Attributes:
@@ -76,7 +76,8 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     df.fillna(value=0, inplace=True)
 
     ### add weights and over-emphasize some of them, if requested
-    variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
+    #variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
+    tadOversampling(df, params, taddomainfile, pOvsFactor)
 
     ### drop columns that should not be used for training
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'weights']
@@ -217,6 +218,61 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
         figureTag = createModelTag(pParams) + "_weightSumDistributionAfter.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
 
+
+def tadOversampling(pInOutDataFrameWithReads, pParams, pTadDomainFile, pOvsFactor):
+    #if nothing works, all weights equally = 1.0
+    pInOutDataFrameWithReads['weights'] = 1.0
+
+    if not pTadDomainFile or pOvsFactor == 0: 
+        return
+
+    try:
+        bedColumnNames = ["chrom", "chromStart", "chromEnd", "name", 
+                        "score", "strand", "thickStart", "thickEnd" , "itemRgb", "blockCount", "blockSizes", "blockStarts"]
+        tadDomainDf = pd.read_csv(pTadDomainFile, sep="\t", header=0)
+        tadDomainDf.columns = bedColumnNames[0:tadDomainDf.shape[1]]
+        chromMask = tadDomainDf['chrom'] == pParams['chrom']
+        tadDomainDf = tadDomainDf[chromMask]
+    except Exception as e:
+        msg = "Ignoring invalid tadDomainFile."
+        print(e, msg)
+        return
+
+    if tadDomainDf.empty:
+        msg = "Warning: tadDomainFile does not contain data for chromosome {:s}\n"
+        msg += "Ignoring TADs"
+        msg = msg.format(str(pParams['chrom']))
+        print(msg)
+        return
+    
+    for start, end in zip(tadDomainDf['chromStart'], tadDomainDf['chromEnd']):
+        #mark the samples which are within TADs by setting weight to zero
+        startMask = pInOutDataFrameWithReads['first'] >= math.floor(start / int(pParams['resolution']))
+        endMask = pInOutDataFrameWithReads['second'] <= math.floor(end / int(pParams['resolution']))
+        pInOutDataFrameWithReads.loc[ startMask & endMask, 'weights'] = 0 
+
+    #overweight the samples inside TADs as specified by pOvsFactor
+    outsideTadMask = pInOutDataFrameWithReads['weights'] > 0
+    insideTadMask = pInOutDataFrameWithReads['weights'] == 0
+    weightOutsideTads = pInOutDataFrameWithReads[outsideTadMask].weights.sum()
+    targetWeightInsideTads = weightOutsideTads * pOvsFactor
+    nrOfSamplesInsideTads = pInOutDataFrameWithReads[insideTadMask].shape[0]
+    if nrOfSamplesInsideTads > 0:
+        pInOutDataFrameWithReads.loc[insideTadMask, 'weights'] = targetWeightInsideTads / pInOutDataFrameWithReads[insideTadMask].shape[0]
+        weightInsideTads = pInOutDataFrameWithReads[insideTadMask].weights.sum()
+        print("Oversampling:")
+        print("Sum of weights outside TADs: {:.0f}".format(weightOutsideTads))
+        print("Sum of weights inside TADs: {:.0f}".format(weightInsideTads))
+        print("Weight factor {:.2f}".format(weightInsideTads / weightOutsideTads))
+    else:
+        pInOutDataFrameWithReads['weights'] = 1.0
+        msg = "No samples inside provided TADs found. This shouldn't happen.\n"
+        msg += "Check your TAD domain file, maybe from wrong cell line? \n"
+        msg += "Cell line of dataset is {:s}\n".format(str(pParams['cellType']))
+        msg += "Ignoring TADs and setting weights = 1.0"
+        print(msg)
+
+        
 def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
     #plot visualizations of the trees to png files
     #only up to depth 6 to keep memory demand low and image "readable"

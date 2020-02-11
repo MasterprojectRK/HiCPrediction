@@ -104,6 +104,7 @@ _train_options = [
                  required=True,\
                  help='File from which training is loaded'\
                  ,type=click.Path(exists=True)),
+    click.option('--tadDomainFile', '-tadf', required=False, type=click.Path(exists=True), default=None, help="bed file with TAD boundaries"),
     click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model"),
     click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model"),
     click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model"),
