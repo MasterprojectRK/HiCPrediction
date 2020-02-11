@@ -219,7 +219,7 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
 
 
-def tadOversampling(pInOutDataFrameWithReads, pParams, pTadDomainFile, pOvsFactor):
+def tadOversampling(pInOutDataFrameWithReads, pParams, pTadDomainFile, pOvsFactor, pMaxDistance=500000):
     #if nothing works, all weights equally = 1.0
     pInOutDataFrameWithReads['weights'] = 1.0
 
@@ -246,12 +246,13 @@ def tadOversampling(pInOutDataFrameWithReads, pParams, pTadDomainFile, pOvsFacto
         return
     
     for start, end in zip(tadDomainDf['chromStart'], tadDomainDf['chromEnd']):
-        #mark the samples which are within TADs by setting weight to zero
-        startMask = pInOutDataFrameWithReads['first'] >= math.floor(start / int(pParams['resolution']))
-        endMask = pInOutDataFrameWithReads['second'] <= math.floor(end / int(pParams['resolution']))
-        pInOutDataFrameWithReads.loc[ startMask & endMask, 'weights'] = 0 
+        #mark the samples which are within TADs by setting weight to zero first
+        if end - start < pMaxDistance: #prediction is often quite good for medium sized structures, so no need to overweight them
+            startMask = pInOutDataFrameWithReads['first'] >= math.floor(start / int(pParams['resolution']))
+            endMask = pInOutDataFrameWithReads['second'] <= math.floor(end / int(pParams['resolution']))
+            pInOutDataFrameWithReads.loc[ startMask & endMask, 'weights'] = 0 
 
-    #overweight the samples inside TADs as specified by pOvsFactor
+    #overweight the samples inside TADs (marked by weight=0) as specified by pOvsFactor
     outsideTadMask = pInOutDataFrameWithReads['weights'] > 0
     insideTadMask = pInOutDataFrameWithReads['weights'] == 0
     weightOutsideTads = pInOutDataFrameWithReads[outsideTadMask].weights.sum()
@@ -272,7 +273,7 @@ def tadOversampling(pInOutDataFrameWithReads, pParams, pTadDomainFile, pOvsFacto
         msg += "Ignoring TADs and setting weights = 1.0"
         print(msg)
 
-        
+
 def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
     #plot visualizations of the trees to png files
     #only up to depth 6 to keep memory demand low and image "readable"
