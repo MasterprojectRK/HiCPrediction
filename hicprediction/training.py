@@ -14,6 +14,7 @@ import pandas as pd
 from sklearn.tree import export_graphviz
 import pydot
 import math
+from sklearn.inspection import permutation_importance
 
 """ Module responsible for the training of the regressor with data sets.
 """
@@ -121,7 +122,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     joblib.dump((model, params), modelFileName, compress=True ) 
     print("\n")
 
-    visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag)
+    visualizeModel(model, X, y, modeloutputdirectory, list(X.columns), modelTag)
 
 
 def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
@@ -274,7 +275,7 @@ def tadOversampling(pInOutDataFrameWithReads, pParams, pTadDomainFile, pOvsFacto
         print(msg)
 
 
-def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
+def visualizeModel(pTreeBasedLearningModel, pXtrain, pYtrain, pOutDir, pFeatList, pModelTag):
     #plot visualizations of the trees to png files
     #only up to depth 6 to keep memory demand low and image "readable"
     #compare this tutorial: https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
@@ -321,6 +322,18 @@ def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
     ax1.set_ylabel("relative feature importance")
     importanceFigStr = pModelTag + "_importanceGraph.png"
     fig1.savefig(os.path.join(pOutDir, importanceFigStr))
+
+    #see https://scikit-learn.org/stable/auto_examples/inspection/plot_permutation_importance.html#sphx-glr-auto-examples-inspection-plot-permutation-importance-py
+    result = permutation_importance(pTreeBasedLearningModel, pXtrain, pYtrain, n_repeats=10,
+                                random_state=42, n_jobs=-1)
+
+    fig1, ax1 = plt.subplots()
+    ax1.boxplot(result.importances.T, vert=True)
+    ax1.set_title("Permutation Importances (training set, {0:d} trees".format(nrTrees))
+    ax1.set_xticklabels(pXtrain.columns, rotation=90, fontsize=6)
+    fig1.tight_layout()
+    permutationFigStr = pModelTag + "_permutationImportanceGraph.png"
+    fig1.savefig(os.path.join(pOutDir, permutationFigStr))  
 
 if __name__ == '__main__':
     train()
