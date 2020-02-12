@@ -69,7 +69,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
         
     ### create model with desired parameters
     model = sklearn.ensemble.ExtraTreesRegressor(max_features=pMaxFeat, random_state=5,\
-                    n_estimators=pNrOfTrees, n_jobs=-1, verbose=2, criterion='mse')
+                    n_estimators=pNrOfTrees, n_jobs=-1, verbose=2, criterion='mse', bootstrap=True, max_samples=0.75)
     
     ### replace infinity and nan values. There shouldn't be any.
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
