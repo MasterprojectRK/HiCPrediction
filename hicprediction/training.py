@@ -329,7 +329,7 @@ def visualizeModel(pTreeBasedLearningModel, pXtrain, pYtrain, pOutDir, pFeatList
 
     fig1, ax1 = plt.subplots()
     ax1.boxplot(result.importances.T, vert=True)
-    ax1.set_title("Permutation Importances (training set, {0:d} trees".format(nrTrees))
+    ax1.set_title("Permutation Importances (training set, {0:d} trees)".format(nrTrees))
     ax1.set_xticklabels(pXtrain.columns, rotation=90, fontsize=6)
     fig1.tight_layout()
     permutationFigStr = pModelTag + "_permutationImportanceGraph.png"
