@@ -324,7 +324,7 @@ def visualizeModel(pTreeBasedLearningModel, pXtrain, pYtrain, pOutDir, pFeatList
     fig1.savefig(os.path.join(pOutDir, importanceFigStr))
 
     #see https://scikit-learn.org/stable/auto_examples/inspection/plot_permutation_importance.html#sphx-glr-auto-examples-inspection-plot-permutation-importance-py
-    result = permutation_importance(pTreeBasedLearningModel, pXtrain, pYtrain, n_repeats=10,
+    result = permutation_importance(pTreeBasedLearningModel, pXtrain, pYtrain, n_repeats=4,
                                 random_state=42, n_jobs=-1)
 
     fig1, ax1 = plt.subplots()
