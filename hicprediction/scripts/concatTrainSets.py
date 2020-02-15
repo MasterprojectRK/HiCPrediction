@@ -100,6 +100,14 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             errorMessage += "Cannot concatenate such sets\n"
             datasetMismatch = True
 
+        #check if the datasets are all oneHot or all multiColumn
+        methodSet = set( np.hstack( [param['method'] for param in params] ) )
+        if len(methodSet) > 1:
+            errorMessage += "Datasets have been created with different methods\n"
+            errorMessage += "e.g. oneHot, multiColumn.\n"
+            errorMessage += "Cannot concatenate such sets\n"
+            datasetMismatch = True
+        
         #check if the datasets are all from the same cell line
         #this is allowed, but may not be intended, so issue a warning
         cellLineSet = set( np.hstack( [str(param["cellType"]) for param in params] ) )
