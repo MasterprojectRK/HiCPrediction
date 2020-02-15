@@ -120,8 +120,12 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             if len(windowOpSet) > 1:
                 paramsDict["windowOperation"] = sorted(list(windowOpSet))
             concatDataset = pd.concat(datasets, ignore_index=True, sort=False)
-            assert concatDataset.shape[1] == datasets[0].shape[1] 
-            #fails only if columns had different names, since their original shapes are matching
+            if not concatDataset.shape[1] == datasets[0].shape[1]:
+                #occurs only if columns had different names, since their original shapes are matching
+                msg = "Columns of datasets have correct number of features but different feature names\n."
+                msg += "Cannot concatenate such sets"
+                sys.exit(msg)
+            else:
             joblib.dump((concatDataset, paramsDict), outfile, compress=True)
         else:
             sys.exit(errorMessage)
