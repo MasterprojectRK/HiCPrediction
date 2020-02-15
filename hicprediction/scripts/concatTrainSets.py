@@ -108,6 +108,15 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             errorMessage += "Cannot concatenate such sets\n"
             datasetMismatch = True
         
+        #check if the datasets are all without middle, distance, start-end
+        noDistSet = set ( np.hstack( [param['noDistance'] for param in params] ) )
+        noMiddleSet = set ( np.hstack( [param['noMiddle'] for param in params] ) )
+        noStartEndSet = set ( np.hstack( [param['noStartEnd'] for param in params] ) )
+        if len(noDistSet) > 1 or len(noMiddleSet) > 1 or len(noStartEndSet) > 1:
+            errorMessage += "Datsets have been created with different features left out\n"
+            errorMessage += "e.g. noDistance, noMiddle, noStartEnd\n"
+            errorMessage += "Cannot concatenate such sets\n"
+        
         #check if the datasets are all from the same cell line
         #this is allowed, but may not be intended, so issue a warning
         cellLineSet = set( np.hstack( [str(param["cellType"]) for param in params] ) )
@@ -134,7 +143,7 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
                 msg += "Cannot concatenate such sets"
                 sys.exit(msg)
             else:
-            joblib.dump((concatDataset, paramsDict), outfile, compress=True)
+                joblib.dump((concatDataset, paramsDict), outfile, compress=True)
         else:
             sys.exit(errorMessage)
 
