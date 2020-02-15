@@ -154,7 +154,7 @@ def executePrediction(model,modelParams, testSet, setParams,
             print(msg)
             convertToMatrix = predictionToMatrixMultiColumn
         #create a sparse matrix from the prediction dataframe
-        predMatrix = convertToMatrix(predictionDf, modelParams['conversion'], chromsize, resolutionInt)
+        predMatrix = convertToMatrix(predictionDf, modelParams, chromsize, resolutionInt)
         #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
         if sigma > 0.0:
             predMatrix = smoothenMatrix(predMatrix, sigma)
@@ -183,7 +183,7 @@ def predict(model, testSet, pModelParams):
     """
     ### check if the test set contains reads, only then can we compute score later on
     nanreadMask = testSet['reads'] == np.nan
-    testSetHasTargetValues =  testSet[nanreadMask].empty    
+    testSetHasTargetValues =  testSet[nanreadMask].empty
     
     ### Eliminate NaNs - there should be none
     testSet.fillna(value=0, inplace=True)
@@ -240,27 +240,34 @@ def predict(model, testSet, pModelParams):
         score = None
     return test_y, score
 
-def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution):
+def predictionToMatrixOneHot(pPredictionDf, pModelParams, pChromSize, pResolution):
 
     """
     Function to convert prediction to Hi-C matrix
     Attributes:
             pPredictionDf = Dataframe with predicted read counts in column 'pred'
-            pConversion = Name of conversion function
+            pModelParams = (dict) model parameters
             pChromSize = (int) size of chromosome
             pResolution = (int) resolution of target HiC-Matrix in basepairs
     """
     ### store conversion function
-    if pConversion == "standardLog":
+    if pModelParams['conversion'] and pModelParams['conversion']  == "standardLog":
         convert = lambda val: np.exp(val) - 1
-    elif pConversion == "none":
+    elif pModelParams['conversion'] and pModelParams['conversion'] == "none":
         convert = lambda val: val
     else:
-        msg = "unknown conversion type {:s}".format(str(pConversion))
-        raise ValueError(msg)
+        msg = "unknown conversion type or missing conversion parameter"
+        raise NotImplementedError(msg)
+    #compute actual number of proteins
+    numberOfProteins = pPredictionDf.shape[1] - 13
+    if pModelParams['noDistance'] and pModelParams['noDistance'] == True:
+        numberOfProteins += 1
+    if pModelParams['noMiddle'] and pModelParams['noMiddle'] == True:
+        numberOfProteins += 1
+    if pModelParams['noStartEnd'] and pModelParams['noStartEnd'] == True:
+        numberOfProteins += 2
     ### get individual predictions for the counts from each protein
     resList = []
-    numberOfProteins = pPredictionDf.shape[1] - 13
     for protein in range(numberOfProteins):
         colName = 'prot_' + str(protein)
         mask = pPredictionDf[colName] == 1
@@ -270,14 +277,18 @@ def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution
         ### convert back            
         predStr = 'pred_' + str(protein)
         resDf[predStr] = convert(pPredictionDf[mask]['pred'])
-        resDf.set_index(['first','second'],inplace=True)
+        resDf = resDf.groupby(['first', 'second'])[[predStr]].mean() #merged trainingsets have duplicate first/second entries
         resList.append(resDf)
+        print(resDf.head())
+        print(type(resDf))
 
     #join the results on indices
     mergedPredictionDf = pd.DataFrame(columns=['first', 'second'])
     mergedPredictionDf.set_index(['first', 'second'], inplace=True)
     mergedPredictionDf = mergedPredictionDf.join(resList,how='outer')
     mergedPredictionDf.fillna(0.0, inplace=True)
+    #merge the results from the single predictions into one
+    #might want to add a param which allows outputting single predictions, too (e.g. from CTCF, DNASE, H3k9me3...)
     mergedPredictionDf['merged'] = mergedPredictionDf.mean(axis=1)
     #get the indices for the predicted counts
     mergedPredictionDf.reset_index(inplace=True)
@@ -293,23 +304,23 @@ def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution
     return predMatrix
 
 
-def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResolution):
+def predictionToMatrixMultiColumn(pPredictionDf, pModelParams, pChromSize, pResolution):
 
     """
     Function to convert prediction to Hi-C matrix
     Attributes:
             pPredictionDf = Dataframe with predicted read counts in column 'pred'
-            pConversion = Name of conversion function
+            pModelParams = model parameters
             pChromSize = (int) size of chromosome
             pResolution = (int) resolution of target HiC-Matrix in basepairs
     """
-    if pConversion == "standardLog":
+    if pModelParams['conversion'] and pModelParams['conversion'] == "standardLog":
         convert = lambda val: np.exp(val) - 1
-    elif pConversion == "none":
+    elif pModelParams['conversion'] and pModelParams['conversion'] == "none":
         convert = lambda val: val
     else:
-        msg = "unknown conversion type {:s}".format(str(pConversion))
-        raise ValueError(msg)
+        msg = "unknown conversion type or missing conversion parameter"
+        raise NotImplementedError(msg)
 
     ### get rows and columns (indices) for re-building the HiC matrix
     rows = list(pPredictionDf['first'])
