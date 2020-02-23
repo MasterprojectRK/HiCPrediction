@@ -2,7 +2,12 @@
 HiCPrediction allows predicting Hi-C matrices using protein levels given by ChIPseq data. 
 It is based on random forest regression as proposed by [Zhang, Chasman, Knaack and Roy in 2018](http://dx.doi.org/10.1101/406322). 
 
-HiCPrediction consists of four steps - binning the proteins, creating training/test data sets, training the regression model and prediction, which are described below in more detail. 
+HiCPrediction consists of four steps
+* binning the proteins, 
+* creating training and test data sets, 
+* training a regression model on given HiC-matrices and ChIP-seq data,
+* prediction of unknown HiC-matrices from ChIP-seq data
+These four steps are described below in more detail. 
 
 
 ## Installation
@@ -210,15 +215,15 @@ Options:
 
 Returns:
 * Predicted matrix in cooler format in directory -pod, if specified
-* csv-file -rfp, if specified and target values available 
+* csv-file, if specified (-rfp) and target values available 
 
 
 ### 5. Example Usage
 
 Assume you have a HiC matrix for cell line GM12878, resolution 5kBp, and ChIP-seq data from RAD21, CTCF and H3K9me3 for both GM12878 and K562.
 
-You could then use HiC-Prediction to predict the HiC-matrix 
-of K562 from the given GM12878 HiC matrix.
+You could then use HiC-Prediction to train a random forest on the GM12878 matrix and GM12878-ChIP-seq data and then use this model to predict the HiC matrix of 
+of K562 from K562-ChIP-seq data.
 
 ```
 #create a basefile for GM12878, to be used for training
@@ -238,11 +243,11 @@ $ createBaseFile.py -bf K562_5kb.ph5 -ct K562 -r 5000 -chs 2 -csf ./hg19.chrom.s
 #create dataset for training
 #use the basefile created above and the output directory of
 #of the HiC-matrices as inputs to -bf and --iid, respectively.
-#word size set to 500 just as an example
+#window size set to 500 just as an example
 $createTrainingSet.py -bf Gm12878_5kb.ph5 -dod ./ -iid hicMatrices/ -ws 500 --ignoreCentromeres False
 
 #create dataset for prediction (test set) 
-#word size must be the same as for the training dataset
+#window size must be the same as for the training dataset
 #iid is not required here, since no matrix was passed when
 #creating the basefile
 $createTrainingSet.py -bf K562_5kb.ph5 -dod ./ -ws 500 --ignoreCentromeres False
