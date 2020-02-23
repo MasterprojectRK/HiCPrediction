@@ -7,6 +7,7 @@ HiCPrediction consists of four steps
 * creating training and test data sets, 
 * training a regression model on given HiC-matrices and ChIP-seq data,
 * prediction of unknown HiC-matrices from ChIP-seq data
+
 These four steps are described below in more detail. 
 
 
