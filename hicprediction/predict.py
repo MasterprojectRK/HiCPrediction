@@ -357,13 +357,13 @@ def smoothenMatrix(pSparseMatrix, pSigma):
         return predMatrix
 
 
-def getCorrelation(data, field1, field2,  resolution, method):
+def getCorrelation(pData, pDistanceField, pTargetField, pPredictionField, pCorrMethod):
     """
     Helper method to calculate correlation
     """
 
-    new = data.groupby('distance', group_keys=False)[[field1,
-        field2]].corr(method=method)
+    new = pData.groupby(pDistanceField, group_keys=False)[[pTargetField,
+        pPredictionField]].corr(method=pCorrMethod)
     new = new.iloc[0::2,-1]
     values = new.values
     indices = new.index.tolist()
@@ -379,8 +379,7 @@ def saveResults(pTag, df, pModelParams, pSetParams, y, pScore, pColumns):
     """
     y_pred = y['predReads']
     y_true = y['reads']
-    indicesOPP, valuesOPP = getCorrelation(y,'reads', 'predReads',
-                                     pModelParams['resolution'], 'pearson')
+    indicesOPP, valuesOPP = getCorrelation(y,'distance', 'reads', 'predReads', 'pearson')
     ### calculate AUC
     aucScoreOPP = metrics.auc(indicesOPP, valuesOPP)
     corrScoreOP_P = y[['reads','predReads']].corr(method= \
