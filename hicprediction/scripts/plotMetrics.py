@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 
 @click.option('--resultsfile', '-r', type=click.Path(exists=True, readable=True), help="results file from predict.py in csv format")
-@click.option('--outfile', '-o', type=click.Path(writable=True), required=False, default=None, help="path/name of outfile")
+@click.option('--outfile', '-o', type=click.Path(writable=True, dir_okay=False, file_okay=True), required=False, default=None, help="path/name of outfile (must end in .png, .svg, .pdf)")
 @click.command()
 def plotMetrics(resultsfile, outfile):
     try:
