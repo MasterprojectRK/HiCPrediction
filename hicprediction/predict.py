@@ -421,10 +421,10 @@ def saveResults(pTag, df, pModelParams, pSetParams, y, pScore, pColumns):
             pModelParams['conversion'], 
             'MSE', 
             pModelParams['resolution'],
-            pSetParams['chrom'], 
-            pSetParams['cellType'],
             modelChromStr, 
-            modelCellTypeStr]
+            modelCellTypeStr,
+            pSetParams['chrom'], 
+            pSetParams['cellType']]
     cols.extend(valuesOPP)
     df.loc[pTag] = cols
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
