@@ -7,10 +7,13 @@ import hicprediction.predict
 import sklearn.metrics as metrics
 
 @click.option('--resultsfile', '-r', type=click.Path(exists=True, readable=True), required=True, help="results file from HiC-Reg in text format")
-@click.option('--resolution', '-res', type=int, required=False, default=5000, help="resolution in bp")
+@click.option('--resolution', '-res', type=click.IntRange(min=0), required=False, default=5000, help="resolution in bp")
 @click.option('--outfolder', '-o', type=click.Path(exists=True, writable=True,file_okay=False, dir_okay=True),required=True, help="folder where conversion results (cooler, results csv file) will be placed")
+@click.option('--traincelltype', '-tct', type=str, default="unknown", required=False, help="cell type for training")
+@click.option('--predictioncelltype', '-pct', type=str, default="unknown", required=False, help="cell type for prediction")
+@click.option('--trainchrom', '-tchr', type=str, default="unknown", required=False, help="training chromosome")
 @click.command()
-def convertHicReg(resultsfile, outfolder, resolution):
+def convertHicReg(resultsfile, outfolder, resolution, traincelltype, predictioncelltype, trainchrom):
     try:
         resultsDf = pd.read_csv(resultsfile, delimiter="\t")
         resultsDf['first'] = [int(x.split("_")[1]) for x in resultsDf['Column']]
@@ -21,20 +24,24 @@ def convertHicReg(resultsfile, outfolder, resolution):
         msg = str(e) + "\n"
         msg += "Could not read results file, maybe wrong format?"
         raise SystemExit(msg)
-
+    print("successfully read HiC-reg input file")
     resultsDf['bin1_id'] = np.uint32(resultsDf['first'] / resolution)
     resultsDf['bin2_id'] = np.uint32(resultsDf['second'] / resolution)
     resultsDf['bin_distance'] = np.uint32(resultsDf['Distance'] / resolution)
 
     predictionCsvFile = os.path.join(outfolder, "hicreg_results.csv")
-    createCsvFromDf(resultsDf, resolution, resultsfile, predictionCsvFile)
-
-
+    createCsvFromDf(pResultsDf=resultsDf, pResolution=resolution, 
+                    pPredictionCellType=predictioncelltype, 
+                    pTrainingCellType=traincelltype,
+                    pTrainChrom=trainchrom, 
+                    pTag=resultsfile, 
+                    pOutfile=predictionCsvFile)
+    print("created hicprediction csv results file {:s}".format(predictionCsvFile))
 
     predictionCoolerFile = os.path.join(outfolder, "hicreg_prediction.cool")
     targetCoolerFile = os.path.join(outfolder, "hicreg_target.cool")
     createCoolersFromDf(resultsDf, resolution, pPredictionOutfile=predictionCoolerFile, pTargetOutfile=targetCoolerFile )
-
+    print("created cooler files {:s}, {:s}".format(predictionCoolerFile, targetCoolerFile))
 
 def createCoolersFromDf(pResultsDf, pResolution, pPredictionOutfile, pTargetOutfile):
     #create the bins for cooler
@@ -47,25 +54,22 @@ def createCoolersFromDf(pResultsDf, pResolution, pPredictionOutfile, pTargetOutf
     bins['start'] = binStartList
     bins['end'] = binEndList
     bins['chrom'] = pResultsDf.loc[0, 'chromosome'] 
-    print(bins)
-
+    #create the pixels / counts for predicted cooler
     pixels = pd.DataFrame(columns=['bin1_id','bin2_id','count'])
     pixels['bin1_id'] = pResultsDf['bin1_id']
     pixels['bin2_id'] = pResultsDf['bin2_id']
     pixels['count'] = pResultsDf['PredictedValue']
-    print(pixels)
-    print("max1:", pixels['bin1_id'].max())
-    print("max2:", pixels['bin2_id'].max())
     pixels.sort_values(by=['bin1_id','bin2_id'],inplace=True)  
-
+    #create the pixels / counts for target cooler
     targetPixels = pixels.copy(deep=True)
     targetPixels['count'] = pResultsDf['TrueValue']
     targetPixels.sort_values(by=['bin1_id','bin2_id'],inplace=True)
-    
+    #store the coolers
     cooler.create_cooler(pPredictionOutfile, bins=bins, pixels=pixels, dtypes={'count': np.float64})
     cooler.create_cooler(pTargetOutfile, bins=bins, pixels=targetPixels, dtypes={'count': np.float64})
 
-def createCsvFromDf(pResultsDf, pResolution, pTag, pOutfile):
+
+def createCsvFromDf(pResultsDf, pResolution, pTag, pPredictionCellType, pTrainingCellType, pTrainChrom, pOutfile):
     columns = ['Score', 
                     'R2',
                     'MSE', 
@@ -128,10 +132,10 @@ def createCsvFromDf(pResultsDf, pResolution, pTag, pOutfile):
             'unknown', 
             'MSE', 
             pResolution,
+            pTrainChrom, 
+            pTrainingCellType,
             pResultsDf.loc[0, 'chromosome'], 
-            'unknown target ct',
-            pResultsDf.loc[0, 'chromosome'], 
-            'unknown train ct']
+            pPredictionCellType]
     cols.extend(valuesOPP)
     df.loc[pTag] = cols
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
