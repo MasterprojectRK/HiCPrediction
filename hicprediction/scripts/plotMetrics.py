@@ -4,47 +4,70 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-@click.option('--resultsfile', '-r', type=click.Path(exists=True, readable=True), help="results file from predict.py in csv format")
+@click.option('--resultsfiles', '-r', multiple=True, type=click.Path(exists=True, readable=True), help="results file from predict.py in csv format")
+@click.option('--legends', '-l', multiple=True, type=str)
 @click.option('--outfile', '-o', type=click.Path(writable=True, dir_okay=False, file_okay=True), required=False, default=None, help="path/name of outfile (must end in .png, .svg, .pdf)")
 @click.command()
-def plotMetrics(resultsfile, outfile):
-    try:
-        resultsDf = pd.read_csv(resultsfile, index_col=False)
-    except Exception as e:
-        msg = str(e) + "\n"
-        msg += "could not read results file, wrong format?"
-        raise SystemExit(msg)  
+def plotMetrics(resultsfiles, legends, outfile):
+    if not resultsfiles:
+        return
 
-    try:
-        distStratifiedPearsonFirstIndex = resultsDf.columns.get_loc('0') 
-        resolutionInt = int(resultsDf.loc[0, 'resolution'])
-        trainingChromosomeStr = resultsDf.loc[0, 'modelChromosome']
-        targetChromsomeStr = resultsDf.loc[0, 'predictionChromosome']
-        trainingCellLineStr = resultsDf.loc[0, 'modelCellType']
-        targetCellLineStr = resultsDf.loc[0, 'predictionCellType']
-        pearsonXValues = np.array(np.uint32(resultsDf.columns[distStratifiedPearsonFirstIndex:]))
-        pearsonXValues = pearsonXValues * resolutionInt
-        pearsonYValues = np.array(resultsDf.iloc[0, distStratifiedPearsonFirstIndex:])
-    except Exception as e:
-        msg = str(e) + "\n"
-        msg += "results file does not contain resolution or distance stratified pearson correlation data"
+    if resultsfiles and legends and len(legends) != len(resultsfiles):
+        msg = "If specified, number of legends must match number of resultsfiles"
         raise SystemExit(msg)
 
-    fig1, ax1 = plt.subplots()
-    ax1.plot(pearsonXValues, pearsonYValues)
-    titleStr = "Prediction {:s}, {:s} on {:s}, {:s}\n".format(trainingCellLineStr, trainingChromosomeStr, targetCellLineStr, targetChromsomeStr)
-    titleStr += "Pearson correlation vs. genomic distance"
-    ax1.set_title(titleStr)
-    ax1.set_ylabel("Pearson correlation")
-    ax1.set_xlabel("Genomic distance")
-    ax1.set_ylim([0,1])
+    if not legends:
+        legends = [None for x in resultsfiles]
+    
+    resultsDfList = []
+    for resultfile in resultsfiles:
+        try:
+            resultsDf = pd.read_csv(resultfile, index_col=False)
+            resultsDfList.append(resultsDf)
+        except Exception as e:
+            msg = str(e) + "\n"
+            msg += "could not read results file {:s}, wrong format?"
+            msg = msg.format(resultfile)
+            print(msg)  
 
+    fig1, ax1 = plt.subplots()
+    ax1.set_ylabel("Pearson correlation")
+    ax1.set_xlabel("Genomic distance / Mbp")
+    ax1.set_ylim([0,1])
+    trainChromSet = set()
+    targetChromSet = set()
+    trainCellLineSet = set()
+    targetCellLineSet = set()
+    for i, resultsDf in enumerate(resultsDfList):
+        try:
+            distStratifiedPearsonFirstIndex = resultsDf.columns.get_loc('0') 
+            resolutionInt = int(resultsDf.loc[0, 'resolution'])
+            trainChromSet.add(resultsDf.loc[0, 'modelChromosome'])
+            targetChromSet.add(resultsDf.loc[0, 'predictionChromosome'])
+            trainCellLineSet.add(resultsDf.loc[0, 'modelCellType'])
+            targetCellLineSet.add(resultsDf.loc[0, 'predictionCellType'])
+            pearsonXValues = np.array(np.uint32(resultsDf.columns[distStratifiedPearsonFirstIndex:]))
+            pearsonXValues = pearsonXValues * resolutionInt / 1000000
+            pearsonYValues = np.array(resultsDf.iloc[0, distStratifiedPearsonFirstIndex:])
+        except Exception as e:
+            msg = str(e) + "\n"
+            msg += "results file {:s} does not contain all relevant fields (resolution, distance stratified pearson correlation data etc.)"
+            msg = msg.format(resultsfiles[i])
+            print(msg)
+        
+        titleStr = "Pearson correlation vs. genomic distance"
+        if len(trainChromSet) == len(targetChromSet) == len(trainCellLineSet) == len(targetCellLineSet) == 1:
+            titleStr += "\n {:s}, {:s} on {:s}, {:s}"
+            titleStr = titleStr.format(list(trainCellLineSet)[0], list(trainChromSet)[0], list(targetCellLineSet)[0], list(targetChromSet)[0])
+        ax1.set_title(titleStr)
+        ax1.plot(pearsonXValues, pearsonYValues, label = legends[i])
+    
+    if not None in legends:
+        ax1.legend(frameon=False)
     if not outfile:
         plt.show()
     else:
-        if not outfile.endswith('.png') \
-            and not outfile.endswith('.pdf') \
-            and not outfile.endswith('.svg'):
+        if os.path.splitext(outfile)[1] not in ['.png', '.svg', '.pdf']:
             outfile = os.path.splitext(outfile)[0] + '.png'
             msg = "Outfile must have png, pdf or svg file extension.\n"
             msg += "Renamed outfile to {:s}".format(outfile)
