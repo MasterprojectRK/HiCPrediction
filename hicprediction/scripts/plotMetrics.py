@@ -34,6 +34,7 @@ def plotMetrics(resultsfiles, legends, outfile):
     ax1.set_ylabel("Pearson correlation")
     ax1.set_xlabel("Genomic distance / Mbp")
     ax1.set_ylim([0,1])
+    ax1.set_xlim([0,1.2])
     trainChromSet = set()
     targetChromSet = set()
     trainCellLineSet = set()
