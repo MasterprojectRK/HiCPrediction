@@ -92,33 +92,7 @@ def executePrediction(model,modelParams, testSet, setParams,
             msg = "result file must have .csv file extension"
             msg += "renamed file to {0:s}"
             print(msg.format(resultsfilepath))
-        columns = ['Score', 
-                    'R2',
-                    'MSE', 
-                    'MAE', 
-                    'MSLE',
-                    'AUC_OP_S',
-                    'AUC_OP_P', 
-                    'S_OP', 
-                    'S_OA', 
-                    'S_PA',
-                    'P_OP',
-                    'P_OA',
-                    'P_PA',
-                    'Window', 
-                    'Merge',
-                    'normalize',
-                    'ignoreCentromeres',
-                    'conversion', 
-                    'Loss', 
-                    'resolution',
-                    'modelChromosome', 
-                    'modelCellType',
-                    'predictionChromosome', 
-                    'predictionCellType']
-        dists = sorted(list(testSet.distance.unique()))
-        columns.extend(dists)
-        columns.append('Tag')
+        columns = getResultFileColumnNames(sorted(list(testSet.distance.unique())))
         df = pd.DataFrame(columns=columns)
         df = df.set_index('Tag')
     
@@ -412,32 +386,28 @@ def saveResults(pTag, df, pModelParams, pSetParams, y, pScore, pColumns):
     modelChromStr = ", ".join(modelChromList)
     modelWindowOpStr = ", ".join(modelWindowOpList)
     modelMergeOpStr = ", ".join(modelMergeOpList)
-    cols = [pScore, 
-            metrics.r2_score(y_true, y_pred),
-            metrics.mean_squared_error( y_true, y_pred),
-            metrics.mean_absolute_error( y_true, y_pred),
-            metrics.mean_squared_log_error(y_true, y_pred),
-            0, 
-            aucScoreOPP, 
-            corrScoreOP_S, 
-            corrScoreOA_S,
-            0, 
-            corrScoreOP_P, 
-            corrScoreOA_P,
-            0, 
-            modelWindowOpStr,
-            modelMergeOpStr,
-            pModelParams['normalize'], 
-            pModelParams['ignoreCentromeres'],
-            pModelParams['conversion'], 
-            'MSE', 
-            pModelParams['resolution'],
-            modelChromStr, 
-            modelCellTypeStr,
-            pSetParams['chrom'], 
-            pSetParams['cellType']]
-    cols.extend(valuesOPP)
-    df.loc[pTag] = cols
+    df.loc[pTag, 'Score'] = pScore 
+    df.loc[pTag, 'R2'] = metrics.r2_score(y_true, y_pred)
+    df.loc[pTag, 'MSE'] = metrics.mean_squared_error( y_true, y_pred)
+    df.loc[pTag, 'MAE'] = metrics.mean_absolute_error( y_true, y_pred)
+    df.loc[pTag, 'MSLE'] = metrics.mean_squared_log_error(y_true, y_pred)
+    df.loc[pTag, 'AUC_OP_P'] = aucScoreOPP 
+    df.loc[pTag, 'S_OP'] = corrScoreOP_S 
+    df.loc[pTag, 'S_OA'] = corrScoreOA_S
+    df.loc[pTag, 'P_OP'] = corrScoreOP_P
+    df.loc[pTag, 'P_OA'] = corrScoreOA_P
+    df.loc[pTag, 'Window'] = modelWindowOpStr
+    df.loc[pTag, 'Merge'] = modelMergeOpStr,
+    df.loc[pTag, 'normalize'] = pModelParams['normalize'] 
+    df.loc[pTag, 'conversion'] = pModelParams['conversion'] 
+    df.loc[pTag, 'Loss'] = 'MSE'
+    df.loc[pTag, 'resolution'] = pModelParams['resolution']
+    df.loc[pTag, 'modelChromosome'] = modelChromStr
+    df.loc[pTag, 'modelCellType'] = modelCellTypeStr
+    df.loc[pTag, 'predictionChromosome'] = pSetParams['chrom'] 
+    df.loc[pTag, 'predictionCellType'] = pSetParams['cellType']
+    distStratifiedPearsonFirstIndex = df.columns.get_loc(0)
+    df.loc[pTag, distStratifiedPearsonFirstIndex:] = valuesOPP
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\
                             'Window','Merge', 'normalize'])
