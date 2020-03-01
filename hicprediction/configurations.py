@@ -64,6 +64,7 @@ _protein_options = [
                 help="Store cell type for analysis and documentation"),
     click.option('--matrixFile', '-mf',required=False,type=click.Path(exists=True),\
                  help='Input file with the whole HiC-matrix '),
+    click.option('--correctMatrix', '-corr', type=bool, default=False, help="Correct the matrixFile using Knight-Ruiz method"),
     click.option('--chromsizeFile', '-csf', required=True, type=click.Path(exists=True), help="chrom.sizes file for binning the proteins")
 ]
 

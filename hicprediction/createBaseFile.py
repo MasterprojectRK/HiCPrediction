@@ -34,7 +34,7 @@ np.set_printoptions(precision=3, suppress=True)
                # + ' you defined in the options. Format must be "narrowPeak, broadPeak or bigwig"')
 @click.command()
 def loadAllProteins(proteinfiles, basefile, chromosomes,
-                   matrixfile,celltype,resolution,internaloutdir,chromsizefile):
+                   matrixfile,correctmatrix,celltype,resolution,internaloutdir,chromsizefile):
     """
     Main function that is called with the desired path to the base file, a list
     of chromosomes that are to be included, the source HiC file (whole genome),
@@ -131,7 +131,9 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
     #these matrices can later be used for training
     if matrixfile:
         for chromosome in params['chromSizes']:
-            cutHicMatrix(matrixfile, chromosome, internaloutdir, basefile)    
+            cutHicMatrix(matrixfile, chromosome, internaloutdir, basefile)
+            if correctmatrix:
+                correctHiCMatrix(matrixfile, chromosome, internaloutdir)    
     
              
 
@@ -284,9 +286,23 @@ def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
     print(msg.format(chromTag, outMatrixFileName))
     hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
                             +" --chromosomes " + chromTag + " -o " + outMatrixFileName
-    subprocess.call(hicAdjustMatrixProcess, shell=True)
+    subprocess.check_call(hicAdjustMatrixProcess, shell=True)
     with h5py.File(pBasefile, 'a') as baseFile:
-         baseFile[chromTag] = outMatrixFileName    
+         baseFile[chromTag] = outMatrixFileName 
+
+def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
+    chromTag = "chr" + str(pChrom)
+    inFileName = os.path.basename(pMatrixFile)
+    outFileName = os.path.splitext(inFileName)[0] + "_" + chromTag + ".cool"
+    outMatrixFileName = os.path.join(pOutDir, outFileName)
+
+    msg = "Correcting HiC Matrix using Knight-Ruiz method"
+    print(msg)
+    hicBalanceMatrixProcess = "hicCorrectMatrix correct -m " + outMatrixFileName \
+                             + " --correctionMethod KR" + " --chromosomes " + chromTag \
+                             + " --verbose -o " + outMatrixFileName
+    subprocess.check_call(hicBalanceMatrixProcess, shell=True)
+
 
 
 if __name__ == '__main__':
