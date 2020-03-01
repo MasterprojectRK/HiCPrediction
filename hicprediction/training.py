@@ -73,7 +73,14 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     
     ### replace infinity and nan values. There shouldn't be any.
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df.fillna(value=0, inplace=True)
+    if not df[df.isna().any(axis=1)].empty:
+        msg = "Warning: There are {:d} rows in the training which contain NaN\n"
+        msg = msg.format(df[df.isna().any(axis=1)].shape[0])
+        msg += "The NaNs are in column(s) {:s}\n"
+        msg = msg.format(", ".join(df[df.isna().any(axis=1)].columns))
+        msg += "Replacing by zeros. Check input data!"
+        print(msg)
+        df.fillna(value=0, inplace=True)
 
     ### add weights and over-emphasize some of them, if requested
     variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
