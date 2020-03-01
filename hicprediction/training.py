@@ -23,8 +23,6 @@ def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, no
     """
     Wrapper function for click
     """
-    if maxfeat == 'none':
-        maxfeat = None
     training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance)
 
 def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance):
