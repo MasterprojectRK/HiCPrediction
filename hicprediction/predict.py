@@ -117,6 +117,7 @@ def executePrediction(model,modelParams, testSet, setParams,
     ### convert prediction back to matrix, if output path set
     if predictionoutputdirectory:
         predictionFilePath =  os.path.join(predictionoutputdirectory,predictionTag + ".cool")
+        targetFilePath = os.path.join(predictionoutputdirectory,predictionTag + "_target.cool")
         #get target chromsize / max bin index, since the target matrix might be larger than the predicted one
         #because rows with zero protein entries may have been dropped at the front / end
         chromosome = setParams['chrom']
@@ -140,12 +141,14 @@ def executePrediction(model,modelParams, testSet, setParams,
             print(msg)
             convertToMatrix = predictionToMatrixMultiColumn
         #create a sparse matrix from the prediction dataframe
-        predMatrix = convertToMatrix(predictionDf, modelParams['conversion'], chromsize, resolutionInt)
+        predMatrix, targetMatrix = convertToMatrix(predictionDf, modelParams['conversion'], chromsize, resolutionInt)
         #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
         if sigma > 0.0:
             predMatrix = smoothenMatrix(predMatrix, sigma)
         #create and store final predicted matrix in cooler format
-        createCooler(predMatrix, chromosome, chromsize, resolutionInt, predictionFilePath)
+        metadata = {"modelParams": modelParams, "targetParams": setParams}
+        createCooler(predMatrix, chromosome, chromsize, resolutionInt, predictionFilePath, metadata)
+        createCooler(targetMatrix, chromosome, chromsize, resolutionInt, targetFilePath, None)
 
     ### store evaluation metrics, if results path set
     if resultsfilepath:
@@ -271,12 +274,13 @@ def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution
     columns = list(mergedPredictionDf['second'])
     matIndx = (rows,columns)
     #get the predicted counts
-    data = list(mergedPredictionDf['merged'])
-        
+    predData = list(mergedPredictionDf['merged'])
+    targetData = list(pPredictionDf['reads'])  
     #create predicted matrix
     maxShapeIndx = math.ceil(pChromSize / pResolution)
-    predMatrix = sparse.csr_matrix((data, matIndx), shape=(maxShapeIndx, maxShapeIndx))
-    return predMatrix
+    predMatrix = sparse.csr_matrix((predData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
+    targetMatrix = sparse.csr_matrix((targetData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
+    return predMatrix, targetMatrix
 
 
 def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResolution):
@@ -302,14 +306,16 @@ def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResol
     columns = list(pPredictionDf['second'])
     matIndx = (rows,columns)
     ### convert back
-    data = list(convert(pPredictionDf['pred']))
+    predData = list(convert(pPredictionDf['pred']))
+    targetData = list(pPredictionDf['reads'])
     ### create predicted matrix
     maxShapeIndx = math.ceil(pChromSize / pResolution)
-    predMatrix = sparse.csr_matrix((data, matIndx), shape=(maxShapeIndx, maxShapeIndx))
-    return predMatrix
+    predMatrix = sparse.csr_matrix((predData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
+    targetMatrix = sparse.csr_matrix((targetData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
+    return predMatrix, targetMatrix
 
 
-def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile):
+def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile, pMetadata):
     #get indices of upper triangular matrix
     triu_Indices = np.triu_indices(pSparseMatrix.shape[0])
     
@@ -331,7 +337,7 @@ def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile):
     pixels.sort_values(by=['bin1_id','bin2_id'],inplace=True)
 
     #write out the cooler
-    cooler.create_cooler(pOutfile, bins=bins, pixels=pixels, dtypes={'count': np.float64})
+    cooler.create_cooler(pOutfile, bins=bins, pixels=pixels, dtypes={'count': np.float64}, metadata=pMetadata)
 
 
 def smoothenMatrix(pSparseMatrix, pSigma):
