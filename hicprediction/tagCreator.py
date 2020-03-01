@@ -63,11 +63,10 @@ def initParamDict():
         'noDistance',
         'noMiddle',
         'noStartEnd',
+        'learningParams',
         'smoothMatrix' 
     ]
-    paramDict = dict()
-    for name in paramNamesList:
-        paramDict[name] = None
+    paramDict = {paramName: None for paramName in paramNamesList}
     return paramDict
 
 def getResultFileColumnNames(distList):
@@ -100,6 +99,7 @@ def getResultFileColumnNames(distList):
 
 def normalizeDataFrameColumn(pDataFrame, pColumnName, pMaxValue, pThreshold):
     #inplace zero-to-pMaxValue normalization of a column in a dataframe
+    #values below pThreshold will be set to zero, if pThreshold < pMaxValue
     if not pColumnName in pDataFrame.columns:
         return
     
