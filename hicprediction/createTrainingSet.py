@@ -115,7 +115,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             proteins = store[proteinChromTag]
             params2 = store.get_storer(proteinChromTag).attrs.metadata
         for key, value in params2.items():
-            if params[key] == None and params2[key]:
+            if params[key] == None and key in params2 and params2[key]:
                 params[key] = value
         ###smoothen the proteins by gaussian filtering, if desired
         if pSmooth > 0.0:
