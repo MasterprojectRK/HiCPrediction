@@ -4,6 +4,7 @@ import numpy as np
 import cooler
 import os
 import hicprediction.predict
+from hicprediction.tagCreator import getResultFileColumnNames
 import sklearn.metrics as metrics
 
 @click.option('--resultsfile', '-r', type=click.Path(exists=True, readable=True), required=True, help="results file from HiC-Reg in text format")
@@ -70,35 +71,9 @@ def createCoolersFromDf(pResultsDf, pResolution, pPredictionOutfile, pTargetOutf
 
 
 def createCsvFromDf(pResultsDf, pResolution, pTag, pPredictionCellType, pTrainingCellType, pTrainChrom, pOutfile):
-    columns = ['Score', 
-                    'R2',
-                    'MSE', 
-                    'MAE', 
-                    'MSLE',
-                    'AUC_OP_S',
-                    'AUC_OP_P', 
-                    'S_OP', 
-                    'S_OA', 
-                    'S_PA',
-                    'P_OP',
-                    'P_OA',
-                    'P_PA',
-                    'Window', 
-                    'Merge',
-                    'normalize',
-                    'ignoreCentromeres',
-                    'conversion', 
-                    'Loss', 
-                    'resolution',
-                    'modelChromosome', 
-                    'modelCellType',
-                    'predictionChromosome', 
-                    'predictionCellType']
-    dists = sorted(list(pResultsDf.bin_distance.unique()))
-    columns.extend(dists)
-    columns.append(pTag)
+    columns = getResultFileColumnNames(sorted(list(pResultsDf.bin_distance.unique())))
     df = pd.DataFrame(columns=columns)
-    df.set_index(pTag, inplace=True)
+    df.set_index('Tag', inplace=True)
 
     indicesOPP, valuesOPP = hicprediction.predict.getCorrelation(pResultsDf, 'bin_distance', 'TrueValue', 'PredictedValue', 'pearson')
 
@@ -106,38 +81,25 @@ def createCsvFromDf(pResultsDf, pResolution, pTag, pPredictionCellType, pTrainin
     aucScoreOPP = metrics.auc(indicesOPP, valuesOPP)
     corrScoreOP_P = pResultsDf[['TrueValue','PredictedValue']].corr(method= \
                 'pearson').iloc[0::2,-1].values[0]
-    corrScoreOA_P = 'nan'
     corrScoreOP_S= pResultsDf[['TrueValue','PredictedValue']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
-    corrScoreOA_S= 'nan'
-    #model parameters cell type, chromosome, window operation and merge operation may be lists
-    #so generate appropriate strings for storage
-    cols = [0, 
-            metrics.r2_score(pResultsDf['TrueValue'], pResultsDf['PredictedValue']),
-            metrics.mean_squared_error(pResultsDf['TrueValue'], pResultsDf['PredictedValue']),
-            metrics.mean_absolute_error(pResultsDf['TrueValue'], pResultsDf['PredictedValue']),
-            metrics.mean_squared_log_error(pResultsDf['TrueValue'], pResultsDf['PredictedValue']),
-            0, 
-            aucScoreOPP, 
-            corrScoreOP_S, 
-            corrScoreOA_S,
-            0, 
-            corrScoreOP_P, 
-            corrScoreOA_P,
-            0, 
-            'unknown',
-            'unknown',
-            'unknown', 
-            'unknown',
-            'unknown', 
-            'MSE', 
-            pResolution,
-            pTrainChrom, 
-            pTrainingCellType,
-            pResultsDf.loc[0, 'chromosome'], 
-            pPredictionCellType]
-    cols.extend(valuesOPP)
-    df.loc[pTag] = cols
+    #fill the dataframe
+    df.loc[pTag, 'R2'] = metrics.r2_score(pResultsDf['TrueValue'], pResultsDf['PredictedValue'])
+    df.loc[pTag, 'MSE'] = metrics.mean_squared_error(pResultsDf['TrueValue'], pResultsDf['PredictedValue'])
+    df.loc[pTag, 'MAE'] = metrics.mean_absolute_error(pResultsDf['TrueValue'], pResultsDf['PredictedValue']),
+    df.loc[pTag, 'MSLE'] = metrics.mean_squared_log_error(pResultsDf['TrueValue'], pResultsDf['PredictedValue']),
+    df.loc[pTag, 'AUC_OP_P'] = aucScoreOPP
+    df.loc[pTag, 'S_OP'] =  corrScoreOP_S 
+    df.loc[pTag, 'P_OP'] = corrScoreOP_P 
+    df.loc[pTag, 'Loss'] = 'MSE' 
+    df.loc[pTag, 'resolution'] = pResolution
+    df.loc[pTag, 'modelChromosome'] = pTrainChrom 
+    df.loc[pTag, 'modelCellType'] = pTrainingCellType
+    df.loc[pTag, 'predictionChromosome'] = pResultsDf.loc[0, 'chromosome'] 
+    df.loc[pTag, 'predictionCellType'] = pPredictionCellType
+    distStratifiedPearsonFirstIndex = df.columns.get_loc(0) 
+    df.loc[pTag, distStratifiedPearsonFirstIndex:] = valuesOPP
+    
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\
                             'Window','Merge', 'normalize'])
