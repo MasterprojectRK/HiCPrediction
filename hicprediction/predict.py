@@ -4,7 +4,7 @@ os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import hicprediction.configurations as conf
 import click
-from hicprediction.tagCreator import createPredictionTag
+from hicprediction.tagCreator import createPredictionTag, getResultFileColumnNames,normalizeDataFrameColumn
 import joblib
 import pandas as pd
 import numpy as np
@@ -24,7 +24,7 @@ conversion of prediction to HiC matrices
 @conf.predict_options
 @click.command()
 def executePredictionWrapper(modelfilepath, predictionsetpath,
-                      predictionoutputdirectory, resultsfilepath, sigma):
+                      predictionoutputdirectory, resultsfilepath, sigma, noconvertback):
     """
     Wrapper function for Cli
     """
@@ -59,10 +59,10 @@ def executePredictionWrapper(modelfilepath, predictionsetpath,
         sys.exit(msg)
 
     executePrediction(model, modelParams, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, sigma)
+                      predictionoutputdirectory, resultsfilepath, sigma, noconvertback                      )
 
 def executePrediction(model,modelParams, testSet, setParams,
-                      predictionoutputdirectory, resultsfilepath, sigma):
+                      predictionoutputdirectory, resultsfilepath, sigma, noconvertback):
     """ 
     Main function
     calls prediction, evaluation and conversion methods and stores everything
@@ -124,6 +124,18 @@ def executePrediction(model,modelParams, testSet, setParams,
     
     ### predict test dataset from model
     predictionDf, score = predict(model, testSet, modelParams)
+    
+    ### clamp prediction output to normed input range, if desired
+    if not noconvertback \
+        and modelParams['normReadCount'] and modelParams['normReadCount'] == True \
+        and modelParams['normReadCountValue'] and modelParams ['normReadCountValue'] > 0 \
+        and modelParams['normReadCountThreshold'] and modelParams['normReadCountThreshold'] > 0 \
+        and modelParams['normReadCountThreshold'] < modelParams['normReadCountValue']:
+        normalizeDataFrameColumn(pDataFrame=predictionDf, 
+                                    pColumnName='pred', 
+                                    pMaxValue=modelParams['normReadCountValue'], 
+                                    pThreshold=modelParams['normReadCountThreshold'])
+        
     
     #prediction Tag for storing results
     predictionTag = createPredictionTag(modelParams, setParams)
