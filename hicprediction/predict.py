@@ -98,7 +98,7 @@ def executePrediction(model,modelParams, testSet, setParams,
     
     ### predict test dataset from model
     predictionDf, score = predict(model, testSet, modelParams)
-    
+
     ### clamp prediction output to normed input range, if desired
     if not noconvertback \
         and modelParams['normReadCount'] and modelParams['normReadCount'] == True \
@@ -173,10 +173,20 @@ def predict(model, testSet, pModelParams):
     """
     ### check if the test set contains reads, only then can we compute score later on
     nanreadMask = testSet['reads'] == np.nan
-    testSetHasTargetValues =  testSet[nanreadMask].empty    
+    testSetHasTargetValues =  testSet[nanreadMask].empty
+    if not testSetHasTargetValues:
+        testSet['reads'] = 0.0    
     
     ### Eliminate NaNs - there should be none
-    testSet.fillna(value=0, inplace=True)
+    testSet.replace([np.inf, -np.inf], np.nan, inplace=True)
+    if not testSet[testSet.isna().any(axis=1)].empty:
+        msg = "Warning: There are {:d} rows in the training which contain NaN\n"
+        msg = msg.format(testSet[testSet.isna().any(axis=1)].shape[0])
+        msg += "The NaNs are in column(s) {:s}\n"
+        msg = msg.format(", ".join(testSet[testSet.isna().any(axis=1)].columns))
+        msg += "Replacing by zeros. Check input data!"
+        print(msg)
+        testSet.fillna(value=0, inplace=True)
 
     ### Hide Columns that are not needed for prediction
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
