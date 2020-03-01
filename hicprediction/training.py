@@ -18,14 +18,62 @@ import math
 """ Module responsible for the training of the regressor with data sets.
 """
 @conf.train_options
-@click.command()
-def train(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance):
+@click.command(context_settings=dict(
+                                    ignore_unknown_options=True,
+                                    allow_extra_args=True))
+@click.pass_context
+def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance):
     """
     Wrapper function for click
     """
-    training(modeloutputdirectory, conversion, trees, maxfeat, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance)
 
-def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance):
+    modelParamDict = dict(n_estimators=20, 
+                            criterion='mse', 
+                            max_depth=None, 
+                            min_samples_split=2, 
+                            min_samples_leaf=1, 
+                            min_weight_fraction_leaf=0.0, 
+                            max_features=1./3., 
+                            max_leaf_nodes=None, 
+                            min_impurity_decrease=0.0, 
+                            min_impurity_split=None, 
+                            bootstrap=True, 
+                            oob_score=False, 
+                            n_jobs=-1, 
+                            random_state=5, 
+                            verbose=2, 
+                            ccp_alpha=0.0, 
+                            max_samples=0.75)
+    allowedModelParamDytpeDict = dict(n_estimators=[int], 
+                            criterion=[str], 
+                            max_depth=[int], 
+                            min_samples_split=[int,float], 
+                            min_samples_leaf=[int,float], 
+                            min_weight_fraction_leaf=[float], 
+                            max_features=[int,float,str], 
+                            max_leaf_nodes=[int], 
+                            min_impurity_decrease=[float], 
+                            min_impurity_split=[float], 
+                            bootstrap=[bool], 
+                            oob_score=[bool], 
+                            n_jobs=[int], 
+                            random_state=[int], 
+                            verbose=[int], 
+                            ccp_alpha=[float], 
+                            max_samples=[int,float]  )
+
+    for i in range(0, len(ctx.args), 2):
+        paramName= ctx.args[i][2:]
+        if paramName in modelParamDict:
+            param = tryConvert(ctx.args[i+1], allowedModelParamDytpeDict[paramName])
+            modelParamDict[paramName]=param
+        else:
+            msg = "Parameter {:s} is not supported".format(paramName)
+            raise SystemExit(msg)
+
+    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance)
+
+def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance):
     """
     Train function
     Attributes:
@@ -66,9 +114,14 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     params['noStartEnd'] = noStartEnd
         
     ### create model with desired parameters
-    model = sklearn.ensemble.ExtraTreesRegressor(max_features=pMaxFeat, bootstrap=True, max_samples=0.75, random_state=5,\
-                    n_estimators=pNrOfTrees, n_jobs=-1, verbose=2, criterion='mse')
-    
+    try:
+        model = sklearn.ensemble.RandomForestRegressor(**pModelParamDict)
+        params['learningParams'] = pModelParamDict
+    except Exception as e:
+        msg = str(e) + "\n"
+        msg += "Could not create model. Check parameters"
+        raise SystemExit(msg)
+
     ### replace infinity and nan values. There shouldn't be any.
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     if not df[df.isna().any(axis=1)].empty:
@@ -269,6 +322,23 @@ def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
     ax1.set_ylabel("relative feature importance")
     importanceFigStr = pModelTag + "_importanceGraph.png"
     fig1.savefig(os.path.join(pOutDir, importanceFigStr))
+
+def tryConvert(pParamStr, pAllowedTypeList):
+    converted = False
+    returnParam = str(pParamStr)
+    if pAllowedTypeList and isinstance(pAllowedTypeList, list) and len(pAllowedTypeList) > 0:
+        i = 0
+        while i < len(pAllowedTypeList) and not converted:
+            try:
+                returnParam = pAllowedTypeList[i](returnParam)
+                converted = True
+
+            except:
+                converted = False
+            i += 1
+    return returnParam
+
+
 
 if __name__ == '__main__':
     train()

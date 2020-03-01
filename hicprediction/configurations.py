@@ -44,7 +44,7 @@ _predict_options = [
     click.option('--predictionSetPath','-psp', required=True,type=click.Path(exists=True),
         help='Data set that is to be predicted.'),
     click.option('--sigma', type=click.FloatRange(min=0.0,max=10.0), default=0.0),
-    click.option('--noConvertBack', '-ncb', default=False, help="Do not clamp predictions to normed input ranges")
+    click.option('--noConvertBack', is_flag=True, help="Do not clamp predictions to normed input ranges")
 ]
 
 _allpredict_options = [
@@ -121,9 +121,7 @@ _train_base_options = [
     click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']), show_default=True,\
                 help='Define a conversion function for the read values'),
-    click.option('--trees', type=click.IntRange(min=10, max=100, clamp=True), default=20, required=False),
-    click.option('--maxFeat', type=click.FloatRange(min=0.0, max=1.0,clamp=True), default=1.0, required=False)
-]
+                ]
 def protein_options(func):
     for option in reversed(_protein_options):
         func = option(func)
