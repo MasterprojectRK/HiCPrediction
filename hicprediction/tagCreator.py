@@ -12,10 +12,6 @@ def createSetTag(params):
     tmp +='_'+ createProteinTag(params)
     tmp += '_W' + windowOpStr
     tmp += str(params['windowSize'])
-
-    if params['ignoreCentromeres']:
-        tmp += '_A' + chromStr
-    else:
         tmp += '_B' + chromStr
     return tmp
 
@@ -25,8 +21,6 @@ def createProteinTag(params):
     mergeOpStr = "_".join(mergeOpList)
     tmp = ''
     tmp += 'M' + mergeOpStr
-    if params['normalize']:
-        tmp += '_N'
     return tmp
 
 
