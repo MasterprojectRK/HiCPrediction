@@ -145,6 +145,7 @@ def executePrediction(model,modelParams, testSet, setParams,
         #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
         if sigma > 0.0:
             predMatrix = smoothenMatrix(predMatrix, sigma)
+            modelParams['smoothMatrix'] = sigma
         #create and store final predicted matrix in cooler format
         metadata = {"modelParams": modelParams, "targetParams": setParams}
         createCooler(predMatrix, chromosome, chromsize, resolutionInt, predictionFilePath, metadata)
