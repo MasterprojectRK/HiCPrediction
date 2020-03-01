@@ -111,6 +111,7 @@ _train_options = [
     click.option('--ovsPercentage', '-ovsP', required=False, type=click.FloatRange(min=0.0, max=1.0), default=0.0, help="samples with read count > ovsP*(max. read count) and read count <= (max. read count) will be emphasized by oversampling, ovsP = 0.0 = 1.0 = no Oversampling"),
     click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=0.0, help="(nr. of samples in oversampled range) = ovsF*(nr of elements in non-oversampled range)"),
     click.option('--ovsBalance', '-ovsB', required=False, type=bool, default=False, help="balance while oversampling, such that all samples in oversampled range have approx. same frequency"),
+    click.option('--plotTrees', required=False, type=bool, default=False, help="Plot decision trees"),
 ]
 _alltrain_options = [
     click.option('--setDirectory', '-sd',type=click.Path(exists=True),\

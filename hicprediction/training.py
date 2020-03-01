@@ -22,7 +22,7 @@ import math
                                     ignore_unknown_options=True,
                                     allow_extra_args=True))
 @click.pass_context
-def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance):
+def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees):
     """
     Wrapper function for click
     """
@@ -71,9 +71,9 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
             msg = "Parameter {:s} is not supported".format(paramName)
             raise SystemExit(msg)
 
-    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance)
+    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees)
 
-def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance):
+def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance, pPlotTrees):
     """
     Train function
     Attributes:
@@ -178,7 +178,7 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
     joblib.dump((model, params), modelFileName, compress=True ) 
     print("\n")
 
-    visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag)
+    visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag, pPlotTrees)
 
 
 def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
@@ -275,20 +275,21 @@ def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, 
         figureTag = createModelTag(pParams) + "_weightSumDistributionAfter.png"        
         fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
 
-def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag):
+def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag, pPlotTrees):
     #plot visualizations of the trees to png files
     #only up to depth 6 to keep memory demand low and image "readable"
     #compare this tutorial: https://towardsdatascience.com/random-forest-in-python-24d0893d51c0
-    print("plotting trees...")
-    for treeNr, tree in enumerate(pTreeBasedLearningModel.estimators_):
-        treeStrDot = pModelTag + "_tree" + str(treeNr + 1) + ".dot"
-        treeStrPng = pModelTag + "_tree" + str(treeNr + 1) + ".png"
-        dotfile = os.path.join(pOutDir, treeStrDot)
-        pngfile = os.path.join(pOutDir, treeStrPng)
-        export_graphviz(tree, out_file = dotfile, max_depth=6, feature_names=pFeatList, rounded = True, precision = 6)
-        (graph, ) = pydot.graph_from_dot_file(dotfile)
-        graph.write_png(pngfile)
-        os.remove(dotfile)
+    if pPlotTrees:
+        print("plotting trees...")
+        for treeNr, tree in enumerate(pTreeBasedLearningModel.estimators_):
+            treeStrDot = pModelTag + "_tree" + str(treeNr + 1) + ".dot"
+            treeStrPng = pModelTag + "_tree" + str(treeNr + 1) + ".png"
+            dotfile = os.path.join(pOutDir, treeStrDot)
+            pngfile = os.path.join(pOutDir, treeStrPng)
+            export_graphviz(tree, out_file = dotfile, max_depth=6, feature_names=pFeatList, rounded = True, precision = 6)
+            (graph, ) = pydot.graph_from_dot_file(dotfile)
+            graph.write_png(pngfile)
+            os.remove(dotfile)
 
     #print and plot feature importances
     #compare https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html
