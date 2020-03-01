@@ -4,7 +4,7 @@ os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import click
 import hicprediction.configurations as conf
-from hicprediction.tagCreator import createSetTag, createProteinTag
+from hicprediction.tagCreator import createSetTag, createProteinTag, initParamDict, normalizeDataFrameColumn
 from pkg_resources import resource_filename
 from tqdm import tqdm
 import sys
@@ -28,23 +28,37 @@ used for the training sets. The base file from the former script
 
 @conf.set_options
 @click.command()
-def createTrainingSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,ignorecentromeres,normalize,
+def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
+                      normalizeproteins, normsignalvalue, normsignalthreshold, 
+                    normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, cutoutlength, smooth, method):
+                   windowsize, smooth, method):
     """
     Wrapper function
     calls function and can be called by click
     """
+    
+    #sanity check of normalization params
+    if normalizeproteins and normsignalvalue <= normsignalthreshold:
+        msg = "Aborting. \n" 
+        msg += "normSignalThreshold must be (much) smaller than normSignalValue"
+        raise SystemExit(msg)
+    if normalizereadcounts and normcountvalue <= normcountthreshold:
+        msg = "Aborting. \n"
+        msg += "normCountThreshold must be (much) smaller than normCountValue"
+        raise SystemExit(msg)
+
     createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,ignorecentromeres,normalize,
+                   normalizeproteins, normsignalvalue, normsignalthreshold,
+                   normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, cutoutlength, smooth, method)
+                   windowsize, smooth, method)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
-                   centromeresfile,pIgnoreCentromeres,pNormalize,
+                   pNormalizeProteins, pNormSignalValue, pNormSignalThreshold,
+                   pNormalizeReadCounts, pNormCountValue, pNormCountThreshold,
                    internalInDir, pWindowOperation, pMergeOperation, 
-                   pWindowsize, pCutoutLength, pSmooth, pMethod):
+                   pWindowsize, pSmooth, pMethod):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -62,10 +76,6 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             peakcolumn -- Column in bed file that contains peak values
     """
     ### check extensions
-    if not centromeresfile:
-        centromeresfile = resource_filename('hicprediction',\
-                'InternalStorage') +"/centromeres.txt"
-
     if not conf.checkExtension(basefile, '.ph5'):
         msg = "Aborted. Basefile {0:s} has the wrong format (wrong file extension) \n"
         msg += "please specify a .ph5 file"
@@ -87,12 +97,16 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             msg += 'Please provide correct chromosomes'
             sys.exit( msg.format(chromosome) )
         ### create parameter set
-        params = dict()
+        params = initParamDict()
         params['chrom'] = chromTag
         params['windowOperation'] = pWindowOperation
         params['mergeOperation'] = pMergeOperation
-        params['normalize'] = pNormalize
-        params['ignoreCentromeres'] = pIgnoreCentromeres
+        params['normalize'] = pNormalizeProteins
+        params['normSignalValue'] = pNormSignalValue
+        params['normSignalThreshold'] = pNormSignalThreshold
+        params['normReadCount'] = pNormalizeReadCounts
+        params['normReadCountValue'] = pNormCountValue
+        params['normReadCountThreshold'] = pNormCountThreshold
         params['windowSize'] = pWindowsize
         proteinTag = createProteinTag(params)
         proteinChromTag = proteinTag + "_" + chromTag
@@ -100,14 +114,31 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         with pd.HDFStore(basefile) as store:
             proteins = store[proteinChromTag]
             params2 = store.get_storer(proteinChromTag).attrs.metadata
+        for key, value in params2.items():
+            if params[key] == None and params2[key]:
+                params[key] = value
         ###smoothen the proteins by gaussian filtering, if desired
         if pSmooth > 0.0:
             proteins = smoothenProteins(proteins, pSmooth)
-        ### join parameters
-        params = {**params, **params2}
-        setTag = createSetTag(params) + ".z"
-        datasetFileName = os.path.join(datasetoutputdirectory, setTag)
-        
+            params['smoothProt'] = pSmooth
+        ###normalize the proteins, if desired
+        if pNormalizeProteins and pNormSignalValue > 0.0:
+            for protein in range(proteins.shape[1]):
+                normalizeDataFrameColumn(pDataFrame=proteins, 
+                                        pColumnName=str(protein), 
+                                        pMaxValue=pNormSignalValue, 
+                                        pThreshold=pNormSignalThreshold)
+            msg = "normalized protein singal values to range 0...{:.2f}\n"
+            msg += "Set values < {:.3f} to zero"
+            msg = msg.format(pNormSignalValue, pNormSignalThreshold)
+            print(msg)
+        ###print some info about the proteins:
+        print("non-zero entries:")
+        for protein in range(proteins.shape[1]):
+            nzmask = proteins[str(protein)] > 0.
+            nonzeroEntries = proteins[nzmask].shape[0]
+            print("protein {0:d}: {1:d} of {2:d}".format(protein, nonzeroEntries, proteins.shape[0]))
+                
         ### try to load HiC matrix
         hiCMatrix = None
         reads = None
@@ -142,33 +173,15 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
 
         ### if user decided to cut out centromeres and if the chromosome
         ### has one, create datasets for both chromatids and join them
-        if pIgnoreCentromeres:
-            resolution = int(params['resolution'])
-            if pCutoutLength < resolution:
-                msg="Error: Cutout length must not be smaller than resolution. Aborting"
-                sys.exit(msg)
-            elif pCutoutLength < 5*resolution:
-                msg = "Warning: cutout length is smaller than 5x resolution\n"
-                msg += "Many regions might be cut out."
-                print(msg)
-            threshold = int(pCutoutLength / resolution)
-            starts, ends = findValidProteinRegions(proteins, threshold)
-            if not starts or not ends or len(starts) < 1 or len(ends) < 1:
-                msg = "No valid protein peaks found. Aborting."
-                sys.exit(msg)
-            else:
-                dfList = []
-                for s, e in zip(starts, ends):
-                    dfList.append(createDataset(proteins, reads, pWindowOperation, pWindowsize,
-                                chromosome, pStart = s, pEnd = e))
-                df = pd.concat(dfList, ignore_index=True, sort=False)     
-        else:
-            df = createDataset(proteins, reads, pWindowOperation, pWindowsize,
-                               chromosome, pStart=0, pEnd=proteins.shape[0]-1)
-        
+        df = createDataset(pProteins=proteins, pFullReads=reads, 
+                            pWindowOperation=pWindowOperation, pWindowSize=pWindowsize,
+                            pChrom=chromosome, pStart=0, pEnd=proteins.shape[0]-1, 
+                            pNormalizeReadCounts=pNormalizeReadCounts, 
+                            pNormCountValue=pNormCountValue, 
+                            pNormCountThreshold=pNormCountThreshold)
         if df.empty:
             msg = "Could not create dataset. Aborting"
-            sys.exit(msg)
+            raise SystemExit(msg)
 
         ### add average contact read stratified by distance to dataset
         if matrixfile:
@@ -180,34 +193,14 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             df['proteinNr'] = df['proteinNr'].astype('category')
             df = pd.get_dummies(df, prefix='prot')
 
-        #finally, store the dataset    
+        #finally, store the dataset  
+        setTag = createSetTag(params) + ".z"
+        datasetFileName = os.path.join(datasetoutputdirectory, setTag)  
         joblib.dump((df, params), datasetFileName,compress=True ) 
 
 
-def getCentromerePositions(centromeresfilepath, chromTag, cuts):
-    """
-    function that loads the centromere file and gets the centromere start and
-    end position for the specific chromosome
-    Attributes:
-        centromeresfilepath -- filepath to centromeresfile
-        chromTag --  tag for the specific chromosome
-        cuts -- list of bin positions
-    """
-    f=open(centromeresfilepath, "r")
-    fl =f.readlines()
-    elems = None
-    for x in fl:
-        elems = x.split("\t")
-        if elems[1] == chromTag:
-            break
-    start = int(elems[2])
-    end = int(elems[3])
-    toStart = cuts[cuts < start]
-    toEnd = cuts[cuts < end]
-    return  len(toStart), len(toEnd)
-
 def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSize,
-                   pChrom, pStart, pEnd):
+                   pChrom, pStart, pEnd, pNormalizeReadCounts, pNormCountValue, pNormCountThreshold):
     """
     function that creates the actual dataset for a specific
     chromosome/chromatid
@@ -245,6 +238,15 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         if pFullReads != None:
             df['reads'] = np.float32(reads)
             df['reads'].fillna(0, inplace=True)
+            if pNormalizeReadCounts and pNormCountValue > 0.0:
+                normalizeDataFrameColumn(pDataFrame = df, 
+                                         pColumnName = 'reads', 
+                                         pMaxValue = pNormCountValue,
+                                         pThreshold = pNormCountThreshold)
+                msg = "normalized read counts to range 0...{:.2f}\n"
+                msg += "Set values < {:.3f} to zero"
+                msg = msg.format(pNormCountValue, pNormCountThreshold)
+                print(msg)
     ### iterate over all the proteins and fill the data frame
         for protein in tqdm(range(numberOfProteins), desc="Converting Proteins to dataset"):
             protIndex = str(protein)
@@ -283,7 +285,7 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
     return df
 
 def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
-                   pChrom, pStart, pEnd):
+                   pChrom, pStart, pEnd, pNormalizeReadCounts, pNormCountValue, pNormCountThreshold):
     
     df = pd.DataFrame()
     
@@ -318,6 +320,15 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
             if pFullReads != None:
                 protDf['reads'] = np.float32(reads)
                 protDf['reads'].fillna(0, inplace=True)
+                if pNormalizeReadCounts and pNormCountValue:
+                    normalizeDataFrameColumn(pDataFrame = protDf,
+                                            pColumnName= 'reads',
+                                            pMaxValue = pNormCountValue,
+                                            pThreshold=pNormCountThreshold)
+                    msg = "normalized read counts to range 0...{:.2f}\n"
+                    msg += "Set values < {:.3f} to zero"
+                    msg = msg.format(pNormCountValue, pNormCountThreshold)
+                    print(msg)
             protDf['proteinNr'] = np.uint8(protein)
             
             #get the protein values for the row ("first") and column ("second") position
@@ -360,61 +371,6 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
         print( "{0:d} training samples left".format(df.shape[0]) )
     return df
 
-def get_ranges(starts,ends):
-
-    """
-    calculating the correct indices for adding up the proteins
-    even though the window sizes change
-    Attributes: 
-        starts -- start positions of bins
-        ends --  end positions of bins
-
-    """
-
-    counts = ends - starts
-    counts[counts< 0] = 0
-    counts_csum = counts.cumsum()
-    id_arr = np.ones(counts_csum[-1],dtype=int)
-    id_arr[0] = starts[0]
-    id_arr[counts_csum[:-1]] = starts[1:] - ends[:-1] + 1
-    return id_arr.cumsum()
-
-def getMiddle(proteins,starts,ends, windowOperation):
-    """
-    Get all indices and the IDs corresponding to same groups
-    calculate the window values for each protein
-    Attributes:
-        proteins -- protein array
-        starts -- start positions of bins
-        ends --  end positions of bins
-        windowOperation --  window bin operation
-    """
-    idx = get_ranges(starts,ends)
-    counts = ends - starts
-    counts[counts< 0] = 0
-    id_arr = np.repeat(np.arange(starts.size),counts)
-    ### use right and left shift to mask all the values we do not want to sum
-    right_shift = id_arr[:-2]
-    left_shift = id_arr[2:]
-    mask = left_shift - right_shift + 1
-    mask[mask != 1] = 0
-    mask = np.insert(mask,0,[0])
-    mask = np.append(mask,[0])
-    grp_counts = np.bincount(id_arr) -2
-    grp_counts[grp_counts < 1] = 1
-    for i in range(1, len(proteins)):
-        ### for  each protein sum up all of the windows according to window bin
-        ### operation
-        slice_arr = proteins[i][idx]
-        slice_arr = slice_arr *  mask
-        bin_count = np.bincount(id_arr,slice_arr)
-        if windowOperation == "avg":
-            yield bin_count/grp_counts
-        elif windowOperation == "sum":
-            yield bin_count
-        # elif windowOperation == "max":
-            # yield bin_count
-
 def maskFunc(pArray, pWindowSize=0):
     maskArray = np.zeros(pArray.shape)
     upperTriaInd = np.triu_indices(maskArray.shape[0])
@@ -435,46 +391,6 @@ def buildWindowDataset(pProteinsDf, pProteinNr, pWindowSize, pWindowOperation):
             windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).mean()
         df[str(winSize)] = windowColumn.round(3).astype('float32')
     return df
-
-def findValidProteinRegions(pProteins, pLenThreshold):
-    ###filter out regions of length larger than pLenThreshold
-    ###where none of the proteins has a peak
-    ###return start and end incdices of valid regions
-    maxIndex = pProteins.shape[0]-1
-    validStartIndices = []
-    validEndIndices = []
-    #remove unecessary columns and sum over the remaining protein peak columns
-    #window column is 0, if none of the proteins has any peak within the (forward facing) window of length pLenThreshold
-    clearedProts = pProteins
-    clearedProts['sum'] = clearedProts.sum(axis=1)
-    clearedProts['window'] = clearedProts['sum'].rolling(window=pLenThreshold).max()
-    
-    #there are hopefully more valid then invalid regions, so it makes
-    #sense to filter for invalid regions and compute valid regions from there
-    invalidMask = clearedProts['window'] <= 1.0
-    endList = list( clearedProts[invalidMask].index ) 
-    if len(endList) == 0:
-        #no invalid regions, i. e. whole chromosome is valid
-        validStartIndices = [0]
-        validEndIndices = [maxIndex]
-    elif len(endList) > 0 and len(endList) < pProteins.shape[0]:
-        startList = endList[1:] + [endList[-1]+1] #endList[1:] = [] for lists of length 1
-        invalidStartIndices = [endList[0]-pLenThreshold+1]
-        invalidEndIndices = []
-        for end, start in zip(endList, startList):
-            if start - end > 1:
-                invalidEndIndices.append(end)
-                invalidStartIndices.append(start-pLenThreshold+1)
-        invalidEndIndices.append(endList[-1])
-        validStartIndices = [x+1 for x in invalidEndIndices if x < maxIndex]
-        validEndIndices = [x-1 for x in invalidStartIndices if x > 0 ]
-        if invalidStartIndices[0] != 0:
-            validStartIndices.insert(0, 0)
-        if invalidEndIndices[-1] != maxIndex:
-            validEndIndices.append(maxIndex) 
-    #drop the sum and max columns (since we've not copied the protein df)
-    clearedProts.drop(columns=['sum', 'window'], inplace=True)
-    return (validStartIndices, validEndIndices)
     
 def smoothenProteins(pProteins, pSmooth):
     smoothenedProtDf = pd.DataFrame(columns=pProteins.columns)

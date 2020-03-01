@@ -68,10 +68,7 @@ _protein_options = [
 
 _set_base_options = [
     click.option('--windowSize', '-ws', default=200, show_default=True,\
-                help='Maximum distance between two basepairs'),
-    click.option('--centromeresFile', '-cmf',show_default=True,
-                 default=None,\
-              type=click.Path(exists=True)),
+                help='Maximum distance between two potential interaction sites'),
     click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
                  help='Output directory for training set files'),
 ]
@@ -85,17 +82,19 @@ _set_options = [
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
-    click.option('--normalize', default=False,\
+    click.option('--normalizeProteins', default=True,\
                  show_default=True,\
-                 help='Normalize protein signal values to a 0-1 range'),
-    click.option('--ignoreCentromeres', type=bool, default=True,\
-                 show_default=True,help='Cut out the centroid arms for training'),
+                 help='Normalize protein signal values to the same range'),
+    click.option('--normSignalValue', type=click.FloatRange(min=0.0), default=10.0, help="max. protein signal value after normalization"),
+    click.option('--normSignalThreshold', type=click.FloatRange(min=0.0), default=0.2, help="after signal value normalization, set all values smaller than normSignalThreshold to 0."),
+    click.option('--normalizeReadCounts', default=True, help="Normalize HiC matrix read counts"),
+    click.option('--normCountValue', type=click.FloatRange(min=0.0), default=10.0, help="max. read count value after normalization"),
+    click.option('--normCountThreshold', type=click.FloatRange(min=0.0), default=0.1, help="after read count normalization, set all values smaller than normCountThreshold to 0."),
     click.option('--windowOperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
                 help='How should the proteins in between two base pairs be summed up'),
     click.option('--internalInDir', '-iid', type=click.Path(exists=True), \
                     help='path where internally used matrices are stored'),
-    click.option('--cutoutLength','-cl', required=False, type=int, default=1000000, help="regions of this length will be cut out, if they have no protein peaks assigned"),
     click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing"),                
     click.option('--method',required=False, type=click.Choice(['oneHot', 'multiColumn']), default='multiColumn', help="how to build the dataset. MultiColumn = 3 columns for each protein (start, window, end), OneHot = 3 columns (start, window, end) + one-hot encoding for the proteins"),
 ]
@@ -180,8 +179,7 @@ def allset_options(func):
 
 def getBaseCombinations():
     params = {
-        'mergeOperation': ["avg", "max"],
-        'normalize': [True, False],
+        'mergeOperation': ["avg", "max"]
     }
     paramDict =  product(*params.values())
     for val in tqdm(list(paramDict), desc= 'Iterate parameter combinations' ):
