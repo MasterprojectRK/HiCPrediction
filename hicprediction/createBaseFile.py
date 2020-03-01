@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pybedtools
 import pyBigWig
-from hicprediction.tagCreator import createProteinTag
+from hicprediction.tagCreator import createProteinTag, initParamDict
 from tqdm import tqdm
 
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
@@ -83,7 +83,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
 
   
     ### creation of parameter set
-    params = dict()
+    params = initParamDict()
     params['resolution'] = resolution
     params['cellType'] = celltype
     ### conversion of desired chromosomes to list
@@ -92,22 +92,19 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         chromosomeList = [chrom.strip() for chrom in chromosomeList]
     else:
         chromosomeList = [str(chrom) for chrom in range(1, 23)]
-    #outDirectory = resource_filename('hicprediction',
-                                               #'InternalStorage') +"/"
-    params['chromList'] = chromosomeList
+
     params['chromSizes'] = getChromSizes(chromosomeList, chromsizefile)
 
     ###load protein data from files and store into python objects
     proteinData = getProteinFiles(protPeakFileList + bigwigFileList)
     
-    ### iterate over all possible combinations of settings (merging, normalization etc.)
+    ### iterate over all possible combinations of settings (merging)
     for setting in conf.getBaseCombinations():
         ### get settings and file tag for each combination
-        params['normalize'] = setting['normalize']
         params['mergeOperation'] = setting['mergeOperation']
         proteinTag =createProteinTag(params)
        
-        for chromosome in tqdm(params['chromList'], desc= 'Iterate chromosomes'):   
+        for chromosome in tqdm(params['chromSizes'], desc= 'Iterate chromosomes'):   
             ### get protein data from each object into a dataframe and store in a list
             binnedProteins = []
             for proteinfile in proteinData.keys():
@@ -129,21 +126,11 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
             store.get_storer(proteinChromTag).attrs.metadata = params
             store.close()
 
-            #print some figures
-            msg = "chrom {0:s}, parameters: norm={1:b}, merge={2:s}"
-            print()
-            print(msg.format(chromosome, params['normalize'], params['mergeOperation']))
-            print("non-zero entries")
-            for protein in range(proteinDf.shape[1]):
-                nzmask = proteinDf[str(protein)] > 0.
-                nonzeroEntries = proteinDf[nzmask].shape[0]
-                print("protein {0:d}: {1:d} of {2:d}".format(protein, nonzeroEntries, proteinDf.shape[0]))    
-
     #if a matrixfile has been provided, cut it into chromosomes
     #and store the resulting matrices internally
     #these matrices can later be used for training
     if matrixfile:
-        for chromosome in params['chromList']:
+        for chromosome in params['chromSizes']:
             cutHicMatrix(matrixfile, chromosome, internaloutdir, basefile)    
     
              
@@ -176,7 +163,6 @@ def getDataFromPeakFile(pPeakFilePath):
             msg = "protein file {0:s} seems to be an invalid narrow- or broadPeak file\n"
             msg += "there are rows with more than 10 or less than 9 columns"
             sys.exit(msg.format(pPeakFilePath))
-    ### compute min and max for the normalization
     protData = bedToolFile.to_dataframe()
     columnNames = ['chrom', 'chromStart', 'chromEnd', 'name', 'score',
                             'strand', 'signalValue', 'pValue', 'qValue', 'peak']
@@ -240,9 +226,6 @@ def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pParams):
     #drop not required columns and switch index => same format as for peak file
     proteinDf.drop(columns=['chromStart', 'chromEnd'], inplace=True)
     proteinDf.set_index('bin_id',drop=True, inplace=True)
-    #zero to one normalization, if required
-    if pParams['normalize']:
-        normalizeSignalValue(proteinDf)
     return proteinDf
 
 def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pParams):    
@@ -257,27 +240,7 @@ def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pParams):
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
     else:
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].mean()
-    if pParams['normalize']:
-        normalizeSignalValue(binnedDf)
     return binnedDf
-
-
-def normalizeSignalValue(pProteinDf):
-    #inplace zero-to-one normalization of signal value
-    try:
-        maxSignalValue = pProteinDf.signalValue.max()
-        minSignalValue = pProteinDf.signalValue.min()
-    except:
-        msg = "can't normalize Dataframe without signalValue"
-        raise Warning(msg)
-    if minSignalValue == maxSignalValue:
-        msg = "no variance in protein data file"
-        pProteinDf['signalValue'] = 0.0
-        raise Warning(msg)
-    else:
-        diff = maxSignalValue - minSignalValue
-        pProteinDf['signalValue'] = ((pProteinDf['signalValue'] - minSignalValue) / diff).astype('float32')
-
 
 def getChromSizes(pChromNameList, pChromSizeFile):
     chromSizeDict = dict()
