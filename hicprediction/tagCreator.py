@@ -12,7 +12,7 @@ def createSetTag(params):
     tmp +='_'+ createProteinTag(params)
     tmp += '_W' + windowOpStr
     tmp += str(params['windowSize'])
-        tmp += '_B' + chromStr
+    tmp += '_B' + chromStr
     return tmp
 
 def createProteinTag(params):
@@ -40,3 +40,79 @@ def createPredictionTag(params, setParams):
     tmp += '_PredictionOn_' + setParams['cellType']
     tmp += "_" + setParams['chrom']
     return tmp
+
+
+def initParamDict():
+    paramNamesList = [
+        'resolution',
+        'cellType',
+        'chromSizes',
+        'smoothProt',
+        'chrom',
+        'windowOperation',
+        'mergeOperation',
+        'normalize',
+        'conversion',
+        'normSignalValue',
+        'normSignalThreshold',
+        'normReadCount',
+        'normReadCountValue',
+        'normReadCountThreshold',
+        'windowSize',
+        'method',
+        'noDistance',
+        'noMiddle',
+        'noStartEnd',
+        'smoothMatrix' 
+    ]
+    paramDict = dict()
+    for name in paramNamesList:
+        paramDict[name] = None
+    return paramDict
+
+def getResultFileColumnNames(distList):
+    columns = ['Score', 
+                    'R2',
+                    'MSE', 
+                    'MAE', 
+                    'MSLE',
+                    'AUC_OP_S',
+                    'AUC_OP_P', 
+                    'S_OP', 
+                    'S_OA', 
+                    'S_PA',
+                    'P_OP',
+                    'P_OA',
+                    'P_PA',
+                    'Window', 
+                    'Merge',
+                    'normalize',
+                    'conversion', 
+                    'Loss', 
+                    'resolution',
+                    'modelChromosome', 
+                    'modelCellType',
+                    'predictionChromosome', 
+                    'predictionCellType']    
+    columns.extend(distList)
+    columns.append('Tag')
+    return columns
+
+def normalizeDataFrameColumn(pDataFrame, pColumnName, pMaxValue, pThreshold):
+    #inplace zero-to-pMaxValue normalization of a column in a dataframe
+    if not pColumnName in pDataFrame.columns:
+        return
+    
+    columnMax = pDataFrame[pColumnName].max()
+    columnMin = pDataFrame[pColumnName].min()
+    if columnMin == columnMax:
+        msg = "no variance in column {:s} of dataframe".format(str(pColumnName))
+        pDataFrame[pColumnName] = 0.0
+        raise Warning(msg)
+    else: #zero-to-one normalization first, then multiply with pMaxValue
+        diff = columnMax - columnMin
+        pDataFrame[pColumnName] = ((pDataFrame[pColumnName] - columnMin) / diff).astype('float32')
+        pDataFrame[pColumnName] *= pMaxValue
+    if pThreshold < pMaxValue:
+        setToZeroMask = pDataFrame[pColumnName] < pThreshold
+        pDataFrame.loc[setToZeroMask, pColumnName] = 0.0 #no-op if all values > threshold
