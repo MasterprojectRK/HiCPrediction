@@ -68,7 +68,7 @@ def training(modeloutputdirectory, conversion, pNrOfTrees, pMaxFeat, traindatase
     params['noStartEnd'] = noStartEnd
         
     ### create model with desired parameters
-    model = sklearn.ensemble.ExtraTreesRegressor(max_features=pMaxFeat, random_state=5,\
+    model = sklearn.ensemble.ExtraTreesRegressor(max_features=pMaxFeat, bootstrap=True, max_samples=0.75, random_state=5,\
                     n_estimators=pNrOfTrees, n_jobs=-1, verbose=2, criterion='mse')
     
     ### replace infinity and nan values. There shouldn't be any.
