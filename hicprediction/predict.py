@@ -82,33 +82,9 @@ def executePrediction(model,modelParams, testSet, setParams,
         msg += "or cell lines.\n" 
         msg += "Compound datasets cannot be predicted. Aborting"
         sys.exit(msg) 
-    
-    #prepare dataframe for prediction results
-    df = None
-    if resultsfilepath:
-        if not conf.checkExtension(resultsfilepath, '.csv'):
-            resultsfilename = os.path.splitext(resultsfilepath)[0]
-            resultsfilepath = resultsfilename + ".csv"
-            msg = "result file must have .csv file extension"
-            msg += "renamed file to {0:s}"
-            print(msg.format(resultsfilepath))
-        columns = getResultFileColumnNames(sorted(list(testSet.distance.unique())))
-        df = pd.DataFrame(columns=columns)
-        df = df.set_index('Tag')
-    
+        
     ### predict test dataset from model
-    predictionDf, score = predict(model, testSet, modelParams)
-
-    ### clamp prediction output to normed input range, if desired
-    if not noconvertback \
-        and modelParams['normReadCount'] and modelParams['normReadCount'] == True \
-        and modelParams['normReadCountValue'] and modelParams ['normReadCountValue'] > 0 \
-        and modelParams['normReadCountThreshold'] and modelParams['normReadCountThreshold'] > 0 \
-        and modelParams['normReadCountThreshold'] < modelParams['normReadCountValue']:
-        normalizeDataFrameColumn(pDataFrame=predictionDf, 
-                                    pColumnName='pred', 
-                                    pMaxValue=modelParams['normReadCountValue'], 
-                                    pThreshold=modelParams['normReadCountThreshold'])
+    predictionDf, score = predict(model, testSet, modelParams, noconvertback)
         
     
     #prediction Tag for storing results
@@ -154,8 +130,7 @@ def executePrediction(model,modelParams, testSet, setParams,
     ### store evaluation metrics, if results path set
     if resultsfilepath:
         if score:
-            df = saveResults(predictionTag, df, modelParams, setParams, predictionDf, score, columns)
-            df.to_csv(resultsfilepath)
+            saveResults(predictionTag, modelParams, setParams, predictionDf, testSet, score, resultsfilepath)
         else:
             msg = "Cannot evaluate prediction without target read values\n"
             msg += "Please provide a test set which contains target values\n"
@@ -163,7 +138,7 @@ def executePrediction(model,modelParams, testSet, setParams,
             print(msg)
 
 
-def predict(model, testSet, pModelParams):
+def predict(model, testSet, pModelParams, pNoConvertBack):
     """
     Function to predict test set
     Attributes:
@@ -217,35 +192,50 @@ def predict(model, testSet, pModelParams):
             raise NotImplementedError()
     #test_X = testSet[testSet.columns.difference(dropList)] #also works if one of the columns to drop is not present
     test_X = testSet.drop(columns=dropList, errors='ignore')
-    test_y = testSet.copy(deep=True)
+    predictionDf = testSet.copy(deep=True)
     ### convert reads to log reads
-    test_y['standardLog'] = np.log(testSet['reads']+1)
+    predictionDf['standardLog'] = np.log(testSet['reads']+1)
     ### predict
-    y_pred = model.predict(test_X)
-    test_y['pred'] = y_pred
-    y_pred = np.absolute(y_pred)
-    test_y['predAbs'] = y_pred
+    predReads = model.predict(test_X)
+    if np.min(predReads) < 0:
+        maxPred = np.max(predReads)
+        np.clip(predReads, 0, None, out=predReads)
+        msg = "Warning: Some predicted read counts were negative.\n"
+        msg += "Clamping to range 0...{:.3f}".format(maxPred)
+        print(msg)
+    predictionDf['predReads'] = predReads
+    ### clamp prediction output to normed input range, if desired
+    if not pNoConvertBack \
+        and pModelParams['normReadCount'] and pModelParams['normReadCount'] == True \
+        and pModelParams['normReadCountValue'] and pModelParams ['normReadCountValue'] > 0:
+        normalizeDataFrameColumn(pDataFrame=predictionDf, 
+                                    pColumnName='predReads', 
+                                    pMaxValue=pModelParams['normReadCountValue'], 
+                                    pThreshold=pModelParams['normReadCountThreshold'])
+        msg = "normalized predicted values to range 0...{:.3f}, threshold {:.3f}"
+        msg = msg.format(pModelParams['normReadCountValue'],pModelParams['normReadCountThreshold'])
+        print(msg)
+    #y_pred = np.absolute(y_pred)
+    #test_y['predAbs'] = y_pred
     ### convert back if necessary
     if pModelParams['conversion'] == 'none':
         target = 'reads'
-        reads = y_pred
     elif pModelParams['conversion'] == 'standardLog':
         target = 'standardLog'
-        reads = np.exp(y_pred) - 1
-    ### store into new dataframe
-    test_y['predReads'] = reads
+        predictionDf['predReads'] = np.exp(predictionDf['predReads']) - 1
+
     if testSetHasTargetValues:
-        score = model.score(test_X,test_y[target])
+        score = model.score(test_X,predictionDf[target])
     else:
         score = None
-    return test_y, score
+    return predictionDf, score
 
 def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution):
 
     """
     Function to convert prediction to Hi-C matrix
     Attributes:
-            pPredictionDf = Dataframe with predicted read counts in column 'pred'
+            pPredictionDf = Dataframe with predicted read counts in column 'predReads'
             pConversion = Name of conversion function
             pChromSize = (int) size of chromosome
             pResolution = (int) resolution of target HiC-Matrix in basepairs
@@ -269,7 +259,7 @@ def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution
         resDf['second'] = pPredictionDf[mask]['second']
         ### convert back            
         predStr = 'pred_' + str(protein)
-        resDf[predStr] = convert(pPredictionDf[mask]['pred'])
+        resDf[predStr] = convert(pPredictionDf[mask]['predReads'])
         resDf.set_index(['first','second'],inplace=True)
         resList.append(resDf)
 
@@ -299,7 +289,7 @@ def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResol
     """
     Function to convert prediction to Hi-C matrix
     Attributes:
-            pPredictionDf = Dataframe with predicted read counts in column 'pred'
+            pPredictionDf = Dataframe with predicted read counts in column 'predReads'
             pConversion = Name of conversion function
             pChromSize = (int) size of chromosome
             pResolution = (int) resolution of target HiC-Matrix in basepairs
@@ -317,7 +307,7 @@ def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResol
     columns = list(pPredictionDf['second'])
     matIndx = (rows,columns)
     ### convert back
-    predData = list(convert(pPredictionDf['pred']))
+    predData = list(convert(pPredictionDf['predReads']))
     targetData = list(pPredictionDf['reads'])
     ### create predicted matrix
     maxShapeIndx = math.ceil(pChromSize / pResolution)
@@ -376,22 +366,41 @@ def getCorrelation(pData, pDistanceField, pTargetField, pPredictionField, pCorrM
     indices = indices / div 
     return indices, values
 
-def saveResults(pTag, df, pModelParams, pSetParams, y, pScore, pColumns):
+def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore, pResultsFilePath):
     """
     Function to calculate metrics and store them into a file
     """
-    y_pred = y['predReads']
-    y_true = y['reads']
-    indicesOPP, valuesOPP = getCorrelation(y,'distance', 'reads', 'predReads', 'pearson')
-    ### calculate AUC
-    aucScoreOPP = metrics.auc(indicesOPP, valuesOPP)
-    corrScoreOP_P = y[['reads','predReads']].corr(method= \
+    if not pResultsFilePath:
+        return
+    
+    #prepare dataframe for prediction results
+    if not conf.checkExtension(pResultsFilePath, '.csv'):
+        resultsfilename = os.path.splitext(pResultsFilePath)[0]
+        pResultsFilePath = resultsfilename + ".csv"
+        msg = "result file must have .csv file extension"
+        msg += "renamed file to {0:s}"
+        print(msg.format(pResultsFilePath))
+    columns = getResultFileColumnNames(sorted(list(pTargetDf.distance.unique())))
+    resultsDf = pd.DataFrame(columns=columns)
+    resultsDf.set_index('Tag', inplace=True)
+    
+    targetColumnName = 'reads'
+    predictedColumnName = 'predReads'
+    y_pred = pPredictionDf[predictedColumnName]
+    y_true = pPredictionDf[targetColumnName]
+    ### calculate AUC for Pearson
+    pearsonAucIndices, pearsonAucValues = getCorrelation(pPredictionDf,'distance', 'reads', 'predReads', 'pearson')
+    pearsonAucScore = metrics.auc(pearsonAucIndices, pearsonAucValues)
+    ### calculate AUC for Spearman
+    spearmanAucIncides, spearmanAucValues = getCorrelation(pPredictionDf,'distance', 'reads', 'predReads', 'spearman')
+    spearmanAucScore = metrics.auc(spearmanAucIncides, spearmanAucValues)
+    corrScoreOPredicted_Pearson = pPredictionDf[[targetColumnName,predictedColumnName]].corr(method= \
                 'pearson').iloc[0::2,-1].values[0]
-    corrScoreOA_P = y[['reads', 'avgRead']].corr(method= \
+    corrScoreOAverage_Pearson = pPredictionDf[[targetColumnName, 'avgRead']].corr(method= \
                 'pearson').iloc[0::2,-1].values[0]
-    corrScoreOP_S= y[['reads','predReads']].corr(method= \
+    corrScoreOPredicted_Spearman= pPredictionDf[[targetColumnName, predictedColumnName]].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
-    corrScoreOA_S= y[['reads', 'avgRead']].corr(method= \
+    corrScoreOAverage_Spearman= pPredictionDf[[targetColumnName, 'avgRead']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
     #model parameters cell type, chromosome, window operation and merge operation may be lists
     #so generate appropriate strings for storage
@@ -403,31 +412,33 @@ def saveResults(pTag, df, pModelParams, pSetParams, y, pScore, pColumns):
     modelChromStr = ", ".join(modelChromList)
     modelWindowOpStr = ", ".join(modelWindowOpList)
     modelMergeOpStr = ", ".join(modelMergeOpList)
-    df.loc[pTag, 'Score'] = pScore 
-    df.loc[pTag, 'R2'] = metrics.r2_score(y_true, y_pred)
-    df.loc[pTag, 'MSE'] = metrics.mean_squared_error( y_true, y_pred)
-    df.loc[pTag, 'MAE'] = metrics.mean_absolute_error( y_true, y_pred)
-    df.loc[pTag, 'MSLE'] = metrics.mean_squared_log_error(y_true, y_pred)
-    df.loc[pTag, 'AUC_OP_P'] = aucScoreOPP 
-    df.loc[pTag, 'S_OP'] = corrScoreOP_S 
-    df.loc[pTag, 'S_OA'] = corrScoreOA_S
-    df.loc[pTag, 'P_OP'] = corrScoreOP_P
-    df.loc[pTag, 'P_OA'] = corrScoreOA_P
-    df.loc[pTag, 'Window'] = modelWindowOpStr
-    df.loc[pTag, 'Merge'] = modelMergeOpStr,
-    df.loc[pTag, 'normalize'] = pModelParams['normalize'] 
-    df.loc[pTag, 'conversion'] = pModelParams['conversion'] 
-    df.loc[pTag, 'Loss'] = 'MSE'
-    df.loc[pTag, 'resolution'] = pModelParams['resolution']
-    df.loc[pTag, 'modelChromosome'] = modelChromStr
-    df.loc[pTag, 'modelCellType'] = modelCellTypeStr
-    df.loc[pTag, 'predictionChromosome'] = pSetParams['chrom'] 
-    df.loc[pTag, 'predictionCellType'] = pSetParams['cellType']
-    distStratifiedPearsonFirstIndex = df.columns.get_loc(0)
-    df.loc[pTag, distStratifiedPearsonFirstIndex:] = valuesOPP
-    df = df.sort_values(by=['predictionCellType','predictionChromosome',
+    resultsDf.loc[pTag, 'Score'] = pScore 
+    resultsDf.loc[pTag, 'R2'] = metrics.r2_score(y_true, y_pred)
+    resultsDf.loc[pTag, 'MSE'] = metrics.mean_squared_error( y_true, y_pred)
+    resultsDf.loc[pTag, 'MAE'] = metrics.mean_absolute_error( y_true, y_pred)
+    resultsDf.loc[pTag, 'MSLE'] = metrics.mean_squared_log_error(y_true, y_pred)
+    resultsDf.loc[pTag, 'AUC_OP_P'] = pearsonAucScore 
+    resultsDf.loc[pTag, 'AUC_OP_S'] = spearmanAucScore
+    resultsDf.loc[pTag, 'S_OP'] = corrScoreOPredicted_Spearman 
+    resultsDf.loc[pTag, 'S_OA'] = corrScoreOAverage_Spearman
+    resultsDf.loc[pTag, 'P_OP'] = corrScoreOPredicted_Pearson
+    resultsDf.loc[pTag, 'P_OA'] = corrScoreOAverage_Pearson
+    resultsDf.loc[pTag, 'Window'] = modelWindowOpStr
+    resultsDf.loc[pTag, 'Merge'] = modelMergeOpStr,
+    resultsDf.loc[pTag, 'normalize'] = pModelParams['normalize'] 
+    resultsDf.loc[pTag, 'conversion'] = pModelParams['conversion'] 
+    resultsDf.loc[pTag, 'Loss'] = 'MSE'
+    resultsDf.loc[pTag, 'resolution'] = pModelParams['resolution']
+    resultsDf.loc[pTag, 'modelChromosome'] = modelChromStr
+    resultsDf.loc[pTag, 'modelCellType'] = modelCellTypeStr
+    resultsDf.loc[pTag, 'predictionChromosome'] = pSetParams['chrom'] 
+    resultsDf.loc[pTag, 'predictionCellType'] = pSetParams['cellType']
+    distStratifiedPearsonFirstIndex = resultsDf.columns.get_loc(0)
+    resultsDf.loc[pTag, distStratifiedPearsonFirstIndex:] = pearsonAucValues
+    resultsDf = resultsDf.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\
                             'Window','Merge', 'normalize'])
-    return df
+    resultsDf.to_csv(pResultsFilePath)
+    
 if __name__ == '__main__':
     executePredictionWrapper()
