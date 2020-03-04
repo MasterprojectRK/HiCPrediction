@@ -133,7 +133,8 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         for chromosome in params['chromSizes']:
             cutHicMatrix(matrixfile, chromosome, internaloutdir, basefile)
             if correctmatrix:
-                correctHiCMatrix(matrixfile, chromosome, internaloutdir)    
+                correctHiCMatrix(matrixfile, chromosome, internaloutdir)
+    params['matrixCorrection'] = correctmatrix    
     
              
 

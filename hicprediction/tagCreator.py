@@ -51,6 +51,7 @@ def initParamDict():
         'chrom',
         'windowOperation',
         'mergeOperation',
+        'matrixCorrection',
         'normalize',
         'conversion',
         'normSignalValue',
