@@ -238,15 +238,6 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         if pFullReads != None:
             df['reads'] = np.float32(reads)
             df['reads'].fillna(0, inplace=True)
-            if pNormalizeReadCounts and pNormCountValue > 0.0:
-                normalizeDataFrameColumn(pDataFrame = df, 
-                                         pColumnName = 'reads', 
-                                         pMaxValue = pNormCountValue,
-                                         pThreshold = pNormCountThreshold)
-                msg = "normalized read counts to range 0...{:.2f}\n"
-                msg += "Set values < {:.3f} to zero"
-                msg = msg.format(pNormCountValue, pNormCountThreshold)
-                print(msg)
     ### iterate over all the proteins and fill the data frame
         for protein in tqdm(range(numberOfProteins), desc="Converting Proteins to dataset"):
             protIndex = str(protein)
@@ -282,6 +273,17 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         #consider offset
         df['first'] += pStart
         df['second'] += pStart
+
+        #normalize remaining read counts
+        if pNormalizeReadCounts and pNormCountValue > 0.0:
+                normalizeDataFrameColumn(pDataFrame = df, 
+                                         pColumnName = 'reads', 
+                                         pMaxValue = pNormCountValue,
+                                         pThreshold = pNormCountThreshold)
+                msg = "normalized remaining read counts to range 0...{:.2f}\n"
+                msg += "Set values < {:.3f} to zero"
+                msg = msg.format(pNormCountValue, pNormCountThreshold)
+                print(msg)
     return df
 
 def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
