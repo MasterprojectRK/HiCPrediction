@@ -26,8 +26,8 @@ def convertHicReg(resultsfile, outfolder, resolution, traincelltype, predictionc
         msg += "Could not read results file, maybe wrong format?"
         raise SystemExit(msg)
     print("successfully read HiC-reg input file")
-    resultsDf['bin1_id'] = np.uint32(resultsDf['first'] / resolution)
-    resultsDf['bin2_id'] = np.uint32(resultsDf['second'] / resolution)
+    resultsDf['bin1_id'] = np.uint32(np.floor(resultsDf['first'] / resolution))
+    resultsDf['bin2_id'] = np.uint32(np.floor(resultsDf['second'] / resolution))
     resultsDf['bin_distance'] = np.uint32(resultsDf['Distance'] / resolution)
 
     predictionCsvFile = os.path.join(outfolder, "hicreg_results.csv")
@@ -47,8 +47,8 @@ def convertHicReg(resultsfile, outfolder, resolution, traincelltype, predictionc
 def createCoolersFromDf(pResultsDf, pResolution, pPredictionOutfile, pTargetOutfile):
     #create the bins for cooler
     bins = pd.DataFrame(columns=['chrom','start','end'])
-    maxPos = max(pResultsDf['first'].max(), pResultsDf['second'].max()) + pResolution
-    minPos = min(pResultsDf['first'].min(), pResultsDf['second'].min())
+    maxPos = max(pResultsDf['bin1_id'].max(), pResultsDf['bin2_id'].max()) * pResolution + pResolution
+    minPos = 0
     binStartList = list(range(minPos, maxPos, pResolution))
     binEndList = list(range(minPos + pResolution, maxPos, pResolution))
     binEndList.append(maxPos)
