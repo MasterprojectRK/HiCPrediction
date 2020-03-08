@@ -354,7 +354,7 @@ def getCorrelation(pData, pDistanceField, pTargetField, pPredictionField, pCorrM
     """
     Helper method to calculate correlation
     """
-
+    
     new = pData.groupby(pDistanceField, group_keys=False)[[pTargetField,
         pPredictionField]].corr(method=pCorrMethod)
     new = new.iloc[0::2,-1]
@@ -405,6 +405,8 @@ def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore
                 'spearman').iloc[0::2,-1].values[0]
     corrScoreOAverage_Spearman= pPredictionDf[[targetColumnName, 'avgRead']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
+    print("PearsonAUC", pearsonAucScore)
+    print("SpearmanAUC", spearmanAucScore)
     #model parameters cell type, chromosome, window operation and merge operation may be lists
     #so generate appropriate strings for storage
     modelCellTypeList = list( np.hstack([[], pModelParams['cellType']]) )
