@@ -358,11 +358,14 @@ def getCorrelation(pData, pDistanceField, pTargetField, pPredictionField, pCorrM
     new = pData.groupby(pDistanceField, group_keys=False)[[pTargetField,
         pPredictionField]].corr(method=pCorrMethod)
     new = new.iloc[0::2,-1]
+    #sometimes there is no variation in prediction / target per distance, then correlation is NaN
+    #need to drop these, otherwise AUC will be NaN, too.
+    new.dropna(inplace=True) 
     values = new.values
     indices = new.index.tolist()
     indices = list(map(lambda x: x[0], indices))
     indices = np.array(indices)
-    div = float(len(indices))
+    div = pData[pDistanceField].max()
     indices = indices / div 
     return indices, values
 
@@ -433,8 +436,9 @@ def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore
     resultsDf.loc[pTag, 'modelCellType'] = modelCellTypeStr
     resultsDf.loc[pTag, 'predictionChromosome'] = pSetParams['chrom'] 
     resultsDf.loc[pTag, 'predictionCellType'] = pSetParams['cellType']
-    distStratifiedPearsonFirstIndex = resultsDf.columns.get_loc(0)
-    resultsDf.loc[pTag, distStratifiedPearsonFirstIndex:] = pearsonAucValues
+    for i, pearsonIndex in enumerate(pearsonAucIndices):
+        columnName = int(round(pearsonIndex * pPredictionDf.distance.max()))
+        resultsDf.loc[pTag, columnName] = pearsonAucValues[i]
     resultsDf = resultsDf.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\
                             'Window','Merge', 'normalize'])
