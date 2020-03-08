@@ -14,6 +14,7 @@ import h5py
 import joblib
 from hicmatrix import HiCMatrix as hm
 import itertools
+import matplotlib.pyplot as plt
 
 """
 Module responsible for creating the training sets
@@ -182,6 +183,22 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         if df.empty:
             msg = "Could not create dataset. Aborting"
             raise SystemExit(msg)
+        
+        ### normalize remaining read counts
+        if pNormalizeReadCounts and pNormCountValue > 0.0:
+            fig2, ax2 = plt.subplots()
+            ax2 = df['reads'].plot.hist(bins=100)
+            ax2.set_yscale('log')
+            m1 = df['reads'] > 0.4*df['reads'].max()
+            df.loc[m1, 'reads'] = 0.4*df['reads'].max()
+            normalizeDataFrameColumn(pDataFrame = df, 
+                                    pColumnName = 'reads', 
+                                    pMaxValue = pNormCountValue,
+                                    pThreshold = pNormCountThreshold)
+            msg = "normalized remaining read counts to range 0...{:.2f}\n"
+            msg += "Set values < {:.3f} to zero"
+            msg = msg.format(pNormCountValue, pNormCountThreshold)
+            print(msg)
 
         ### add average contact read stratified by distance to dataset
         if matrixfile:
@@ -198,6 +215,14 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         datasetFileName = os.path.join(datasetoutputdirectory, setTag)  
         joblib.dump((df, params), datasetFileName,compress=True ) 
 
+        #plot read count distribution
+        fig1, ax1 = plt.subplots()
+        ax1 = df['reads'].plot.hist(bins=100)
+        ax1.set_yscale('log')
+        rcDistributionBeforeFilename = createSetTag(params) + "_rcDistributionBefore.png"
+        rcDistributionAfterFilename = createSetTag(params) + "_rcDistributionFinal.png"
+        fig2.savefig(os.path.join(datasetoutputdirectory, rcDistributionBeforeFilename))
+        fig1.savefig(os.path.join(datasetoutputdirectory, rcDistributionAfterFilename))
 
 def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd, pNormalizeReadCounts, pNormCountValue, pNormCountThreshold):
@@ -274,16 +299,6 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         df['first'] += pStart
         df['second'] += pStart
 
-        #normalize remaining read counts
-        if pNormalizeReadCounts and pNormCountValue > 0.0:
-                normalizeDataFrameColumn(pDataFrame = df, 
-                                         pColumnName = 'reads', 
-                                         pMaxValue = pNormCountValue,
-                                         pThreshold = pNormCountThreshold)
-                msg = "normalized remaining read counts to range 0...{:.2f}\n"
-                msg += "Set values < {:.3f} to zero"
-                msg = msg.format(pNormCountValue, pNormCountThreshold)
-                print(msg)
     return df
 
 def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
@@ -322,15 +337,6 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
             if pFullReads != None:
                 protDf['reads'] = np.float32(reads)
                 protDf['reads'].fillna(0, inplace=True)
-                if pNormalizeReadCounts and pNormCountValue:
-                    normalizeDataFrameColumn(pDataFrame = protDf,
-                                            pColumnName= 'reads',
-                                            pMaxValue = pNormCountValue,
-                                            pThreshold=pNormCountThreshold)
-                    msg = "normalized read counts to range 0...{:.2f}\n"
-                    msg += "Set values < {:.3f} to zero"
-                    msg = msg.format(pNormCountValue, pNormCountThreshold)
-                    print(msg)
             protDf['proteinNr'] = np.uint8(protein)
             
             #get the protein values for the row ("first") and column ("second") position
