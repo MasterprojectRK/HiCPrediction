@@ -128,7 +128,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                                         pColumnName=str(protein), 
                                         pMaxValue=pNormSignalValue, 
                                         pThreshold=pNormSignalThreshold)
-            msg = "normalized protein singal values to range 0...{:.2f}\n"
+            msg = "normalized protein signal values to range 0...{:.2f}\n"
             msg += "Set values < {:.3f} to zero"
             msg = msg.format(pNormSignalValue, pNormSignalThreshold)
             print(msg)
