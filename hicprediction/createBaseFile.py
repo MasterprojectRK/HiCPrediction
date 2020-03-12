@@ -285,9 +285,23 @@ def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
     ### create process to cut chromosomes
     msg = "\nstoring Hi-C matrix for chrom {0:s} as {1:s}"
     print(msg.format(chromTag, outMatrixFileName))
-    hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
+    try:
+        hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
                             +" --chromosomes " + chromTag + " -o " + outMatrixFileName
-    subprocess.check_call(hicAdjustMatrixProcess, shell=True)
+        subprocess.check_call(hicAdjustMatrixProcess, shell=True)
+    except Exception as e:
+        msg = str(e) + "\n"
+        msg += "Adjusting and storing the provided matrix internally failed, retrying with different chrom naming scheme"
+        print(msg)
+    try:
+        hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
+                            +" --chromosomes " + pChrom + " -o " + outMatrixFileName
+        subprocess.check_call(hicAdjustMatrixProcess, shell=True)
+    except Exception as e:
+        msg = str(e) + "\n"
+        msg += "Adjusting and storing the provided matrix failed terminally. Check chromosome names."
+        raise SystemExit(msg)
+
     with h5py.File(pBasefile, 'a') as baseFile:
          baseFile[chromTag] = outMatrixFileName 
 
@@ -299,11 +313,24 @@ def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
 
     msg = "Correcting HiC Matrix using Knight-Ruiz method"
     print(msg)
-    hicBalanceMatrixProcess = "hicCorrectMatrix correct -m " + outMatrixFileName \
+    try:
+        hicBalanceMatrixProcess = "hicCorrectMatrix correct -m " + outMatrixFileName \
                              + " --correctionMethod KR" + " --chromosomes " + chromTag \
                              + " --verbose -o " + outMatrixFileName
-    subprocess.check_call(hicBalanceMatrixProcess, shell=True)
-
+        subprocess.check_call(hicBalanceMatrixProcess, shell=True)
+    except Exception as e:
+        msg = str(e) + "\n"
+        msg += "KR-correction failed, retrying with different chrom naming scheme"
+        print(msg)
+    try:
+        hicBalanceMatrixProcess = "hicCorrectMatrix correct -m " + outMatrixFileName \
+                             + " --correctionMethod KR" + " --chromosomes " + pChrom \
+                             + " --verbose -o " + outMatrixFileName
+        subprocess.check_call(hicBalanceMatrixProcess, shell=True)
+    except Exception as e:
+        msg = str(e) + "\n"
+        msg += "KR-correction failed terminally. Check chromosome names."
+        raise SystemExit(msg)
 
 
 if __name__ == '__main__':
