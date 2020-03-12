@@ -189,8 +189,8 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             fig2, ax2 = plt.subplots()
             ax2 = df['reads'].plot.hist(bins=100)
             ax2.set_yscale('log')
-            m1 = df['reads'] > 0.3*df['reads'].max()
-            df.loc[m1, 'reads'] = 0.3*df['reads'].max()
+            #m1 = df['reads'] > 0.3*df['reads'].max()
+            #df.loc[m1, 'reads'] = 0.3*df['reads'].max()
             normalizeDataFrameColumn(pDataFrame = df, 
                                     pColumnName = 'reads', 
                                     pMaxValue = pNormCountValue,
