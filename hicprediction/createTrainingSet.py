@@ -172,25 +172,22 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             createDataset = createDatasetMultiColumn
         params['method'] = pMethod
 
-        ### if user decided to cut out centromeres and if the chromosome
-        ### has one, create datasets for both chromatids and join them
+        ### create datasets with read counts and proteins
+        fig1, (ax1, ax2, ax3) = plt.subplots(nrows=3,ncols=1, constrained_layout=True)
         df = createDataset(pProteins=proteins, pFullReads=reads, 
                             pWindowOperation=pWindowOperation, pWindowSize=pWindowsize,
-                            pChrom=chromosome, pStart=0, pEnd=proteins.shape[0]-1, 
-                            pNormalizeReadCounts=pNormalizeReadCounts, 
-                            pNormCountValue=pNormCountValue, 
-                            pNormCountThreshold=pNormCountThreshold)
+                            pChrom=chromosome, pStart=0, pEnd=proteins.shape[0]-1, pAxis=ax1)
         if df.empty:
             msg = "Could not create dataset. Aborting"
             raise SystemExit(msg)
         
+        if reads != None:
+            df['reads'].plot.hist(bins=100, ax=ax2)
+            ax2.set_yscale('log')
+            ax2.set_title("Read count distribution after eliminating places without assoc. proteins")
+        
         ### normalize remaining read counts
         if pNormalizeReadCounts and pNormCountValue > 0.0:
-            fig2, ax2 = plt.subplots()
-            ax2 = df['reads'].plot.hist(bins=100)
-            ax2.set_yscale('log')
-            #m1 = df['reads'] > 0.3*df['reads'].max()
-            #df.loc[m1, 'reads'] = 0.3*df['reads'].max()
             normalizeDataFrameColumn(pDataFrame = df, 
                                     pColumnName = 'reads', 
                                     pMaxValue = pNormCountValue,
@@ -216,16 +213,16 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         joblib.dump((df, params), datasetFileName,compress=True ) 
 
         #plot read count distribution
-        fig1, ax1 = plt.subplots()
-        ax1 = df['reads'].plot.hist(bins=100)
-        ax1.set_yscale('log')
-        rcDistributionBeforeFilename = createSetTag(params) + "_rcDistributionBefore.png"
-        rcDistributionAfterFilename = createSetTag(params) + "_rcDistributionFinal.png"
-        fig2.savefig(os.path.join(datasetoutputdirectory, rcDistributionBeforeFilename))
-        fig1.savefig(os.path.join(datasetoutputdirectory, rcDistributionAfterFilename))
+        if reads != None:
+            df['reads'].plot.hist(bins=100, ax=ax3)
+            ax3.set_yscale('log')
+            ax3.set_title("Final read count distribution in dataset")
+            rcDistributionFilename = createSetTag(params) + "_rcDistribution.png"
+            fig1.suptitle("Read count distributions {:s}, {:s}".format(params['cellType'], params['chrom']))
+            fig1.savefig(os.path.join(datasetoutputdirectory, rcDistributionFilename))
 
 def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSize,
-                   pChrom, pStart, pEnd, pNormalizeReadCounts, pNormCountValue, pNormCountThreshold):
+                   pChrom, pStart, pEnd, pAxis):
     """
     function that creates the actual dataset for a specific
     chromosome/chromatid
@@ -263,6 +260,12 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         if pFullReads != None:
             df['reads'] = np.float32(reads)
             df['reads'].fillna(0, inplace=True)
+    
+            #read count distribution before eliminating zeros
+            df['reads'].plot.hist(bins=100, ax=pAxis)
+            pAxis.set_yscale('log')
+            pAxis.set_title("Read count distribution from input (cooler)")
+
     ### iterate over all the proteins and fill the data frame
         for protein in tqdm(range(numberOfProteins), desc="Converting Proteins to dataset"):
             protIndex = str(protein)
@@ -302,7 +305,7 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
     return df
 
 def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
-                   pChrom, pStart, pEnd, pNormalizeReadCounts, pNormCountValue, pNormCountThreshold):
+                   pChrom, pStart, pEnd, pAxis):
     
     df = pd.DataFrame()
     
@@ -337,8 +340,14 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
             if pFullReads != None:
                 protDf['reads'] = np.float32(reads)
                 protDf['reads'].fillna(0, inplace=True)
+                #read count distribution before eliminating zeros
+                df['reads'].plot.hist(bins=100, ax=pAxis)
+                pAxis.set_yscale('log')
+                pAxis.set_title("Read count distribution from matrix")
             protDf['proteinNr'] = np.uint8(protein)
             
+            
+
             #get the protein values for the row ("first") and column ("second") position
             #in the HiC matrix
             protIndex = str(protein)
