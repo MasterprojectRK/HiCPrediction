@@ -182,10 +182,15 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             raise SystemExit(msg)
         
         if reads != None:
-            df['reads'].plot.hist(bins=100, ax=ax2)
+            binWidth = 10
+            nrBins = int(np.round(df['reads'].max()/binWidth))
+            df['reads'].plot.hist(bins=nrBins, ax=ax2)
             ax2.set_yscale('log')
+            ax2.set_yticks([1,10,1e2,1e3,1e4,1e5])
             ax2.set_title("Read count distribution after eliminating places without assoc. proteins")
-        
+            ax2.set_xlim(ax1.get_xlim()) 
+            ax2.set_ylim(ax1.get_ylim())
+
         ### normalize remaining read counts
         if pNormalizeReadCounts and pNormCountValue > 0.0:
             normalizeDataFrameColumn(pDataFrame = df, 
@@ -217,6 +222,8 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             df['reads'].plot.hist(bins=100, ax=ax3)
             ax3.set_yscale('log')
             ax3.set_title("Final read count distribution in dataset")
+            ax3.set_yticks([1,10,1e2,1e3,1e4,1e5])
+            ax3.set_ylim(ax1.get_ylim())
             rcDistributionFilename = createSetTag(params) + "_rcDistribution.png"
             fig1.suptitle("Read count distributions {:s}, {:s}".format(params['cellType'], params['chrom']))
             fig1.savefig(os.path.join(datasetoutputdirectory, rcDistributionFilename))
@@ -262,8 +269,11 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
             df['reads'].fillna(0, inplace=True)
     
             #read count distribution before eliminating zeros
-            df['reads'].plot.hist(bins=100, ax=pAxis)
+            binwidth = 10
+            nrBins = int(np.round(df['reads'].max()/binwidth))
+            df['reads'].plot.hist(bins=nrBins, ax=pAxis)
             pAxis.set_yscale('log')
+            pAxis.set_yticks([1,10,1e2,1e3,1e4,1e5])
             pAxis.set_title("Read count distribution from input (cooler)")
 
     ### iterate over all the proteins and fill the data frame
@@ -297,6 +307,8 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         print()
         print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
         print( "{0:d} training samples left".format(df.shape[0]) )
+        mask3 = df['reads'] > 0
+        print( "{:d} remaining samples with read count > 0".format(df[mask3].shape[0]) )
 
         #consider offset
         df['first'] += pStart
@@ -341,9 +353,12 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
                 protDf['reads'] = np.float32(reads)
                 protDf['reads'].fillna(0, inplace=True)
                 #read count distribution before eliminating zeros
-                df['reads'].plot.hist(bins=100, ax=pAxis)
+                binwidth = 10
+                nrBins = int(np.round(df['reads'].max()/binwidth))
+                df['reads'].plot.hist(bins=nrBins, ax=pAxis)
                 pAxis.set_yscale('log')
                 pAxis.set_title("Read count distribution from matrix")
+                pAxis.set_yticks([1,10,1e2,1e3,1e4,1e5])
             protDf['proteinNr'] = np.uint8(protein)
             
             
@@ -386,6 +401,8 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
         print()
         print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
         print( "{0:d} training samples left".format(df.shape[0]) )
+        mask3 = df['reads'] > 0
+        print( "{:d} remaining samples with read count > 0".format(df[mask3].shape[0]) )
     return df
 
 def maskFunc(pArray, pWindowSize=0):
