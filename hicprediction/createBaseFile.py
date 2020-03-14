@@ -122,7 +122,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
             ### store binned proteins in base file
             proteinChromTag = proteinTag + "_chr" + chromosome
             store = pd.HDFStore(basefile)
-            store.put(proteinChromTag, proteinDf)
+            store.put(proteinChromTag, proteinDf, format='table')
             store.get_storer(proteinChromTag).attrs.metadata = params
             store.close()
 
@@ -283,27 +283,33 @@ def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
     outMatrixFileName = os.path.join(pOutDir, outFileName)
     
     ### create process to cut chromosomes
-    msg = "\nstoring Hi-C matrix for chrom {0:s} as {1:s}"
+    msg = "\ntrying to store Hi-C matrix for chrom {0:s} as {1:s}"
     print(msg.format(chromTag, outMatrixFileName))
+    storedSuccessfully = False
     try:
         hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
                             +" --chromosomes " + chromTag + " -o " + outMatrixFileName
         subprocess.check_call(hicAdjustMatrixProcess, shell=True)
+        storedSuccessfully = True
     except Exception as e:
         msg = str(e) + "\n"
         msg += "Adjusting and storing the provided matrix internally failed, retrying with different chrom naming scheme"
         print(msg)
-    try:
-        hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
+    if not storedSuccessfully:
+        try:
+            hicAdjustMatrixProcess = "hicAdjustMatrix -m "+ pMatrixFile + " --action keep" \
                             +" --chromosomes " + pChrom + " -o " + outMatrixFileName
-        subprocess.check_call(hicAdjustMatrixProcess, shell=True)
-    except Exception as e:
-        msg = str(e) + "\n"
-        msg += "Adjusting and storing the provided matrix failed terminally. Check chromosome names."
-        raise SystemExit(msg)
-
-    with h5py.File(pBasefile, 'a') as baseFile:
-         baseFile[chromTag] = outMatrixFileName 
+            subprocess.check_call(hicAdjustMatrixProcess, shell=True)
+            storedSuccessfully = True
+            
+        except Exception as e:
+            msg = str(e) + "\n"
+            msg += "Adjusting and storing the provided matrix failed terminally. Check chromosome names."
+            raise SystemExit(msg)
+    if storedSuccessfully:
+        print("successfully stored matrix internally")
+        with h5py.File(pBasefile, 'a') as baseFile:
+            baseFile[chromTag] = outMatrixFileName 
 
 def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
     chromTag = "chr" + str(pChrom)
@@ -318,6 +324,7 @@ def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
                              + " --correctionMethod KR" + " --chromosomes " + chromTag \
                              + " --verbose -o " + outMatrixFileName
         subprocess.check_call(hicBalanceMatrixProcess, shell=True)
+        return
     except Exception as e:
         msg = str(e) + "\n"
         msg += "KR-correction failed, retrying with different chrom naming scheme"
