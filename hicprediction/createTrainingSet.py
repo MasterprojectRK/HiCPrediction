@@ -298,11 +298,16 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
 
         #drop rows where start / end proteins are both zero
         rowsBefore = df.shape[0]
-        mask = False    
+        mask = False 
+        m1 = False
+        m2 = False   
         for i in tqdm(range(numberOfProteins), desc="removing rows without start/end proteins"):    
-            m1 = df[str(i)] > 0
-            m2 = df[str(numberOfProteins * 2 + i)] > 0
-            mask = mask | (m1 & m2)
+        #    m1 = df[str(i)] > 0
+        #    m2 = df[str(numberOfProteins * 2 + i)] > 0
+        #    mask = mask | (m1 & m2)
+            m1 |= df[str(i)] > 0
+            m2 |= df[str(numberOfProteins * 2 + i)] > 0
+        mask = m1 & m2
         df = df[mask]
         print()
         print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
