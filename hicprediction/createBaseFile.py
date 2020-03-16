@@ -223,7 +223,6 @@ def loadProteinDataFromBigwig(pProteinDataObject, pChrom, pParams):
     proteinDf['chromStart'] = chromStartList
     proteinDf['chromEnd'] = chromEndList
     proteinDf['signalValue'] = signalValueList 
-    #print(proteinDf.shape, "\n", proteinDf.head(10))
     #compute bin ids
     proteinDf['bin_id'] = (proteinDf['chromStart'] / resolution).astype('uint32')
     #drop not required columns and switch index => same format as for peak file
@@ -238,7 +237,6 @@ def loadProteinDataFromPeaks(pProteinDataObject, pChrom, pParams):
     proteinDf.drop(columns=['chrom','name', 'score', 'strand', 'pValue', 'qValue'], inplace=True)
     resolution = int(pParams['resolution'])
     proteinDf['bin_id'] = ((proteinDf['chromStart'] + proteinDf['peak'])/resolution).astype('uint32')
-    #print(proteinDf.head(10))
     if pParams['mergeOperation'] == 'max':
         binnedDf = proteinDf.groupby('bin_id')[['signalValue']].max()
     else:
@@ -271,11 +269,11 @@ def getChromSizes(pChromNameList, pChromSizeFile):
 
 def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
     #cut HiC matrices for single chrom and store in outDir
-#    if not cooler.fileops.is_cooler(pMatrixFile):
-#        msg = "Warning: {:s} is no cooler file and therefore ignored"
-#        msg = msg.format(pMatrixFile)
-#        print(msg)
-#        return
+    if not cooler.fileops.is_cooler(pMatrixFile) or not pMatrixFile.endswith(".cool"):
+        msg = "Warning: {:s} is no cooler file and therefore ignored"
+        msg = msg.format(pMatrixFile)
+        print(msg)
+        return
     
     chromTag = "chr" + str(pChrom)
     inFileName = os.path.basename(pMatrixFile)
@@ -283,7 +281,7 @@ def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
     outMatrixFileName = os.path.join(pOutDir, outFileName)
     
     ### create process to cut chromosomes
-    msg = "\ntrying to store Hi-C matrix for chrom {0:s} as {1:s}"
+    msg = "trying to store Hi-C matrix for chrom {0:s} as {1:s}"
     print(msg.format(chromTag, outMatrixFileName))
     storedSuccessfully = False
     try:
@@ -319,25 +317,31 @@ def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
 
     msg = "Correcting HiC Matrix using Knight-Ruiz method"
     print(msg)
+    storedSuccessfully = False
     try:
         hicBalanceMatrixProcess = "hicCorrectMatrix correct -m " + outMatrixFileName \
                              + " --correctionMethod KR" + " --chromosomes " + chromTag \
                              + " --verbose -o " + outMatrixFileName
         subprocess.check_call(hicBalanceMatrixProcess, shell=True)
-        return
+        storedSuccessfully = True
     except Exception as e:
         msg = str(e) + "\n"
-        msg += "KR-correction failed, retrying with different chrom naming scheme"
+        msg += "KR-correction failed initially, retrying with different chrom naming scheme"
         print(msg)
-    try:
-        hicBalanceMatrixProcess = "hicCorrectMatrix correct -m " + outMatrixFileName \
-                             + " --correctionMethod KR" + " --chromosomes " + pChrom \
-                             + " --verbose -o " + outMatrixFileName
-        subprocess.check_call(hicBalanceMatrixProcess, shell=True)
-    except Exception as e:
-        msg = str(e) + "\n"
-        msg += "KR-correction failed terminally. Check chromosome names."
-        raise SystemExit(msg)
+    if not storedSuccessfully:
+        try:
+            hicBalanceMatrixProcess = "hicCorrectMatrix correct -m " + outMatrixFileName \
+                                + " --correctionMethod KR" + " --chromosomes " + pChrom \
+                                + " --verbose -o " + outMatrixFileName
+            subprocess.check_call(hicBalanceMatrixProcess, shell=True)
+            storedSuccessfully = True
+        except Exception as e:
+            msg = str(e) + "\n"
+            msg += "KR-correction failed again. Check cooler file."
+            return
+    if storedSuccessfully: 
+        msg = "KR-correction successful"
+        print(msg)
 
 
 if __name__ == '__main__':
