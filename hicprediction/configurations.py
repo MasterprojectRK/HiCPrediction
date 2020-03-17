@@ -84,12 +84,12 @@ _set_options = [
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
-    click.option('--normalizeProteins', default=True,\
+    click.option('--normalizeProteins', default=True, type=bool,\
                  show_default=True,\
                  help='Normalize protein signal values to the same range'),
     click.option('--normSignalValue', type=click.FloatRange(min=0.0), default=10.0, help="max. protein signal value after normalization"),
     click.option('--normSignalThreshold', type=click.FloatRange(min=0.0), default=0.1, help="after signal value normalization, set all values smaller than normSignalThreshold to 0."),
-    click.option('--normalizeReadCounts', default=True, help="Normalize HiC matrix read counts"),
+    click.option('--normalizeReadCounts', default=True, type=bool, help="Normalize HiC matrix read counts"),
     click.option('--normCountValue', type=click.FloatRange(min=0.0), default=10.0, help="max. read count value after normalization"),
     click.option('--normCountThreshold', type=click.FloatRange(min=0.0), default=0.0, help="after read count normalization, set all values smaller than normCountThreshold to 0."),
     click.option('--windowOperation', '-wo', default='avg',\
