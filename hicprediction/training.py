@@ -22,7 +22,7 @@ import math
                                     ignore_unknown_options=True,
                                     allow_extra_args=True))
 @click.pass_context
-def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees):
+def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset):
     """
     Wrapper function for click
     """
@@ -71,9 +71,9 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
             msg = "Parameter {:s} is not supported".format(paramName)
             raise SystemExit(msg)
 
-    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees)
+    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset)
 
-def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance, pPlotTrees):
+def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance, pPlotTrees, pSplitTrainset):
     """
     Train function
     Attributes:
@@ -171,15 +171,27 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
     elif conversion == 'standardLog':
         y = np.log(df['reads']+1)
 
-    ## train model and store it
-    model.fit(X, y, weights)
-    modelTag = createModelTag(params)
-    modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
-    joblib.dump((model, params), modelFileName, compress=True ) 
-    print("\n")
-
-    visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag, pPlotTrees)
-
+    ## train models and store them
+    if pSplitTrainset:
+        for i in range(0,5):
+            X_r = X.sample(frac=1./(5.-i), random_state=0)
+            y_r = y[X_r.index]
+            weights_r = weights[X_r.index]
+            X.drop(X_r.index, inplace=True)
+            y.drop(X_r.index, inplace=True)
+            weights.drop(X_r.index, inplace=True)
+            model.fit(X_r, y_r, weights_r)
+            modelTag = createModelTag(params) + "_" + str(i+1)
+            modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
+            joblib.dump((model, params), modelFileName, compress=True ) 
+            print("model {:d}\n".format(i+1))
+            visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag, pPlotTrees)
+    else:
+        model.fit(X, y, weights)
+        modelTag = createModelTag(params)
+        modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
+        joblib.dump((model, params), modelFileName, compress=True )
+        visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag, pPlotTrees)
 
 def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
     #Select all rows (samples) from dataframe where "reads" (read counts) are in certain range,

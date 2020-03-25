@@ -112,6 +112,7 @@ _train_options = [
     click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=0.0, help="(nr. of samples in oversampled range) = ovsF*(nr of elements in non-oversampled range)"),
     click.option('--ovsBalance', '-ovsB', required=False, type=bool, default=False, help="balance while oversampling, such that all samples in oversampled range have approx. same frequency"),
     click.option('--plotTrees', required=False, type=bool, default=False, help="Plot decision trees"),
+    click.option('--splitTrainset', type=bool, default=False, help="Split Trainingset and create 5 models instead of 1"),
 ]
 _alltrain_options = [
     click.option('--setDirectory', '-sd',type=click.Path(exists=True),\
