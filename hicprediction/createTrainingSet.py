@@ -125,10 +125,15 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         ###normalize the proteins, if desired
         if pNormalizeProteins and pNormSignalValue > 0.0:
             for protein in range(proteins.shape[1]):
-                normalizeDataFrameColumn(pDataFrame=proteins, 
-                                        pColumnName=str(protein), 
-                                        pMaxValue=pNormSignalValue, 
-                                        pThreshold=pNormSignalThreshold)
+                meanVal = proteins[str(protein)].mean()
+                if meanVal <= 0.0001:
+                    meanVal += 1.
+                    print("Warning: mean signal value < 0.0001, check protein input nr. {:d}".format(protein))
+                #normalizeDataFrameColumn(pDataFrame=proteins, 
+                #                        pColumnName=str(protein), 
+                #                        pMaxValue=meanVal, 
+                #                        pThreshold=pNormSignalThreshold)
+                proteins[str(protein)] /= meanVal
             msg = "normalized protein signal values to range 0...{:.2f}\n"
             msg += "Set values < {:.3f} to zero"
             msg = msg.format(pNormSignalValue, pNormSignalThreshold)
@@ -193,10 +198,16 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
 
         ### normalize remaining read counts
         if pNormalizeReadCounts and pNormCountValue > 0.0:
-            normalizeDataFrameColumn(pDataFrame = df, 
-                                    pColumnName = 'reads', 
-                                    pMaxValue = pNormCountValue,
-                                    pThreshold = pNormCountThreshold)
+            meanVal = df['reads'].mean()
+            #normalizeDataFrameColumn(pDataFrame = df, 
+            #                        pColumnName = 'reads', 
+            #                        pMaxValue = pNormCountValue,
+            #                        pThreshold = pNormCountThreshold)
+            if meanVal <= 0.0001:
+                meanVal += 1.
+                msg = "Warning read count mean < 0.0001, check cooler matrix"
+                print(msg)
+            df['reads'] /= meanVal
             msg = "normalized remaining read counts to range 0...{:.2f}\n"
             msg += "Set values < {:.3f} to zero"
             msg = msg.format(pNormCountValue, pNormCountThreshold)
