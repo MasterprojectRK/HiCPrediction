@@ -133,7 +133,7 @@ def plotFeatureImportances(modelfile, outpath, protnames):
     ax1.set_ylabel("relative feature importance")
     importanceFigStr = os.path.splitext(modelfile)[0] + "_importanceGraph.png"
     if outpath:
-        if not outpath.endswith(".png") or outpath.endswith(".svg") or outpath.endswith(".pdf"):
+        if not outpath.endswith(".png") and not outpath.endswith(".svg") and not outpath.endswith(".pdf"):
             outpath += ".png"
         importanceFigStr = outpath
     fig1.savefig(importanceFigStr)
