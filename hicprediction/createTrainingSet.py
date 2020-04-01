@@ -33,7 +33,7 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                       normalizeproteins, normsignalvalue, normsignalthreshold, 
                     normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, smooth, method):
+                   windowsize, smooth, method, removeempty):
     """
     Wrapper function
     calls function and can be called by click
@@ -53,13 +53,13 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                    normalizeproteins, normsignalvalue, normsignalthreshold,
                    normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, smooth, method)
+                   windowsize, smooth, method, removeempty)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
                    pNormalizeProteins, pNormSignalValue, pNormSignalThreshold,
                    pNormalizeReadCounts, pNormCountValue, pNormCountThreshold,
                    internalInDir, pWindowOperation, pMergeOperation, 
-                   pWindowsize, pSmooth, pMethod):
+                   pWindowsize, pSmooth, pMethod, pRemoveEmpty):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -176,7 +176,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         fig1, (ax1, ax2, ax3) = plt.subplots(nrows=3,ncols=1, constrained_layout=True)
         df = createDataset(pProteins=proteins, pFullReads=reads, 
                             pWindowOperation=pWindowOperation, pWindowSize=pWindowsize,
-                            pChrom=chromosome, pStart=0, pEnd=proteins.shape[0]-1, pAxis=ax1)
+                            pChrom=chromosome, pStart=0, pEnd=proteins.shape[0]-1, pAxis=ax1, pRemoveEmpty=pRemoveEmpty)
         if df.empty:
             msg = "Could not create dataset. Aborting"
             raise SystemExit(msg)
@@ -229,7 +229,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             fig1.savefig(os.path.join(datasetoutputdirectory, rcDistributionFilename))
 
 def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSize,
-                   pChrom, pStart, pEnd, pAxis):
+                   pChrom, pStart, pEnd, pAxis, pRemoveEmpty):
     """
     function that creates the actual dataset for a specific
     chromosome/chromatid
@@ -297,20 +297,21 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
             df[str(numberOfProteins + protein)] = np.float32(windowProteins)
 
         #drop rows where start / end proteins are both zero
-        rowsBefore = df.shape[0]
-        mask = False 
-        m1 = False
-        m2 = False   
-        for i in tqdm(range(numberOfProteins), desc="removing rows without start/end proteins"):    
-        #    m1 = df[str(i)] > 0
-        #    m2 = df[str(numberOfProteins * 2 + i)] > 0
-        #    mask = mask | (m1 & m2)
-            m1 |= df[str(i)] > 0
-            m2 |= df[str(numberOfProteins * 2 + i)] > 0
-        mask = m1 & m2
-        df = df[mask]
-        print()
-        print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
+        if pRemoveEmpty:
+            rowsBefore = df.shape[0]
+            mask = False 
+            m1 = False
+            m2 = False   
+            for i in tqdm(range(numberOfProteins), desc="removing rows without start/end proteins"):    
+            #    m1 = df[str(i)] > 0
+            #    m2 = df[str(numberOfProteins * 2 + i)] > 0
+            #    mask = mask | (m1 & m2)
+                m1 |= df[str(i)] > 0
+                m2 |= df[str(numberOfProteins * 2 + i)] > 0
+            mask = m1 & m2
+            df = df[mask]
+            print()
+            print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
         print( "{0:d} training samples left".format(df.shape[0]) )
         mask3 = df['reads'] > 0
         print( "{:d} remaining samples with read count > 0".format(df[mask3].shape[0]) )
@@ -322,7 +323,7 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
     return df
 
 def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
-                   pChrom, pStart, pEnd, pAxis):
+                   pChrom, pStart, pEnd, pAxis, pRemoveEmpty):
     
     df = pd.DataFrame()
     
@@ -399,12 +400,13 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
         df['second'] += pStart
 
         #drop all rows where start and end protein are both zero
-        mask1 = df['startProt'] > 0 
-        mask2 = df['endProt'] > 0
-        rowsBefore = df.shape[0]
-        df = df[mask1 & mask2]
-        print()
-        print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
+        if pRemoveEmpty == True:
+            mask1 = df['startProt'] > 0 
+            mask2 = df['endProt'] > 0
+            rowsBefore = df.shape[0]
+            df = df[mask1 & mask2]
+            print()
+            print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
         print( "{0:d} training samples left".format(df.shape[0]) )
         mask3 = df['reads'] > 0
         print( "{:d} remaining samples with read count > 0".format(df[mask3].shape[0]) )
