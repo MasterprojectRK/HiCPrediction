@@ -99,7 +99,7 @@ def executePrediction(model,modelParams, testSet, setParams,
         chromosome = setParams['chrom']
         resolutionInt = int(modelParams['resolution'])
         try:
-            chromsize = modelParams['chromSizes'][chromosome[3:]]
+            chromsize = setParams['chromSizes'][chromosome[3:]]
         except:
             msg = "No entry for original size of chromosome chr{:s} found.\n"
             msg += "Using size of predicted data, which may yield a smaller or larger predicted matrix"
