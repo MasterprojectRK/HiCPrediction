@@ -105,7 +105,7 @@ def executePrediction(model,modelParams, testSet, setParams,
             msg += "Using size of predicted data, which may yield a smaller or larger predicted matrix"
             msg = msg.format(chromosome)
             print(msg)
-            maxShapeIndx = max(int(predictionDf['first'].max()), int(predictionDf['second'].max()))
+            maxShapeIndx = max(int(predictionDf['first'].max()), int(predictionDf['second'].max())) + 1
             chromsize = maxShapeIndx * resolutionInt
         #set the correct matrix conversion function and convert
         if modelParams['method'] and modelParams['method'] == 'oneHot':
