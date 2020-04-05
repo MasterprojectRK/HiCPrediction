@@ -116,16 +116,31 @@ def executePrediction(model,modelParams, testSet, setParams,
             msg = "Warning: model creation method unknown. Falling back to multiColumn"
             print(msg)
             convertToMatrix = predictionToMatrixMultiColumn
+        
         #create a sparse matrix from the prediction dataframe
-        predMatrix, targetMatrix = convertToMatrix(predictionDf, modelParams['conversion'], chromsize, resolutionInt)
+        predMatrix = convertToMatrix(predictionDf, modelParams['conversion'], chromsize, resolutionInt)
         #smoothen the predicted matrix with a gaussian filter, if sigma > 0.0
         if sigma > 0.0:
             predMatrix = smoothenMatrix(predMatrix, sigma)
             modelParams['smoothMatrix'] = sigma
-        #create and store final predicted matrix in cooler format
+        
+        #create a sparse matrix for target, if available
+        targetMatrix = None
+        nanreadMask = testSet['reads'] == np.nan
+        testSetHasTargetValues =  testSet[nanreadMask].empty
+        if testSetHasTargetValues:
+            rows = list(testSet['first'])
+            columns = list(testSet['second'])
+            matIndx = (rows,columns)
+            maxShapeIndx = max( int(testSet['first'].max()), int(testSet['second'].max()) ) + 1
+            targetData = testSet['reads']
+            targetMatrix = sparse.csr_matrix((targetData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
+
+        #create and store final predicted matrix and target matrix, if available, in cooler format
         metadata = {"modelParams": modelParams, "targetParams": setParams}
         createCooler(predMatrix, chromosome, chromsize, resolutionInt, predictionFilePath, metadata)
-        createCooler(targetMatrix, chromosome, chromsize, resolutionInt, targetFilePath, None)
+        if targetMatrix != None:
+            createCooler(targetMatrix, chromosome, chromsize, resolutionInt, targetFilePath, None)
 
     ### store evaluation metrics, if results path set
     if resultsfilepath:
@@ -138,7 +153,7 @@ def executePrediction(model,modelParams, testSet, setParams,
             print(msg)
 
 
-def predict(model, testSet, pModelParams, pNoConvertBack):
+def predict(model, pTestSet, pModelParams, pNoConvertBack):
     """
     Function to predict test set
     Attributes:
@@ -146,25 +161,35 @@ def predict(model, testSet, pModelParams, pNoConvertBack):
         testSet -- testSet to be predicted
         conversion -- conversion function used when training the model
     """
-    ### check if the test set contains reads, only then can we compute score later on
-    nanreadMask = testSet['reads'] == np.nan
-    testSetHasTargetValues =  testSet[nanreadMask].empty
-    if not testSetHasTargetValues:
-        testSet['reads'] = 0.0    
+    #copy the test set, before invalidated rows and/or the columns not required for prediction are dropped
+    predictionDf = pTestSet.copy(deep=True) 
     
+    ### check if the test set contains reads, only then can we compute score later on
+    nanreadMask = pTestSet['reads'] == np.nan
+    testSetHasTargetValues =  pTestSet[nanreadMask].empty
+    if not testSetHasTargetValues:
+        predictionDf['reads'] = 0.0    
+    
+    ### remove invalidated rows
+    validMask = predictionDf['valid'] == True
+    predictionDf = predictionDf[validMask]
+    if predictionDf.empty:
+        msg = "Aborting. No valid samples to predict"
+        raise SystemExit(msg)
+
     ### Eliminate NaNs - there should be none
-    testSet.replace([np.inf, -np.inf], np.nan, inplace=True)
-    if not testSet[testSet.isna().any(axis=1)].empty:
-        msg = "Warning: There are {:d} rows in the training which contain NaN\n"
-        msg = msg.format(testSet[testSet.isna().any(axis=1)].shape[0])
+    predictionDf.replace([np.inf, -np.inf], np.nan, inplace=True)
+    if not predictionDf[predictionDf.isna().any(axis=1)].empty:
+        msg = "Warning: There are {:d} rows in the testSet which contain NaN\n"
+        msg = msg.format(predictionDf[predictionDf.isna().any(axis=1)].shape[0])
         msg += "The NaNs are in column(s) {:s}\n"
-        msg = msg.format(", ".join(testSet[testSet.isna().any(axis=1)].columns))
+        msg = msg.format(", ".join(predictionDf[predictionDf.isna().any(axis=1)].columns))
         msg += "Replacing by zeros. Check input data!"
         print(msg)
-        testSet.fillna(value=0, inplace=True)
+        predictionDf.fillna(value=0, inplace=True)
 
     ### Hide Columns that are not needed for prediction
-    dropList = ['first', 'second', 'chrom', 'reads', 'avgRead']
+    dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'valid']
     noDistance = 'noDistance' in pModelParams and pModelParams['noDistance'] == True
     noMiddle = 'noMiddle' in pModelParams and pModelParams['noMiddle'] == True
     noStartEnd = 'noStartEnd' in pModelParams and pModelParams['noStartEnd'] == True
@@ -174,7 +199,7 @@ def predict(model, testSet, pModelParams, pNoConvertBack):
         if pModelParams['method'] == 'oneHot':
             dropList.append('middleProt')
         elif pModelParams['method'] == 'multiColumn':
-            numberOfProteins = int((testSet.shape[1] - 6) / 3)
+            numberOfProteins = int((predictionDf.shape[1] - 6) / 3)
             for protein in range(numberOfProteins):
                 dropList.append(str(protein + numberOfProteins))
         else:
@@ -184,18 +209,18 @@ def predict(model, testSet, pModelParams, pNoConvertBack):
             dropList.append('startProt')
             dropList.append('endProt')
         elif pModelParams['method'] == 'multiColumn':
-            numberOfProteins = int((testSet.shape[1] - 6) / 3)
+            numberOfProteins = int((predictionDf.shape[1] - 6) / 3)
             for protein in range(numberOfProteins):
                 dropList.append(str(protein))
                 dropList.append(str(protein + 2 * numberOfProteins))
         else:
             raise NotImplementedError()
-    #test_X = testSet[testSet.columns.difference(dropList)] #also works if one of the columns to drop is not present
-    test_X = testSet.drop(columns=dropList, errors='ignore')
-    predictionDf = testSet.copy(deep=True)
+    test_X = predictionDf.drop(columns=dropList, errors='ignore')
+
     ### convert reads to log reads
-    predictionDf['standardLog'] = np.log(testSet['reads']+1)
+    predictionDf['standardLog'] = np.log(predictionDf['reads']+1)
     ### predict
+    print("Valid prediction samples: {:d}".format(test_X.shape[0]))
     predReads = model.predict(test_X)
     if np.min(predReads) < 0:
         maxPred = np.max(predReads)
@@ -276,12 +301,10 @@ def predictionToMatrixOneHot(pPredictionDf, pConversion, pChromSize, pResolution
     matIndx = (rows,columns)
     #get the predicted counts
     predData = list(mergedPredictionDf['merged'])
-    targetData = list(pPredictionDf['reads'])  
     #create predicted matrix
     maxShapeIndx = math.ceil(pChromSize / pResolution)
     predMatrix = sparse.csr_matrix((predData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
-    targetMatrix = sparse.csr_matrix((targetData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
-    return predMatrix, targetMatrix
+    return predMatrix
 
 
 def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResolution):
@@ -308,12 +331,10 @@ def predictionToMatrixMultiColumn(pPredictionDf, pConversion, pChromSize, pResol
     matIndx = (rows,columns)
     ### convert back
     predData = list(convert(pPredictionDf['predReads']))
-    targetData = list(pPredictionDf['reads'])
     ### create predicted matrix
     maxShapeIndx = math.ceil(pChromSize / pResolution)
     predMatrix = sparse.csr_matrix((predData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
-    targetMatrix = sparse.csr_matrix((targetData, matIndx), shape=(maxShapeIndx, maxShapeIndx))
-    return predMatrix, targetMatrix
+    return predMatrix
 
 
 def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile, pMetadata):
@@ -336,7 +357,6 @@ def createCooler(pSparseMatrix, pChromosome, pChromSize, pResolution, pOutfile, 
     readCounts = np.array(pSparseMatrix[triu_Indices])[0]
     pixels['count'] = np.float64(readCounts)
     pixels.sort_values(by=['bin1_id','bin2_id'],inplace=True)
-
     #write out the cooler
     cooler.create_cooler(pOutfile, bins=bins, pixels=pixels, dtypes={'count': np.float64}, metadata=pMetadata)
 
@@ -389,21 +409,30 @@ def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore
     
     targetColumnName = 'reads'
     predictedColumnName = 'predReads'
-    y_pred = pPredictionDf[predictedColumnName]
-    y_true = pPredictionDf[targetColumnName]
+    # the test set may be larger than the prediction, 
+    # if invalid values (no protein data) have been removed.
+    # therefore join original test set (still contains all samples) with predicted one
+    # and set non-existent predictions to zero
+    jointPredictionTargetDf = pTargetDf.set_index(['first', 'second'])[[targetColumnName]].join( \
+                                pPredictionDf.set_index(['first', 'second'])[[predictedColumnName, 'avgRead']], how='outer')
+    jointPredictionTargetDf.reset_index(inplace=True)
+    jointPredictionTargetDf['distance'] = jointPredictionTargetDf['second'] - jointPredictionTargetDf['first']
+    jointPredictionTargetDf.fillna(0.0, inplace=True)                            
+    y_pred = jointPredictionTargetDf[predictedColumnName]
+    y_true = jointPredictionTargetDf[targetColumnName]
     ### calculate AUC for Pearson
-    pearsonAucIndices, pearsonAucValues = getCorrelation(pPredictionDf,'distance', 'reads', 'predReads', 'pearson')
+    pearsonAucIndices, pearsonAucValues = getCorrelation(jointPredictionTargetDf,'distance', targetColumnName, predictedColumnName, 'pearson')
     pearsonAucScore = metrics.auc(pearsonAucIndices, pearsonAucValues)
     ### calculate AUC for Spearman
-    spearmanAucIncides, spearmanAucValues = getCorrelation(pPredictionDf,'distance', 'reads', 'predReads', 'spearman')
+    spearmanAucIncides, spearmanAucValues = getCorrelation(jointPredictionTargetDf,'distance', targetColumnName, predictedColumnName, 'spearman')
     spearmanAucScore = metrics.auc(spearmanAucIncides, spearmanAucValues)
-    corrScoreOPredicted_Pearson = pPredictionDf[[targetColumnName,predictedColumnName]].corr(method= \
+    corrScoreOPredicted_Pearson = jointPredictionTargetDf[[targetColumnName,predictedColumnName]].corr(method= \
                 'pearson').iloc[0::2,-1].values[0]
-    corrScoreOAverage_Pearson = pPredictionDf[[targetColumnName, 'avgRead']].corr(method= \
+    corrScoreOAverage_Pearson = jointPredictionTargetDf[[targetColumnName, 'avgRead']].corr(method= \
                 'pearson').iloc[0::2,-1].values[0]
-    corrScoreOPredicted_Spearman= pPredictionDf[[targetColumnName, predictedColumnName]].corr(method= \
+    corrScoreOPredicted_Spearman= jointPredictionTargetDf[[targetColumnName, predictedColumnName]].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
-    corrScoreOAverage_Spearman= pPredictionDf[[targetColumnName, 'avgRead']].corr(method= \
+    corrScoreOAverage_Spearman= jointPredictionTargetDf[[targetColumnName, 'avgRead']].corr(method= \
                 'spearman').iloc[0::2,-1].values[0]
     print("PearsonAUC", pearsonAucScore)
     print("SpearmanAUC", spearmanAucScore)
@@ -439,7 +468,7 @@ def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore
     resultsDf.loc[pTag, 'predictionChromosome'] = pSetParams['chrom'] 
     resultsDf.loc[pTag, 'predictionCellType'] = pSetParams['cellType']
     for i, pearsonIndex in enumerate(pearsonAucIndices):
-        columnName = int(round(pearsonIndex * pPredictionDf.distance.max()))
+        columnName = int(round(pearsonIndex * jointPredictionTargetDf.distance.max()))
         resultsDf.loc[pTag, columnName] = pearsonAucValues[i]
     resultsDf = resultsDf.sort_values(by=['predictionCellType','predictionChromosome',
                             'modelCellType','modelChromosome', 'conversion',\

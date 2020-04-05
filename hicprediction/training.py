@@ -98,6 +98,14 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
             msg += "Maybe a trained model was entered instead of a dataset?"
         msg = msg.format(traindatasetfile)
         sys.exit(msg)
+    
+    ### remove invalidated rows
+    validMask = df['valid'] == True
+    df = df[validMask]
+    if df.empty:
+        msg="Aborting. No valid samples in dataset"
+        raise SystemExit(msg)
+    
     ### check if the dataset contains reads, otherwise it cannot be used for training
     nanreadMask = df['reads'] == np.nan
     if not df[nanreadMask].empty:
@@ -137,7 +145,7 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
     variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
 
     ### drop columns that should not be used for training
-    dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'weights']
+    dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'valid', 'weights']
     if noDist:
         dropList.append('distance')    
     if noMiddle:

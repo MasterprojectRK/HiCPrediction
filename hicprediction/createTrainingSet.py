@@ -182,23 +182,29 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             msg = "Could not create dataset. Aborting"
             raise SystemExit(msg)
         
+        #print some figures
+        validMask = df['valid'] == True
+        print( "{0:d} valid samples in dataset".format(df[validMask].shape[0]) )
+        readNonzeroMask = df['reads'] > 0
+        print( "{:d} valid samples with read count > 0".format(df[validMask & readNonzeroMask].shape[0]) )
+
         if reads != None:
             binWidth = 10
-            nrBins = int(np.round(df['reads'].max()/binWidth))
-            df['reads'].plot.hist(bins=nrBins, ax=ax2)
+            nrBins = int(np.round(df[validMask]['reads'].max()/binWidth))
+            df[validMask]['reads'].plot.hist(bins=nrBins, ax=ax2)
             ax2.set_yscale('log')
             ax2.set_yticks([1,10,1e2,1e3,1e4,1e5])
-            ax2.set_title("Read count distribution after eliminating places without assoc. proteins")
+            ax2.set_title("Read count distribution after invalidating places without assoc. proteins")
             ax2.set_xlim(ax1.get_xlim()) 
             ax2.set_ylim(ax1.get_ylim())
 
-        ### normalize remaining read counts
+        ### normalize ALL read counts
         if pNormalizeReadCounts and pNormCountValue > 0.0:
             normalizeDataFrameColumn(pDataFrame = df, 
                                     pColumnName = 'reads', 
                                     pMaxValue = pNormCountValue,
                                     pThreshold = pNormCountThreshold)
-            msg = "normalized remaining read counts to range 0...{:.2f}\n"
+            msg = "normalized all read counts to range 0...{:.2f}\n"
             msg += "Set values < {:.3f} to zero"
             msg = msg.format(pNormCountValue, pNormCountThreshold)
             print(msg)
@@ -220,7 +226,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
 
         #plot read count distribution
         if reads != None:
-            df['reads'].plot.hist(bins=100, ax=ax3)
+            df[validMask]['reads'].plot.hist(bins=100, ax=ax3)
             ax3.set_yscale('log')
             ax3.set_title("Final read count distribution in dataset")
             ax3.set_yticks([1,10,1e2,1e3,1e4,1e5])
@@ -298,25 +304,23 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
             df[str(numberOfProteins + protein)] = np.float32(windowProteins)
 
         #drop rows where start / end proteins are both zero
+        df['valid'] = True
         if pRemoveEmpty:
-            rowsBefore = df.shape[0]
+            df['valid'] = False
             mask = False 
             m1 = False
             m2 = False   
-            for i in tqdm(range(numberOfProteins), desc="removing rows without start/end proteins"):    
+            for i in tqdm(range(numberOfProteins), desc="invalidating rows without start/end proteins"):    
             #    m1 = df[str(i)] > 0
             #    m2 = df[str(numberOfProteins * 2 + i)] > 0
             #    mask = mask | (m1 & m2)
                 m1 |= df[str(i)] > 0
                 m2 |= df[str(numberOfProteins * 2 + i)] > 0
             mask = m1 & m2
-            df = df[mask]
+            df.loc[mask, 'valid'] = True
             print()
-            print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
-        print( "{0:d} training samples left".format(df.shape[0]) )
-        mask3 = df['reads'] > 0
-        print( "{:d} remaining samples with read count > 0".format(df[mask3].shape[0]) )
-
+            print( "invalidated {0:d} rows".format(df[~mask].shape[0]) )
+        
         #consider offset
         df['first'] += pStart
         df['second'] += pStart
@@ -400,17 +404,16 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
         df['first'] += pStart
         df['second'] += pStart
 
-        #drop all rows where start and end protein are both zero
+        #invalidate all rows where start and end protein are both zero
+        df['valid'] = True
         if pRemoveEmpty == True:
+            df['valid'] = False
             mask1 = df['startProt'] > 0 
             mask2 = df['endProt'] > 0
-            rowsBefore = df.shape[0]
-            df = df[mask1 & mask2]
+            mask = mask1 & mask2
+            df.loc[mask, 'valid'] = True
             print()
-            print( "removed {0:d} rows".format(rowsBefore - df.shape[0]) )
-        print( "{0:d} training samples left".format(df.shape[0]) )
-        mask3 = df['reads'] > 0
-        print( "{:d} remaining samples with read count > 0".format(df[mask3].shape[0]) )
+            print( "invalidated {0:d} rows".format(df[~mask].shape[0]) )
     return df
 
 def maskFunc(pArray, pWindowSize=0):
