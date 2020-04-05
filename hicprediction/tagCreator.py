@@ -60,6 +60,7 @@ def initParamDict():
         'normReadCountValue',
         'normReadCountThreshold',
         'windowSize',
+        'removeEmpty',
         'method',
         'noDistance',
         'noMiddle',
