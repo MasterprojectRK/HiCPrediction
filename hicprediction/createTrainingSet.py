@@ -109,6 +109,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         params['normReadCountValue'] = pNormCountValue
         params['normReadCountThreshold'] = pNormCountThreshold
         params['windowSize'] = pWindowsize
+        params['removeEmpty'] = pRemoveEmpty
         proteinTag = createProteinTag(params)
         proteinChromTag = proteinTag + "_" + chromTag
         ### retrieve proteins and parameters from base file
