@@ -366,7 +366,7 @@ def smoothenMatrix(pSparseMatrix, pSigma):
         lower = sparse.triu(pSparseMatrix, k=1).T
         fullPredMatrix = (upper+lower).todense().astype('float32')
         filteredPredMatrix = ndimage.gaussian_filter(fullPredMatrix,pSigma)
-        predMatrix = sparse.triu(filteredPredMatrix)
+        predMatrix = sparse.triu(filteredPredMatrix, format='csr')
         return predMatrix
 
 
