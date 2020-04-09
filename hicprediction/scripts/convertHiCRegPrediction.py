@@ -16,11 +16,7 @@ import sklearn.metrics as metrics
 @click.command()
 def convertHicReg(resultsfile, outfolder, resolution, traincelltype, predictioncelltype, trainchrom):
     try:
-        resultsDf = pd.read_csv(resultsfile, delimiter="\t")
-        resultsDf['first'] = [int(x.split("_")[1]) for x in resultsDf['Column']]
-        resultsDf['second'] = [int(x.split("_")[4]) for x in resultsDf['Column']]
-        resultsDf['chromosome'] = [x.split("_")[0] for x in resultsDf['Column']]
-        resultsDf.drop(columns=['Column'], inplace=True)
+        resultsDf = pd.read_csv(resultsfile, delimiter="\t", index_col=False)
     except Exception as e:
         msg = str(e) + "\n"
         msg += "Could not read results file, maybe wrong format?"
