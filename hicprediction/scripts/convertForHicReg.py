@@ -86,6 +86,7 @@ def convertForHicReg(dataset, outpath, dropinvalid):
     if 'distance' in outDf.columns:
         outDf['distance'] *= resolutionInt
         outDf.rename(columns={'distance': 'Distance'}, inplace=True)
+        priorDf.rename(columns={'distance': 'Distance'}, inplace=True)
 
 
     #write out the dataframes
