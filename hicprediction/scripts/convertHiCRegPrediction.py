@@ -17,6 +17,12 @@ import sklearn.metrics as metrics
 def convertHicReg(resultsfile, outfolder, resolution, traincelltype, predictioncelltype, trainchrom):
     try:
         resultsDf = pd.read_csv(resultsfile, delimiter="\t", index_col=False)
+        resultsDf['pair1'] = [x.split("-")[0] for x in resultsDf['Column']]
+        resultsDf['pair2'] = [x.split("-")[1] for x in resultsDf['Column']]
+        resultsDf['first'] = [int(x.split("_")[1]) for x in resultsDf['pair1']]
+        resultsDf['second'] = [int(x.split("_")[1]) for x in resultsDf['pair2']]
+        resultsDf['chromosome'] = [x.split("_")[0] for x in resultsDf['pair1']]
+        resultsDf.drop(columns=['Column', 'pair1', 'pair2'], inplace=True)
     except Exception as e:
         msg = str(e) + "\n"
         msg += "Could not read results file, maybe wrong format?"
@@ -24,7 +30,7 @@ def convertHicReg(resultsfile, outfolder, resolution, traincelltype, predictionc
     print("successfully read HiC-reg input file")
     resultsDf['bin1_id'] = np.uint32(np.floor(resultsDf['first'] / resolution))
     resultsDf['bin2_id'] = np.uint32(np.floor(resultsDf['second'] / resolution))
-    resultsDf['bin_distance'] = np.uint32(resultsDf['Distance'] / resolution)
+    resultsDf['bin_distance'] = np.uint32((resultsDf['second'] - resultsDf['first'])/resolution)
 
     predictionCsvFile = os.path.join(outfolder, "hicreg_results.csv")
     createCsvFromDf(pResultsDf=resultsDf, pResolution=resolution, 
