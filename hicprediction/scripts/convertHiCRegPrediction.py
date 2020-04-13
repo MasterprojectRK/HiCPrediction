@@ -31,6 +31,13 @@ def convertHicReg(resultsfile, outfolder, resolution, traincelltype, predictionc
     resultsDf['bin1_id'] = np.uint32(np.floor(resultsDf['first'] / resolution))
     resultsDf['bin2_id'] = np.uint32(np.floor(resultsDf['second'] / resolution))
     resultsDf['bin_distance'] = np.uint32((resultsDf['second'] - resultsDf['first'])/resolution)
+    
+    negMask = resultsDf['PredictedValue'] < 0
+    if not resultsDf[negMask].empty:
+        msg = "{:d} predictions were less than 0"
+        msg = msg.format(resultsDf[negMask].shape[0])
+        print(msg)
+        resultsDf.loc[negMask, 'PredictedValue'] = 0.0
 
     predictionCsvFile = os.path.join(outfolder, "hicreg_results.csv")
     createCsvFromDf(pResultsDf=resultsDf, pResolution=resolution, 
