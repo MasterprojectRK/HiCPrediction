@@ -84,6 +84,7 @@ _set_options = [
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
+    click.option('--divideProteinsByMean', type=bool, default=False, required=False, help="divide each protein signal by its mean"),
     click.option('--normalizeProteins', default=True, type=bool,\
                  show_default=True,\
                  help='Normalize protein signal values to the same range'),
