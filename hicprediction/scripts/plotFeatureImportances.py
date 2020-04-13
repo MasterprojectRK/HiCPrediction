@@ -6,7 +6,7 @@ import os
 import pandas as pd
 
 @click.option('--modelFile', '-mif', required=True, type=click.Path(exists=True), help="model file with feature importances to plot")
-@click.option('--outPath', '-o', required=False, type=click.Path(writable=True), default=None, help="path and filename (.png) where result will be written to")
+@click.option('--outPath', '-o', required=False, type=click.Path(writable=True), default=None, help="path and filename (.png, .pdf, .svg) where result will be written to")
 @click.option('--protNames', '-pn', required=False, type=click.Path(exists=True), default=None, help="textfile with protein/histone names")
 @click.command()
 def plotFeatureImportances(modelfile, outpath, protnames):
