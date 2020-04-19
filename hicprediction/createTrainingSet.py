@@ -4,7 +4,7 @@ os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import click
 import hicprediction.configurations as conf
-from hicprediction.tagCreator import createSetTag, createProteinTag, initParamDict, normalizeDataFrameColumn
+from hicprediction.tagCreator import createSetTag, createProteinTag, initParamDict
 from pkg_resources import resource_filename
 from tqdm import tqdm
 import sys
@@ -15,6 +15,7 @@ import joblib
 from hicmatrix import HiCMatrix as hm
 import itertools
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
 
 """
 Module responsible for creating the training sets
@@ -146,11 +147,11 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
                     meanVal = 1.
                     print("Warning: mean signal value < 1e6, check protein input nr. {:d}".format(protein + 1))
                 proteins[str(protein)] /= meanVal
-            if pNormalizeProteins and pNormSignalValue > 0.0:
-                normalizeDataFrameColumn(pDataFrame=proteins, 
-                                        pColumnName=str(protein), 
-                                        pMaxValue=pNormSignalValue, 
-                                        pThreshold=pNormSignalThreshold)
+            if pNormalizeProteins and pNormSignalValue > 0.0: 
+                scaler = MinMaxScaler(feature_range=(0, pNormSignalValue), copy=False)
+                proteins[[str(protein)]] = scaler.fit_transform(proteins[[str(protein)]])
+                thresMask = proteins[str(protein)] < pNormSignalThreshold
+                proteins.loc[thresMask, str(protein)] = 0.0
         if pDivideProteinsByMean:
             print("Divided each protein by mean")
         if pNormalizeProteins:
@@ -164,7 +165,12 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
         for protein in range(proteins.shape[1]):
             nzmask = proteins[str(protein)] > 0.
             nonzeroEntries = proteins[nzmask].shape[0]
-            print("protein {0:d}: {1:d} of {2:d}".format(protein, nonzeroEntries, proteins.shape[0]))
+            protMin = proteins.loc[nzmask, str(protein)].min()
+            protMax = proteins.loc[nzmask, str(protein)].max()
+            msg = "protein {:d}: {:d} of {:d} (min: {:.3f}, max: {:.3f})"
+            msg = msg.format(protein, nonzeroEntries, proteins.shape[0], \
+                    protMin, protMax)
+            print(msg)
                 
         ### try to load HiC matrix
         hiCMatrix = None
@@ -225,10 +231,10 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
 
         ### normalize ALL read counts
         if pNormalizeReadCounts and pNormCountValue > 0.0:
-            normalizeDataFrameColumn(pDataFrame = df, 
-                                    pColumnName = 'reads', 
-                                    pMaxValue = pNormCountValue,
-                                    pThreshold = pNormCountThreshold)
+            scaler = MinMaxScaler(feature_range=(0, pNormCountValue), copy=False)
+            df[['reads']] = scaler.fit_transform(df[['reads']])
+            thresMask = df['reads'] < pNormCountThreshold
+            df.loc[thresMask, 'reads'] = 0.0
             msg = "normalized all read counts to range 0...{:.2f}\n"
             msg += "Set values < {:.3f} to zero"
             msg = msg.format(pNormCountValue, pNormCountThreshold)
