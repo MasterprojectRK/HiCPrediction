@@ -66,7 +66,8 @@ def initParamDict():
         'noMiddle',
         'noStartEnd',
         'learningParams',
-        'smoothMatrix' 
+        'smoothMatrix',
+        'proteinFileNames', 
     ]
     paramDict = {paramName: None for paramName in paramNamesList}
     return paramDict

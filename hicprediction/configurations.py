@@ -84,6 +84,7 @@ _set_options = [
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
                  help='This parameter defines how the proteins are binned'),
+    click.option('--divideProteinsByMean', type=bool, default=False, required=False, help="divide each protein signal by its mean"),
     click.option('--normalizeProteins', default=True, type=bool,\
                  show_default=True,\
                  help='Normalize protein signal values to the same range'),
@@ -100,6 +101,7 @@ _set_options = [
     click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing"),                
     click.option('--method',required=False, type=click.Choice(['oneHot', 'multiColumn']), default='multiColumn', help="how to build the dataset. MultiColumn = 3 columns for each protein (start, window, end), OneHot = 3 columns (start, window, end) + one-hot encoding for the proteins"),
     click.option('--removeEmpty', required=False, type=bool, default=True, help="remove samples which have no protein data"),
+    click.option('--printproteins', '-pp', required=False, type=bool, default=False, help="print protein plots"),
 ]
 _train_options = [
     click.option('--trainDatasetFile', '-tdf',\

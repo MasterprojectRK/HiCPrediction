@@ -4,7 +4,7 @@ os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import click
 import hicprediction.configurations as conf
-from hicprediction.tagCreator import createSetTag, createProteinTag, initParamDict, normalizeDataFrameColumn
+from hicprediction.tagCreator import createSetTag, createProteinTag, initParamDict
 from pkg_resources import resource_filename
 from tqdm import tqdm
 import sys
@@ -15,6 +15,8 @@ import joblib
 from hicmatrix import HiCMatrix as hm
 import itertools
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+import math
 
 """
 Module responsible for creating the training sets
@@ -31,9 +33,10 @@ used for the training sets. The base file from the former script
 @click.command()
 def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                       normalizeproteins, normsignalvalue, normsignalthreshold, 
+                     divideproteinsbymean,
                     normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, smooth, method, removeempty):
+                   windowsize, smooth, method, removeempty, printproteins):
     """
     Wrapper function
     calls function and can be called by click
@@ -49,17 +52,32 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
         msg += "normCountThreshold must be (much) smaller than normCountValue"
         raise SystemExit(msg)
 
-    createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
-                   normalizeproteins, normsignalvalue, normsignalthreshold,
-                   normalizereadcounts, normcountvalue, normcountthreshold,
-                   internalindir, windowoperation, mergeoperation, 
-                   windowsize, smooth, method, removeempty)
+    createTrainSet(chromosomes= chromosomes,\
+                   datasetoutputdirectory= datasetoutputdirectory,\
+                   basefile= basefile,\
+                   pNormalizeProteins= normalizeproteins,\
+                   pNormSignalValue= normsignalvalue,\
+                   pNormSignalThreshold= normsignalthreshold,\
+                   pDivideProteinsByMean= divideproteinsbymean,\
+                   pNormalizeReadCounts= normalizereadcounts,\
+                   pNormCountValue= normcountvalue,\
+                   pNormCountThreshold= normcountthreshold,\
+                   internalInDir= internalindir, \
+                   pWindowOperation= windowoperation,\
+                   pMergeOperation= mergeoperation, \
+                   pWindowsize= windowsize, \
+                   pSmooth= smooth,\
+                   pMethod= method, \
+                   pRemoveEmpty= removeempty, \
+                   pPrintProteins= printproteins)
 
-def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
+def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
                    pNormalizeProteins, pNormSignalValue, pNormSignalThreshold,
+                   pDivideProteinsByMean,
                    pNormalizeReadCounts, pNormCountValue, pNormCountThreshold,
                    internalInDir, pWindowOperation, pMergeOperation, 
-                   pWindowsize, pSmooth, pMethod, pRemoveEmpty):
+                   pWindowsize, pSmooth, pMethod, pRemoveEmpty,
+                   pPrintProteins):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -110,6 +128,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
         params['normReadCountThreshold'] = pNormCountThreshold
         params['windowSize'] = pWindowsize
         params['removeEmpty'] = pRemoveEmpty
+        params['divideProteinsByMean'] = pDivideProteinsByMean
         proteinTag = createProteinTag(params)
         proteinChromTag = proteinTag + "_" + chromTag
         ### retrieve proteins and parameters from base file
@@ -124,22 +143,53 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
             proteins = smoothenProteins(proteins, pSmooth)
             params['smoothProt'] = pSmooth
         ###normalize the proteins, if desired
-        if pNormalizeProteins and pNormSignalValue > 0.0:
-            for protein in range(proteins.shape[1]):
-                normalizeDataFrameColumn(pDataFrame=proteins, 
-                                        pColumnName=str(protein), 
-                                        pMaxValue=pNormSignalValue, 
-                                        pThreshold=pNormSignalThreshold)
-            msg = "normalized protein signal values to range 0...{:.2f}\n"
-            msg += "Set values < {:.3f} to zero"
+        for protein in range(proteins.shape[1]):
+            if pDivideProteinsByMean:
+                meanVal = proteins[str(protein)].mean()
+                if meanVal <= 1e-6:
+                    meanVal = 1.
+                    print("Warning: mean signal value < 1e6, check protein input nr. {:d}".format(protein + 1))
+                proteins[str(protein)] /= meanVal
+            if pNormalizeProteins and pNormSignalValue > 0.0: 
+                scaler = MinMaxScaler(feature_range=(0, pNormSignalValue), copy=False)
+                proteins[[str(protein)]] = scaler.fit_transform(proteins[[str(protein)]])
+                thresMask = proteins[str(protein)] < pNormSignalThreshold
+                proteins.loc[thresMask, str(protein)] = 0.0
+        if pDivideProteinsByMean:
+            print("Divided each protein by mean")
+        if pNormalizeProteins:
+            msg = " normalized protein signal values to range 0...{:.2f}\n"
+            msg += " Set values < {:.3f} to zero"
             msg = msg.format(pNormSignalValue, pNormSignalThreshold)
+            print("Protein normalization:")
             print(msg)
         ###print some info about the proteins:
         print("non-zero entries:")
         for protein in range(proteins.shape[1]):
             nzmask = proteins[str(protein)] > 0.
             nonzeroEntries = proteins[nzmask].shape[0]
-            print("protein {0:d}: {1:d} of {2:d}".format(protein, nonzeroEntries, proteins.shape[0]))
+            protMin = proteins.loc[nzmask, str(protein)].min()
+            protMax = proteins.loc[nzmask, str(protein)].max()
+            msg = "protein {:d}: {:d} of {:d} (min: {:.3f}, max: {:.3f})"
+            msg = msg.format(protein, nonzeroEntries, proteins.shape[0], \
+                    protMin, protMax)
+            print(msg)
+            if pPrintProteins:
+                xvals = list(proteins.index.astype('int32')) 
+                yvals = list(proteins[str(protein)])
+                xvals = [x*int(params['resolution'])/1e6 for x in xvals]
+                #ensure resolution is sufficient to show all bars
+                figwidthInches = 15
+                columnWidthInches = (figwidthInches - 1) * (int(params['resolution'])/1e6) / max(xvals) #subtract 1in as a safety margin
+                figDpi = int(math.ceil(1/(columnWidthInches * 100.0))) * 100 #round to nearest 100 dpi
+                fig1, ax1 = plt.subplots(figsize=(figwidthInches,3), dpi=figDpi, constrained_layout=True)
+                ax1.bar(xvals, yvals, width=int(params['resolution'])/1e6)
+                ax1.set_xlim([min(xvals), max(xvals)])
+                ax1.set_xlabel('genomic position / Mbp')
+                ax1.set_ylabel('signal value')
+                ax1.set_title(params['proteinFileNames'][protein])
+                figname = str(params['cellType']) + '_protein_' + str(protein) + '.png' 
+                fig1.savefig(os.path.join(datasetoutputdirectory, figname))
                 
         ### try to load HiC matrix
         hiCMatrix = None
@@ -200,10 +250,10 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,\
 
         ### normalize ALL read counts
         if pNormalizeReadCounts and pNormCountValue > 0.0:
-            normalizeDataFrameColumn(pDataFrame = df, 
-                                    pColumnName = 'reads', 
-                                    pMaxValue = pNormCountValue,
-                                    pThreshold = pNormCountThreshold)
+            scaler = MinMaxScaler(feature_range=(0, pNormCountValue), copy=False)
+            df[['reads']] = scaler.fit_transform(df[['reads']])
+            thresMask = df['reads'] < pNormCountThreshold
+            df.loc[thresMask, 'reads'] = 0.0
             msg = "normalized all read counts to range 0...{:.2f}\n"
             msg += "Set values < {:.3f} to zero"
             msg = msg.format(pNormCountValue, pNormCountThreshold)

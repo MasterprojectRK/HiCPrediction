@@ -4,7 +4,7 @@ os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import hicprediction.configurations as conf
 import click
-from hicprediction.tagCreator import createPredictionTag, getResultFileColumnNames,normalizeDataFrameColumn
+from hicprediction.tagCreator import createPredictionTag, getResultFileColumnNames
 import joblib
 import pandas as pd
 import numpy as np
@@ -15,6 +15,7 @@ import sys
 import math
 import cooler
 import sklearn.ensemble
+from sklearn.preprocessing import MinMaxScaler
 
 """
 Module responsible for the prediction of test set, their evaluation and the
@@ -233,10 +234,10 @@ def predict(model, pTestSet, pModelParams, pNoConvertBack):
     if not pNoConvertBack \
         and pModelParams['normReadCount'] and pModelParams['normReadCount'] == True \
         and pModelParams['normReadCountValue'] and pModelParams ['normReadCountValue'] > 0:
-        normalizeDataFrameColumn(pDataFrame=predictionDf, 
-                                    pColumnName='predReads', 
-                                    pMaxValue=pModelParams['normReadCountValue'], 
-                                    pThreshold=pModelParams['normReadCountThreshold'])
+        scaler = MinMaxScaler(feature_range=(0, pModelParams['normReadCountValue']), copy=False)
+        predictionDf[['predReads']] = scaler.fit_transform(predictionDf[['predReads']])
+        thresMask = predictionDf['predReads'] < pModelParams['normReadCountThreshold']
+        predictionDf.loc[thresMask, 'predReads'] = 0.0
         msg = "normalized predicted values to range 0...{:.3f}, threshold {:.3f}"
         msg = msg.format(pModelParams['normReadCountValue'],pModelParams['normReadCountThreshold'])
         print(msg)

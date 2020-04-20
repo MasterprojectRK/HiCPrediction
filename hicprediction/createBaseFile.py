@@ -94,6 +94,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         chromosomeList = [str(chrom) for chrom in range(1, 23)]
 
     params['chromSizes'] = getChromSizes(chromosomeList, chromsizefile)
+    params['proteinFileNames'] = [os.path.basename(x) for x in protPeakFileList + bigwigFileList]
 
     ###load protein data from files and store into python objects
     proteinData = getProteinFiles(protPeakFileList + bigwigFileList)
@@ -290,8 +291,9 @@ def cutHicMatrix(pMatrixFile, pChrom, pOutDir, pBasefile):
         subprocess.check_call(hicAdjustMatrixProcess, shell=True)
         storedSuccessfully = True
     except Exception as e:
-        msg = str(e) + "\n"
-        msg += "Adjusting and storing the provided matrix internally failed, retrying with different chrom naming scheme"
+        msg = "Adjusting and storing orignal matrix internally failed\n"
+        msg += "Original error message: " + str(e) + "\n"
+        msg += "Retrying with different chrom naming scheme\n"
         print(msg)
     if not storedSuccessfully:
         try:
@@ -325,8 +327,8 @@ def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
         subprocess.check_call(hicBalanceMatrixProcess, shell=True)
         storedSuccessfully = True
     except Exception as e:
-        msg = str(e) + "\n"
-        msg += "KR-correction failed initially, retrying with different chrom naming scheme"
+        msg = "KR-correction failed initially, retrying with different chrom naming scheme\n"
+        msg += " Original error message: " + str(e) + "\n"
         print(msg)
     if not storedSuccessfully:
         try:
