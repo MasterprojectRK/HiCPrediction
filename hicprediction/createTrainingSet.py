@@ -16,6 +16,7 @@ from hicmatrix import HiCMatrix as hm
 import itertools
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+import math
 
 """
 Module responsible for creating the training sets
@@ -35,7 +36,7 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                      divideproteinsbymean,
                     normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, smooth, method, removeempty):
+                   windowsize, smooth, method, removeempty, printproteins):
     """
     Wrapper function
     calls function and can be called by click
@@ -67,14 +68,16 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                    pWindowsize= windowsize, \
                    pSmooth= smooth,\
                    pMethod= method, \
-                   pRemoveEmpty= removeempty)
+                   pRemoveEmpty= removeempty, \
+                   pPrintProteins= printproteins)
 
 def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
                    pNormalizeProteins, pNormSignalValue, pNormSignalThreshold,
                    pDivideProteinsByMean,
                    pNormalizeReadCounts, pNormCountValue, pNormCountThreshold,
                    internalInDir, pWindowOperation, pMergeOperation, 
-                   pWindowsize, pSmooth, pMethod, pRemoveEmpty):
+                   pWindowsize, pSmooth, pMethod, pRemoveEmpty,
+                   pPrintProteins):
     """
     Main function
     creates the training sets and stores them into the given directory
@@ -171,6 +174,22 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
             msg = msg.format(protein, nonzeroEntries, proteins.shape[0], \
                     protMin, protMax)
             print(msg)
+            if pPrintProteins:
+                xvals = list(proteins.index.astype('int32')) 
+                yvals = list(proteins[str(protein)])
+                xvals = [x*int(params['resolution'])/1e6 for x in xvals]
+                #ensure resolution is sufficient to show all bars
+                figwidthInches = 15
+                columnWidthInches = (figwidthInches - 1) * (int(params['resolution'])/1e6) / max(xvals) #subtract 1in as a safety margin
+                figDpi = int(math.ceil(1/(columnWidthInches * 100.0))) * 100 #round to nearest 100 dpi
+                fig1, ax1 = plt.subplots(figsize=(figwidthInches,3), dpi=figDpi, constrained_layout=True)
+                ax1.bar(xvals, yvals, width=int(params['resolution'])/1e6)
+                ax1.set_xlim([min(xvals), max(xvals)])
+                ax1.set_xlabel('genomic position / Mbp')
+                ax1.set_ylabel('signal value')
+                ax1.set_title(params['proteinFileNames'][protein])
+                figname = str(params['cellType']) + '_protein_' + str(protein) + '.png' 
+                fig1.savefig(os.path.join(datasetoutputdirectory, figname))
                 
         ### try to load HiC matrix
         hiCMatrix = None
