@@ -193,13 +193,15 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
             modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
             joblib.dump((model, params), modelFileName, compress=True ) 
             print("model {:d}\n".format(i+1))
-            visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag, pPlotTrees)
+            featNamesList = createNamesForFeatures(list(X.columns), params)
+            visualizeModel(model, modeloutputdirectory, featNamesList, modelTag, pPlotTrees)
     else:
         model.fit(X, y, weights)
         modelTag = createModelTag(params)
         modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
         joblib.dump((model, params), modelFileName, compress=True )
-        visualizeModel(model, modeloutputdirectory, list(X.columns), modelTag, pPlotTrees)
+        featNamesList = createNamesForFeatures(list(X.columns), params)
+        visualizeModel(model, modeloutputdirectory, featNamesList, modelTag, pPlotTrees)
 
 def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
     #Select all rows (samples) from dataframe where "reads" (read counts) are in certain range,
@@ -333,9 +335,11 @@ def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag, pPlot
     imgHeight = 0.75*imgWidth
     fig1, ax1 = plt.subplots(constrained_layout=True, figsize=(imgWidth,imgHeight))
     ax1.set_title("Feature importances and std deviations ({:d} trees)".format(nrTrees))
+    columnWidth = 1.5
     ax1.bar(2*indices, importances[indices],
-            color="r", yerr=std[indices], align="center", width=1.5)
+            color="r", yerr=std[indices], align="center", width=columnWidth)
     ax1.set_xticks(2*indices)
+    ax1.set_xlim([min(2*indices)-columnWidth, max(2*indices)+columnWidth])
     ax1.set_xticklabels(np.array(pFeatList)[indices], rotation=90, fontsize=6)
     ax1.set_ylim([0.0,1.0]) #allow comparing results from different params, datasets etc.
     ax1.set_yticks(np.linspace(0,1,11))
@@ -359,6 +363,40 @@ def tryConvert(pParamStr, pAllowedTypeList):
             i += 1
     return returnParam
 
+def createNamesForFeatures(pDataframeColumnList, pParams):
+    #check if all relevant parameters exist, 
+    #if not return input list back
+    if not 'proteinFileNames' in pParams  \
+       or not 'noDistance' in pParams \
+       or not 'noMiddle' in pParams \
+       or not 'noStartEnd' in pParams \
+       or not 'method' in pParams:
+        return pDataframeColumnList
+    
+    if pParams['method'] != 'multiColumn':
+        return pDataframeColumnList #not handled for now
+
+    startFeatList = [x + '.start' for x in pParams['proteinFileNames']]
+    endFeatList = [x + '.end' for x in pParams['proteinFileNames']]
+    windowFeatList = [x + '.window' for x in pParams['proteinFileNames']]
+
+    returnList = []
+    if not pParams['noStartEnd'] == True:
+        returnList += startFeatList
+    if not pParams['noMiddle'] == True:
+        returnList += windowFeatList
+    if not pParams['noStartEnd'] == True:
+        returnList += endFeatList
+    if not pParams['noDistance'] == True:
+        returnList += ['distance']
+
+    if not len(returnList) == len(pDataframeColumnList):
+        #some feature must be missing, so return original list
+        #this shouldn't happen
+        returnList = pDataframeColumnList 
+    
+    return returnList
+     
 
 
 if __name__ == '__main__':
