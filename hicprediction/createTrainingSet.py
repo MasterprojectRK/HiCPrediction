@@ -152,9 +152,12 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
                 proteins[str(protein)] /= meanVal
             if pNormalizeProteins and pNormSignalValue > 0.0: 
                 scaler = MinMaxScaler(feature_range=(0, pNormSignalValue), copy=False)
-                proteins[[str(protein)]] = scaler.fit_transform(proteins[[str(protein)]])
+                proteins[[str(protein)]] = scaler.fit_transform(proteins[[str(protein)]]).astype('float32')
                 thresMask = proteins[str(protein)] < pNormSignalThreshold
                 proteins.loc[thresMask, str(protein)] = 0.0
+        #round to 6 decimals
+        proteins = proteins.round(6).astype('float32')
+        ###print some info about the proteins:
         if pDivideProteinsByMean:
             print("Divided each protein by mean")
         if pNormalizeProteins:
@@ -163,7 +166,6 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
             msg = msg.format(pNormSignalValue, pNormSignalThreshold)
             print("Protein normalization:")
             print(msg)
-        ###print some info about the proteins:
         print("non-zero entries:")
         for protein in range(proteins.shape[1]):
             nzmask = proteins[str(protein)] > 0.
@@ -251,7 +253,8 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
         ### normalize ALL read counts
         if pNormalizeReadCounts and pNormCountValue > 0.0:
             scaler = MinMaxScaler(feature_range=(0, pNormCountValue), copy=False)
-            df[['reads']] = scaler.fit_transform(df[['reads']])
+            df[['reads']] = scaler.fit_transform(df[['reads']]).astype('float32')
+            df['reads'] = df['reads'].round(6)
             thresMask = df['reads'] < pNormCountThreshold
             df.loc[thresMask, 'reads'] = 0.0
             msg = "normalized all read counts to range 0...{:.2f}\n"
@@ -263,7 +266,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
         if matrixfile:
             for i in tqdm(range(int(pWindowsize)),desc='Adding average read values'):
                 df.loc[df['distance'] == i,'avgRead'] =  df[df['distance'] == i]['reads'].mean()
-            
+                df['avgRead'] = df['avgRead'].round(6).astype('float32')
         #one-hot encoding for the proteins / protein numbers
         if pMethod == 'oneHot':
             df['proteinNr'] = df['proteinNr'].astype('category')
@@ -322,7 +325,7 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         df['distance'] = df['second'] - df['first']
         df['chrom'] = np.uint8(pChrom)
         if pFullReads != None:
-            df['reads'] = np.float32(reads)
+            df['reads'] = np.round(reads, 6).astype('float32')
             df['reads'].fillna(0, inplace=True)
     
             #read count distribution before eliminating zeros
@@ -351,7 +354,7 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
             slice2 = list(df['distance'])
             slice3 = (slice1, slice2)
             windowProteins = np.array(distWindowArr[slice3])
-            df[str(numberOfProteins + protein)] = np.float32(windowProteins)
+            df[str(numberOfProteins + protein)] = np.round(windowProteins, 6).astype('float32')
 
         #drop rows where start / end proteins are both zero
         df['valid'] = True
@@ -411,7 +414,7 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
             protDf['distance'] = protDf['second'] - protDf['first']
             protDf['chrom'] = np.uint8(pChrom)
             if pFullReads != None:
-                protDf['reads'] = np.float32(reads)
+                protDf['reads'] = np.round(reads, 6).astype('float32')
                 protDf['reads'].fillna(0, inplace=True)
                 #read count distribution before eliminating zeros
                 binwidth = 10
@@ -446,7 +449,7 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
             slice2 = list(protDf['distance'])
             slice3 = (slice1, slice2)
             windowProteins = np.array(distWindowArr[slice3])
-            protDf['middleProt'] = np.float32(windowProteins)
+            protDf['middleProt'] = np.round(windowProteins, 6).asytpe('float32')
 
             dsList.append(protDf)
         
@@ -484,7 +487,7 @@ def buildWindowDataset(pProteinsDf, pProteinNr, pWindowSize, pWindowOperation):
             windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).sum()
         else:
             windowColumn = pProteinsDf[proteinIndex].rolling(window=winSize+1).mean()
-        df[str(winSize)] = windowColumn.round(3).astype('float32')
+        df[str(winSize)] = windowColumn.round(6).astype('float32')
     return df
     
 def smoothenProteins(pProteins, pSmooth):
