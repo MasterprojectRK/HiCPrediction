@@ -356,9 +356,13 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
             windowProteins = np.array(distWindowArr[slice3])
             df[str(numberOfProteins + protein)] = np.round(windowProteins, 6).astype('float32')
 
-        #drop rows where start / end proteins are both zero
+        
         df['valid'] = True
+        #invalidate diagonal
+        diagMask = df['distance'] <= 2
+        df.loc[diagMask, 'valid'] = False
         if pRemoveEmpty:
+            #invalidate rows where start / end proteins are both zero
             df['valid'] = False
             mask = False 
             m1 = False
