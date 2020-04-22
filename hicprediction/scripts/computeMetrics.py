@@ -42,6 +42,10 @@ def computeMetrics(infile1,infile2,windowsize,outfile, predictioncelltype, model
         msg = msg.format(binSize1, binSize2)
         raise SystemExit(msg)
     numberOfDiagonals = int(np.round(windowsize/binSize1))
+    if numberOfDiagonals < 1:
+        msg = "Window size must be larger than bin size of matrices.\n"
+        msg += "Remember to specify window in basepairs, not bins."
+        raise SystemExit(msg)
 
     #check chromosomes
     chromList1 = hicMatrix1.getChrNames()
