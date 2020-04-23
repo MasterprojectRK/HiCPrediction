@@ -12,8 +12,9 @@ import os
                                 required=True,
                                 help="directory for output")
 @click.option('--dropInvalid', '-di', type=bool, required=False, default=True)
+@click.option('--matrix', '-m', type=bool, required=False, default=False, help="export sparse matrix separately")
 @click.command()
-def convertForHicReg(dataset, outpath, dropinvalid):
+def convertForHicReg(dataset, outpath, dropinvalid, matrix):
    
     #check inputs
     try:
@@ -88,12 +89,27 @@ def convertForHicReg(dataset, outpath, dropinvalid):
         outDf.rename(columns={'distance': 'Distance'}, inplace=True)
         priorDf.loc[priorDf['name'] == 'distance', 'name'] = 'Distance'
 
+    matrixDf = None
+    if matrix:
+        matrixDf=pd.DataFrame()
+        matrixDf['first'] = 'chr' + df['chrom'].astype(str) + "_"
+        matrixDf['first'] += (df['first'] * resolutionInt).astype(str) + "_"
+        matrixDf['first'] += (df['first'] * resolutionInt + resolutionInt).astype(str)
+        matrixDf['second'] = 'chr' + df['chrom'].astype(str) + "_"
+        matrixDf['second'] += (df['second'] * resolutionInt).astype(str) + "_"
+        matrixDf['second'] += (df['second'] * resolutionInt + resolutionInt).astype(str)
+        matrixDf['count'] = df['reads']
+        print(matrixDf.head())
+        print(matrixDf.tail())
 
     #write out the dataframes
     datasetFilename = os.path.join(outpath , cellLineStr + "_dataset.txt")
     priorFilename = os.path.join(outpath, cellLineStr + "_priors.txt")
     outDf.to_csv(datasetFilename, header=True, index=False, sep="\t")
     priorDf.to_csv(priorFilename, header=False, index=False, sep="\t")
+    if matrix:
+        matrixFilename = os.path.join(outpath, cellLineStr + "_matrix.txt")
+        matrixDf.to_csv(matrixFilename, header=False, index=False, sep="\t")
 
 
 
