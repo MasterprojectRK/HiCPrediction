@@ -6,6 +6,7 @@ import hicprediction.configurations as conf
 import click
 import joblib
 import sklearn.ensemble
+from sklearn.model_selection import KFold
 import numpy as np
 from hicprediction.tagCreator import createModelTag
 import sys
@@ -181,19 +182,30 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
 
     ## train models and store them
     if pSplitTrainset:
-        for i in range(0,5):
-            X_r = X.sample(frac=1./(5.-i), random_state=0)
-            y_r = y[X_r.index]
-            weights_r = weights[X_r.index]
-            X.drop(X_r.index, inplace=True)
-            y.drop(X_r.index, inplace=True)
-            weights.drop(X_r.index, inplace=True)
-            model.fit(X_r, y_r, weights_r)
+        #as proposed by Zhang et al.,
+        #split datsets into 5 folds for cross validation
+        #and train a model from each
+        #later, prediction can be averaged from these 5 models
+        kfoldCV = KFold(n_splits = 5, \
+                        shuffle = True, \
+                        random_state = 35)
+        for i, (trainIndices, testIndices) in enumerate(kfoldCV.split(X)):
+            X_train = X.iloc[trainIndices,:]
+            y_train = y.iloc[trainIndices]
+            weights_train = weights.iloc[trainIndices]
+            X_test = X.iloc[testIndices,:]
+            y_test = y.iloc[testIndices]
+            weights_test = weights.iloc[testIndices]
+            model.fit(X_train, y_train, weights_train)
+            trainScore = model.score(X_train, y_train, weights_train)
+            testScore = model.score(X_test, y_test, weights_test)
             modelTag = createModelTag(params) + "_" + str(i+1)
             modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
             joblib.dump((model, params), modelFileName, compress=True ) 
-            print("model {:d}\n".format(i+1))
-            featNamesList = createNamesForFeatures(list(X.columns), params)
+            print("processed model {:d}".format(i+1))
+            print("trainScore:", trainScore)
+            print("testScore:", testScore)
+            featNamesList = createNamesForFeatures(list(X_train.columns), params)
             visualizeModel(model, modeloutputdirectory, featNamesList, modelTag, pPlotTrees)
     else:
         model.fit(X, y, weights)
@@ -345,7 +357,7 @@ def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag, pPlot
     ax1.set_yticks(np.linspace(0,1,11))
     ax1.set_xlabel("feature name")
     ax1.set_ylabel("relative feature importance")
-    importanceFigStr = pModelTag + "_importanceGraph.png"
+    importanceFigStr = pModelTag + "_importanceGraph.pdf"
     fig1.savefig(os.path.join(pOutDir, importanceFigStr))
 
 def tryConvert(pParamStr, pAllowedTypeList):
