@@ -41,7 +41,7 @@ def plotMetrics(resultsfiles, legends, outfile):
     targetCellLineSet = set()
     for i, resultsDf in enumerate(resultsDfList):
         try:
-            distStratifiedPearsonFirstIndex = resultsDf.columns.get_loc('0') 
+            distStratifiedPearsonFirstIndex = resultsDf.columns.get_loc('predictionCellType') + 1 
             resolutionInt = int(resultsDf.loc[0, 'resolution'])
             trainChromSet.add(resultsDf.loc[0, 'modelChromosome'])
             targetChromSet.add(resultsDf.loc[0, 'predictionChromosome'])
