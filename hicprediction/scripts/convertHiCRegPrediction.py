@@ -106,7 +106,8 @@ def createCsvFromDf(pResultsDf, pResolution, pTag, pPredictionCellType, pTrainin
     df.loc[pTag, 'modelCellType'] = pTrainingCellType
     df.loc[pTag, 'predictionChromosome'] = pResultsDf.loc[0, 'chromosome'] 
     df.loc[pTag, 'predictionCellType'] = pPredictionCellType
-    distStratifiedPearsonFirstIndex = df.columns.get_loc(0) 
+    minDistanceBins = pResultsDf.bin_distance.min()
+    distStratifiedPearsonFirstIndex = df.columns.get_loc(minDistanceBins) 
     df.loc[pTag, distStratifiedPearsonFirstIndex:] = valuesOPP
     
     df = df.sort_values(by=['predictionCellType','predictionChromosome',
