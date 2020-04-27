@@ -125,6 +125,7 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
     params['noDistance'] = noDist
     params['noMiddle'] = noMiddle
     params['noStartEnd'] = noStartEnd
+    params['useExtraTrees'] = pUseExtraTrees
         
     ### create model with desired parameters
     try:

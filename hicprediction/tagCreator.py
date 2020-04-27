@@ -65,6 +65,7 @@ def initParamDict():
         'noDistance',
         'noMiddle',
         'noStartEnd',
+        'useExtraTrees',
         'learningParams',
         'smoothMatrix',
         'proteinFileNames', 
