@@ -23,7 +23,7 @@ import math
                                     ignore_unknown_options=True,
                                     allow_extra_args=True))
 @click.pass_context
-def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset):
+def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset, useextratrees):
     """
     Wrapper function for click
     """
@@ -62,6 +62,10 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
                             verbose=[int], 
                             ccp_alpha=[float], 
                             max_samples=[int,float]  )
+    if useextratrees:
+        #extra trees should sample without replacement = no bootstrapping by default
+        modelParamDict['bootstrap'] = False
+
 
     for i in range(0, len(ctx.args), 2):
         paramName= ctx.args[i][2:]
@@ -72,9 +76,9 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
             msg = "Parameter {:s} is not supported".format(paramName)
             raise SystemExit(msg)
 
-    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset)
+    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset, useextratrees)
 
-def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance, pPlotTrees, pSplitTrainset):
+def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance, pPlotTrees, pSplitTrainset, pUseExtraTrees):
     """
     Train function
     Attributes:
