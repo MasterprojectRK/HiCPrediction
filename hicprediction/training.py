@@ -129,7 +129,12 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
         
     ### create model with desired parameters
     try:
-        model = sklearn.ensemble.RandomForestRegressor(**pModelParamDict)
+        if pUseExtraTrees:
+            model = sklearn.ensemble.ExtraTreesRegressor(**pModelParamDict)
+            print("using extra trees regressor")
+        else:
+            model = sklearn.ensemble.RandomForestRegressor(**pModelParamDict)
+            print("using random forest regressor")
         params['learningParams'] = pModelParamDict
     except Exception as e:
         msg = str(e) + "\n"
