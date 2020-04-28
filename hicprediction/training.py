@@ -86,39 +86,12 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
         conversion --  read values conversion method 
         traindatasetfile -- input data set for training
     """
-    ### checking extensions of files
-    if not conf.checkExtension(traindatasetfile, ".z"):
-        msg = "Aborted. Data set {0:s} must have .z file extension"
-        sys.exit(msg.format(traindatasetfile))
-    ### load data set and set parameters
-    try:
-        df, params = joblib.load(traindatasetfile)
-    except Exception as e:
-        print(e)
-        msg = "Failed loading dataset. Wrong format?"
-        sys.exit(msg)
-    if not isinstance(df, pd.DataFrame):
-        msg = "Aborting. Input {:s} is not a dataset\n"
-        if isinstance(df, sklearn.ensemble.forest.ForestRegressor):
-            msg += "Maybe a trained model was entered instead of a dataset?"
-        msg = msg.format(traindatasetfile)
-        sys.exit(msg)
-    
-    ### remove invalidated rows
-    validMask = df['valid'] == True
-    df = df[validMask]
-    if df.empty:
-        msg="Aborting. No valid samples in dataset"
+
+    ### load dataset and set parameters
+    df, params, msg = checkTrainingset(traindatasetfile, pKeepInvalid=True, pCheckReads=True)
+    if msg != None:
+        msg = "Aborting.\n" + msg
         raise SystemExit(msg)
-    
-    ### check if the dataset contains reads, otherwise it cannot be used for training
-    nanreadMask = df['reads'] == np.nan
-    if not df[nanreadMask].empty:
-        #any nans coming from bad bins in the HiC-matrix must be replaced when creating the dataset
-        #so there should not be any nans left
-        msg = "dataset {0:s} cannot be used for training" 
-        msg += "because it contains no target reads"
-        raise ValueError(msg.format(traindatasetfile))
     
     ### store the training parameters for later reference and file name creation
     params['conversion'] = conversion
@@ -420,6 +393,40 @@ def createNamesForFeatures(pDataframeColumnList, pParams):
     return returnList
      
 
+def checkTrainingset(pTrainDatasetFile, pKeepInvalid=False, pCheckReads=True):
+    msg = ""
+    trainDf = None
+    paramsDict = None
+    try:
+        trainDf, paramsDict = joblib.load(pTrainDatasetFile)
+    except Exception as e:
+        msg += "Failed loading dataset. Wrong format?\n"
+        msg += "Original error message " + str(e) + "\n"
+        return trainDf, paramsDict, msg
+    if not isinstance(trainDf, pd.DataFrame):
+        msg += "Input {:s} is not a dataset\n"
+        if isinstance(trainDf, sklearn.ensemble.forest.ForestRegressor):
+            msg += "Maybe a trained model was entered instead of a dataset?"
+        msg = msg.format(pTrainDatasetFile)
+    else:
+        if not pKeepInvalid:
+            validMask = trainDf['valid'] == True
+            trainDf = trainDf[validMask]
+        if trainDf.empty:
+            msg += "Training dataset is empty or contains only invalid samples"
+        if pCheckReads:
+            ### check if the dataset contains reads, otherwise it cannot be used for training
+            nanreadMask = trainDf['reads'] == np.nan
+            if not trainDf[nanreadMask].empty:
+                #any nans coming from bad bins in the HiC-matrix must be replaced when creating the dataset
+                #so there should not be any nans left
+                msg += "dataset {0:s} cannot be used for training" 
+                msg += "because it contains no target reads"
+                msg = msg.format(pTrainDatasetFile)
+    if msg == "":
+        msg = None
+    return trainDf, paramsDict, msg
+        
 
 if __name__ == '__main__':
     train()
