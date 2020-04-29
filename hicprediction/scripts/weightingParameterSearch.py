@@ -10,8 +10,10 @@ import joblib
 
 @click.option('--datasetfile', '-d', type=click.Path(file_okay=True,dir_okay=False,exists=True,readable=True), help="trainingset from hicprediction createTrainingset.py")
 @click.option('--outfile', '-o', type=click.Path(file_okay=True,dir_okay=False, writable=True), help="outfile for results")
+@click.option('--weightfactor', '-w', type=click.FloatRange(min=1.0), default=100.0, help="max search range for (weight of emphasized samples / weight of non-emph. samples)")
+@click.option('--maxevals', '-me', type=click.IntRange(min=10), default=100, help="max. nr. of of search runs")
 @click.command()
-def weightingParameterSearch(datasetfile, outfile):
+def weightingParameterSearch(datasetfile, outfile, weightfactor, maxevals):
     #load training set
     df, params, msg = checkTrainingset(datasetfile)
     if msg != None:
@@ -50,14 +52,14 @@ def weightingParameterSearch(datasetfile, outfile):
         'estimatorParams': hp.choice('estimatorParams', [modelParamDict]),
         'bound1Float': hp.uniform('bound1Float', minReadFactor, maxReadFactor), #doesn't matter which one is smaller
         'bound2Float': hp.uniform('bound2Float', minReadFactor, maxReadFactor), #doesn't matter which one is smaller
-        'factorFloat': hp.uniform('factorFloat', 0.1, 1000),
+        'factorFloat': hp.uniform('factorFloat', 0.1, weightfactor),
     }
 
     trials = Trials()
     best = fmin(fn=objectiveFunction, \
                 algo=tpe.suggest, \
                 space=searchSpace, \
-                max_evals=2, \
+                max_evals=maxevals, \
                 rstate=np.random.RandomState(35), \
                 trials=trials)
 
@@ -136,7 +138,7 @@ def objectiveFunction(paramDict):
     else:
         status = STATUS_OK
         dfWeights = pTrainDf[['weights']]
-        kfoldCV = KFold(n_splits = 2, \
+        kfoldCV = KFold(n_splits = 5, \
                         shuffle = True, \
                         random_state = 35)
         testScore = []
