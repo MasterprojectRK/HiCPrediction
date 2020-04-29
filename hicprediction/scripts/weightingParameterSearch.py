@@ -67,13 +67,13 @@ def weightingParameterSearch(datasetfile, outfile):
             resDf.loc[i, str(key)] = trialDict['result'][key]
             print(" ", str(key), trialDict['result'][key])
         for key in trialDict['misc']['vals']:
-            resDf.loc[i, str(key)] = trialDict['misc']['vals'][key]
-            print(" ", str(key), trialDict['misc']['vals'][key][0])
+            resDf.loc[i, str(key)] = trialDict['misc']['vals'][key][0]
+            print(" {:s}: {:.3f}".format(str(key), trialDict['misc']['vals'][key][0]))
     print("best values: ")
     for key in best:
-        print(" ", str(key), best[key])
-    
+        print(" {:s} {:.3f}".format(str(key), best[key]))
     resDf.to_csv(outfile)
+
 
 def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat):
     #equal weights for all samples as a start
@@ -102,21 +102,6 @@ def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat):
         print("target factor weighted/unweighted: {:.3f}".format(pFactorFloat))
         print("actual factor weighted/unweighted: {:.3f}".format(weightSum/numberOfUnweightedSamples))
         success = weightInt != 1
-        
-        #plot the weight vs. read count distribution after oversampling
-        readMax = pDataframe['reads'].max()
-        fig1, ax1 = plt.subplots()
-        binSize = readMax / 100
-        bins = pd.cut(pDataframe['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
-        printDf = pDataframe[['weights']].groupby(bins).sum()
-        printDf.reset_index(inplace=True, drop=False)
-        ax1.bar(printDf.reads, printDf.weights, width=binSize)
-        ax1.set_xlabel("read counts")
-        ax1.set_ylabel("weight sum")
-        ax1.set_yscale('log')
-        ax1.set_title("weight sum vs. read counts")
-        figureTag = "/home/ralf/uniF/zeixx.png"        
-        fig1.savefig(figureTag)
     return success
 
 def objectiveFunction(paramDict):
@@ -166,9 +151,6 @@ def objectiveFunction(paramDict):
         attachmentDict = {'stdDev': scoreStd}
     returnDict = {'status': status, 'loss': scoreMean, 'attachments': attachmentDict}
     return returnDict
-
-
-
 
 if __name__ == "__main__":
     weightingParameterSearch()
