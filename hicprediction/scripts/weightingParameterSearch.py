@@ -6,6 +6,7 @@ from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestRegressor
 import numpy as np
 import matplotlib.pyplot as plt
+import joblib
 
 @click.option('--datasetfile', '-d', type=click.Path(file_okay=True,dir_okay=False,exists=True,readable=True), help="trainingset from hicprediction createTrainingset.py")
 @click.option('--outfile', '-o', type=click.Path(file_okay=True,dir_okay=False, writable=True), help="outfile for results")
@@ -73,6 +74,7 @@ def weightingParameterSearch(datasetfile, outfile):
     for key in best:
         print(" {:s} {:.3f}".format(str(key), best[key]))
     resDf.to_csv(outfile)
+    joblib.dump(value=trials, filename=outfile + ".z", compress=3)
 
 
 def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat):
@@ -112,7 +114,9 @@ def objectiveFunction(paramDict):
     pFactorFloat = paramDict['factorFloat']
     status = STATUS_FAIL
     scoreMean = None
-    attachmentDict = dict()
+    attachmentDict = {
+        'stdDev': None,
+    }
     #setup the estimator 
     model = RandomForestRegressor(**pEstimatorParams)
     #split training set into X, y
@@ -148,7 +152,7 @@ def objectiveFunction(paramDict):
             testScore.append(1 - model.score(X_test, y_test)) 
         scoreMean = np.mean(testScore)
         scoreStd = np.std(testScore)
-        attachmentDict = {'stdDev': scoreStd}
+        attachmentDict['stdDev'] = scoreStd
     returnDict = {'status': status, 'loss': scoreMean, 'attachments': attachmentDict}
     return returnDict
 
