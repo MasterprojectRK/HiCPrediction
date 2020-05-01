@@ -1,7 +1,7 @@
 import click
 import pandas as pd
 from hyperopt import fmin, tpe, hp, STATUS_OK, STATUS_FAIL, Trials
-from hicprediction.training import checkTrainingset 
+from hicprediction.training import checkTrainingset, computeWeights 
 from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestRegressor
 import numpy as np
@@ -53,6 +53,7 @@ def weightingParameterSearch(datasetfile, outfile, weightfactor, maxevals):
         'bound1Float': hp.uniform('bound1Float', minReadFactor, maxReadFactor), #doesn't matter which one is smaller
         'bound2Float': hp.uniform('bound2Float', minReadFactor, maxReadFactor), #doesn't matter which one is smaller
         'factorFloat': hp.uniform('factorFloat', 0.1, weightfactor),
+        'params': hp.choice('params', [params]),
     }
 
     trials = Trials()
@@ -79,41 +80,13 @@ def weightingParameterSearch(datasetfile, outfile, weightfactor, maxevals):
     joblib.dump(value=trials, filename=outfile + ".z", compress=3)
 
 
-def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat):
-    #equal weights for all samples as a start
-    pDataframe['weights'] = 1 
-    success = False
-    #order boundaries and select
-    if pBound1 < pBound2:
-        lowerMask = pDataframe['reads'] >= pBound1
-        upperMask = pDataframe['reads'] <= pBound2
-    else:
-        lowerMask = pDataframe['reads'] >= pBound2
-        upperMask = pDataframe['reads'] <= pBound1
-    numberOfWeightedSamples = pDataframe[lowerMask & upperMask].shape[0]
-    numberOfUnweightedSamples = pDataframe.shape[0] - numberOfWeightedSamples
-    if numberOfWeightedSamples == 0 or numberOfUnweightedSamples == 0:
-        success = False
-    else:
-        print("number of non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
-        print("number of emphasized samples: {:d}".format(numberOfWeightedSamples))
-        weightInt = int(np.round(pFactorFloat * numberOfUnweightedSamples / numberOfWeightedSamples))
-        pDataframe.loc[lowerMask & upperMask, 'weights'] = weightInt
-        weightSum = pDataframe.loc[lowerMask & upperMask, 'weights'].sum()
-        print("weight given: {:d}".format(weightInt))
-        print("weight sum non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
-        print("weight sum emphasized samples: {:d}".format(weightSum))
-        print("target factor weighted/unweighted: {:.3f}".format(pFactorFloat))
-        print("actual factor weighted/unweighted: {:.3f}".format(weightSum/numberOfUnweightedSamples))
-        success = weightInt != 1
-    return success
-
 def objectiveFunction(paramDict):
     pEstimatorParams = paramDict['estimatorParams']
     pTrainDf = paramDict['trainDf']
     pBound1Float = paramDict['bound1Float']
     pBound2Float = paramDict['bound2Float']
     pFactorFloat = paramDict['factorFloat']
+    pParams = paramDict['params']
     status = STATUS_FAIL
     scoreMean = None
     attachmentDict = {
@@ -131,7 +104,9 @@ def objectiveFunction(paramDict):
     success = computeWeights(pTrainDf, \
                             pBound1=bound1, \
                             pBound2=bound2, \
-                            pFactorFloat=pFactorFloat)
+                            pFactorFloat=pFactorFloat, \
+                            pParams=pParams)
+
     if success != True:
         status = STATUS_FAIL
 
@@ -159,4 +134,4 @@ def objectiveFunction(paramDict):
     return returnDict
 
 if __name__ == "__main__":
-    weightingParameterSearch()
+    weightingParameterSearch() # pylint: disable=no-value-for-parameter
