@@ -23,7 +23,7 @@ import math
                                     ignore_unknown_options=True,
                                     allow_extra_args=True))
 @click.pass_context
-def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset, useextratrees):
+def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, weightbound1, weightbound2, ovsfactor, ovsbalance, plottrees, splittrainset, useextratrees):
     """
     Wrapper function for click
     """
@@ -65,7 +65,7 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
                             verbose=[int], 
                             ccp_alpha=[float], 
                             max_samples=[int,float]  )
-        #extra trees should sample without replacement = no bootstrapping by default
+    #extra trees should sample without replacement = no bootstrapping by default
     if useextratrees:
         modelParamDict['bootstrap'] = False
 
@@ -142,8 +142,11 @@ def training(pModeloutputdirectory, pConversion, pModelParamDict, pTraindatasetf
         df.fillna(value=0, inplace=True)
 
     ### add weights and over-emphasize some of them, if requested
-    variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
-
+    # variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
+    success = computeWeights(df, pWeightBound1, pWeightBound2, pOvsFactor, params)
+    if success == False:
+        msg = "All samples weights set to 1"
+        print(msg)
     ### drop columns that should not be used for training
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'valid', 'weights']
     if pNoDist:
@@ -442,7 +445,38 @@ def checkTrainingset(pTrainDatasetFile, pKeepInvalid=False, pCheckReads=True):
     if msg == "":
         msg = None
     return trainDf, paramsDict, msg
-        
+
+def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat, pParams):
+    #equal weights for all samples as a start
+    pDataframe['weights'] = 1 
+    success = False
+    #weight computation for oneHot method and factors <= 0 not supported
+    if pParams['method'] == 'oneHot' or pFactorFloat <= 0.0:
+        return False
+    #order boundaries and select
+    if pBound1 < pBound2:
+        lowerMask = pDataframe['reads'] >= pBound1
+        upperMask = pDataframe['reads'] <= pBound2
+    else:
+        lowerMask = pDataframe['reads'] >= pBound2
+        upperMask = pDataframe['reads'] <= pBound1
+    numberOfWeightedSamples = pDataframe[lowerMask & upperMask].shape[0]
+    numberOfUnweightedSamples = pDataframe.shape[0] - numberOfWeightedSamples
+    if numberOfWeightedSamples == 0 or numberOfUnweightedSamples == 0:
+        success = False
+    else:
+        print("number of non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
+        print("number of emphasized samples: {:d}".format(numberOfWeightedSamples))
+        weightInt = int(np.round(pFactorFloat * numberOfUnweightedSamples / numberOfWeightedSamples))
+        pDataframe.loc[lowerMask & upperMask, 'weights'] = weightInt
+        weightSum = pDataframe.loc[lowerMask & upperMask, 'weights'].sum()
+        print("weight given: {:d}".format(weightInt))
+        print("weight sum non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
+        print("weight sum emphasized samples: {:d}".format(weightSum))
+        print("target factor weighted/unweighted: {:.3f}".format(pFactorFloat))
+        print("actual factor weighted/unweighted: {:.3f}".format(weightSum/numberOfUnweightedSamples))
+        success = weightInt != 1
+    return success        
 
 if __name__ == '__main__':
     train() # pylint: disable=no-value-for-parameter
