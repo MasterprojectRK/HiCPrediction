@@ -347,4 +347,4 @@ def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
 
 
 if __name__ == '__main__':
-    loadAllProteins()
+    loadAllProteins() # pylint: disable=no-value-for-parameter

@@ -506,4 +506,4 @@ def smoothenProteins(pProteins, pSmooth):
 
 
 if __name__ == '__main__':
-    createTrainingSet()
+    createTrainingSet() # pylint: disable=no-value-for-parameter

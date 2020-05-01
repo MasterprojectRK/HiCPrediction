@@ -28,6 +28,7 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
     Wrapper function for click
     """
 
+    #default parameters for the random forest (trying to match HiC-Reg)
     modelParamDict = dict(n_estimators=20, 
                             criterion='mse', 
                             max_depth=None, 
@@ -45,6 +46,8 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
                             verbose=2, 
                             ccp_alpha=0.0, 
                             max_samples=0.75)
+    #allowed data types, if someone wanted to set random forest parameters
+    # different from the defaults above  
     allowedModelParamDytpeDict = dict(n_estimators=[int], 
                             criterion=[str], 
                             max_depth=[int], 
@@ -62,11 +65,11 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
                             verbose=[int], 
                             ccp_alpha=[float], 
                             max_samples=[int,float]  )
-    if useextratrees:
         #extra trees should sample without replacement = no bootstrapping by default
+    if useextratrees:
         modelParamDict['bootstrap'] = False
 
-
+    #try to extract additional parameters for the random forest / extra trees algorithm
     for i in range(0, len(ctx.args), 2):
         paramName= ctx.args[i][2:]
         if paramName in modelParamDict:
@@ -76,9 +79,22 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
             msg = "Parameter {:s} is not supported".format(paramName)
             raise SystemExit(msg)
 
-    training(modeloutputdirectory, conversion, modelParamDict, traindatasetfile, nodist, nomiddle, nostartend, ovspercentage, ovsfactor, ovsbalance, plottrees, splittrainset, useextratrees)
+    training(pModeloutputdirectory = modeloutputdirectory, \
+                pConversion=conversion, \
+                pModelParamDict=modelParamDict, \
+                pTraindatasetfile=traindatasetfile,\
+                pNoDist = nodist,\
+                pNoMiddle = nomiddle,\
+                pNoStartEnd= nostartend,\
+                pWeightBound1= weightbound1,\
+                pWeightBound2 = weightbound2,\
+                pOvsFactor = ovsfactor,\
+                pOvsBalance = ovsbalance,\
+                pPlotTrees = plottrees,\
+                pSplitTrainset = splittrainset,\
+                pUseExtraTrees = useextratrees)
 
-def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile, noDist, noMiddle, noStartEnd, pOvsPercentage, pOvsFactor, pOvsBalance, pPlotTrees, pSplitTrainset, pUseExtraTrees):
+def training(pModeloutputdirectory, pConversion, pModelParamDict, pTraindatasetfile, pNoDist, pNoMiddle, pNoStartEnd, pWeightBound1, pWeightBound2, pOvsFactor, pOvsBalance, pPlotTrees, pSplitTrainset, pUseExtraTrees):
     """
     Train function
     Attributes:
@@ -88,16 +104,16 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
     """
 
     ### load dataset and set parameters
-    df, params, msg = checkTrainingset(traindatasetfile, pKeepInvalid=True, pCheckReads=True)
+    df, params, msg = checkTrainingset(pTraindatasetfile, pKeepInvalid=True, pCheckReads=True)
     if msg != None:
         msg = "Aborting.\n" + msg
         raise SystemExit(msg)
     
     ### store the training parameters for later reference and file name creation
-    params['conversion'] = conversion
-    params['noDistance'] = noDist
-    params['noMiddle'] = noMiddle
-    params['noStartEnd'] = noStartEnd
+    params['conversion'] = pConversion
+    params['noDistance'] = pNoDist
+    params['noMiddle'] = pNoMiddle
+    params['noStartEnd'] = pNoStartEnd
     params['useExtraTrees'] = pUseExtraTrees
         
     ### create model with desired parameters
@@ -130,9 +146,9 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
 
     ### drop columns that should not be used for training
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'valid', 'weights']
-    if noDist:
+    if pNoDist:
         dropList.append('distance')    
-    if noMiddle:
+    if pNoMiddle:
         if params['method'] == 'oneHot':
             dropList.append('middleProt')
         elif params['method'] == 'multiColumn':
@@ -141,7 +157,7 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
                 dropList.append(str(protein + numberOfProteins))
         else:
             raise NotImplementedError("unknown param for 'method'")
-    if noStartEnd:
+    if pNoStartEnd:
         if params['method'] == 'oneHot':
             dropList.append('startProt')
             dropList.append('endProt')
@@ -158,9 +174,9 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
     weights = df['weights']
 
     ### apply conversion
-    if conversion == 'none':
+    if pConversion == 'none':
         y = df['reads']
-    elif conversion == 'standardLog':
+    elif pConversion == 'standardLog':
         y = np.log(df['reads']+1)
 
     ## train models and store them
@@ -183,20 +199,20 @@ def training(modeloutputdirectory, conversion, pModelParamDict, traindatasetfile
             trainScore = model.score(X_train, y_train, weights_train)
             testScore = model.score(X_test, y_test, weights_test)
             modelTag = createModelTag(params) + "_" + str(i+1)
-            modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
+            modelFileName = os.path.join(pModeloutputdirectory, modelTag + ".z")
             joblib.dump((model, params), modelFileName, compress=True ) 
             print("processed model {:d}".format(i+1))
             print("trainScore:", trainScore)
             print("testScore:", testScore)
             featNamesList = createNamesForFeatures(list(X_train.columns), params)
-            visualizeModel(model, modeloutputdirectory, featNamesList, modelTag, pPlotTrees)
+            visualizeModel(model, pModeloutputdirectory, featNamesList, modelTag, pPlotTrees)
     else:
         model.fit(X, y, weights)
         modelTag = createModelTag(params)
-        modelFileName = os.path.join(modeloutputdirectory, modelTag + ".z")
+        modelFileName = os.path.join(pModeloutputdirectory, modelTag + ".z")
         joblib.dump((model, params), modelFileName, compress=True )
         featNamesList = createNamesForFeatures(list(X.columns), params)
-        visualizeModel(model, modeloutputdirectory, featNamesList, modelTag, pPlotTrees)
+        visualizeModel(model, pModeloutputdirectory, featNamesList, modelTag, pPlotTrees)
 
 def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
     #Select all rows (samples) from dataframe where "reads" (read counts) are in certain range,
@@ -429,4 +445,4 @@ def checkTrainingset(pTrainDatasetFile, pKeepInvalid=False, pCheckReads=True):
         
 
 if __name__ == '__main__':
-    train()
+    train() # pylint: disable=no-value-for-parameter

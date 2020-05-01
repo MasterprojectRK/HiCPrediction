@@ -477,4 +477,4 @@ def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore
     resultsDf.to_csv(pResultsFilePath)
     
 if __name__ == '__main__':
-    executePredictionWrapper()
+    executePredictionWrapper() # pylint: disable=no-value-for-parameter
