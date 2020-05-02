@@ -5,20 +5,40 @@ from hicprediction.training import checkTrainingset, computeWeights
 from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestRegressor
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import joblib
 
 @click.option('--datasetfile', '-d', type=click.Path(file_okay=True,dir_okay=False,exists=True,readable=True), help="trainingset from hicprediction createTrainingset.py")
 @click.option('--outfile', '-o', type=click.Path(file_okay=True,dir_okay=False, writable=True), help="outfile for results")
 @click.option('--weightfactor', '-w', type=click.FloatRange(min=1.0), default=100.0, help="max search range for (weight of emphasized samples / weight of non-emph. samples)")
-@click.option('--maxevals', '-me', type=click.IntRange(min=10), default=100, help="max. nr. of of search runs")
+@click.option('--maxevals', '-me', type=click.IntRange(min=10), default=200, help="max. nr. of of search runs")
+@click.option('--weightingType', '-wt', type=click.Choice(choices=['reads', 'proteinFeatures']), default='reads', help="compute weights based on reads (default) or protein feature values")
+@click.option('--featList', '-fl', multiple=True, type=str, default=['0','12','24'], required=True, help="name of features according to which the weight is computed; default is 0, 12, 24; only relevant if wt=proteinFeatures")
 @click.command()
-def weightingParameterSearch(datasetfile, outfile, weightfactor, maxevals):
+def weightingParameterSearch(datasetfile, outfile, weightfactor, maxevals, weightingtype,featlist):
+    ### use Cross-Validation and tree-structured Parzen estimators to find a range
+    ### and factor for weighting samples in a hicprediction dataset
+    ### the dataset must be suitable for training, i.e. it must contain a 'reads' column
+    ### The weighting can be according to interaction count ('reads') or protein Feature values ('proteinFeatures')
+    
+    #check inputs first
+    if weightingtype == 'proteinFeatures' and not featlist or len(featlist) == 0:
+        msg = "weightingType proteinFeatures only possible when featList not empty"
+        raise SystemExit(msg)
+    elif weightingtype == 'proteinFeatures':
+        columnList = featlist
+    else:
+        columnList = ['reads']
     #load training set
     df, params, msg = checkTrainingset(datasetfile)
     if msg != None:
         msg = "Aborting.\n" + msg
         raise SystemExit(msg)
+    for element in columnList:
+        if element not in df.columns:
+            msg = "feature {:s} not contained in training set".format(str(element))
+            raise SystemExit(msg)
+    #kick columns from dataset which are not required for cross-validation
     dropList = ['first', 'second', 'chrom', 'avgRead', 'valid'] 
     df.drop(columns=dropList, inplace=True)
 
@@ -41,12 +61,12 @@ def weightingParameterSearch(datasetfile, outfile, weightfactor, maxevals):
                             ccp_alpha=0.0, 
                             max_samples=0.75)
 
-    readMin = df['reads'].min() #normally zero
-    readMax = df['reads'].max()
-    readMean = df['reads'].mean()
-    minReadFactor = readMin / readMean #normally zero
-    maxReadFactor = readMax / readMean
-    print("min: {:.3f}, max: {:.3f}, mean: {:.3f}".format(readMin, readMax, readMean))
+    minValue = df[columnList[0]].min()
+    maxValue = df[columnList[0]].max()
+    meanValue = df[columnList[0]].mean()
+    minReadFactor = minValue / meanValue
+    maxReadFactor = maxValue / meanValue
+    print("min: {:.3f}, max: {:.3f}, mean: {:.3f}".format(minValue, maxValue, meanValue))
     searchSpace = {
         'trainDf': hp.choice('trainDf', [df]),
         'estimatorParams': hp.choice('estimatorParams', [modelParamDict]),
@@ -54,6 +74,7 @@ def weightingParameterSearch(datasetfile, outfile, weightfactor, maxevals):
         'bound2Float': hp.uniform('bound2Float', minReadFactor, maxReadFactor), #doesn't matter which one is smaller
         'factorFloat': hp.uniform('factorFloat', 0.1, weightfactor),
         'params': hp.choice('params', [params]),
+        'columnList': hp.choice('columnList', [columnList]),
     }
 
     trials = Trials()
@@ -87,6 +108,7 @@ def objectiveFunction(paramDict):
     pBound2Float = paramDict['bound2Float']
     pFactorFloat = paramDict['factorFloat']
     pParams = paramDict['params']
+    pColumnList = paramDict['columnList']
     status = STATUS_FAIL
     scoreMean = None
     attachmentDict = {
@@ -98,14 +120,15 @@ def objectiveFunction(paramDict):
     dfX = pTrainDf.drop(columns=['reads'])
     dfY = pTrainDf[['reads']]
     #compute weights (stored directly in weight column of trainDf)
-    readMean = pTrainDf['reads'].mean()
-    bound1 = readMean * pBound1Float
-    bound2 = readMean * pBound2Float
+    meanValue = pTrainDf[pColumnList[0]].mean()
+    bound1 = meanValue * pBound1Float
+    bound2 = meanValue * pBound2Float
     success = computeWeights(pTrainDf, \
                             pBound1=bound1, \
                             pBound2=bound2, \
                             pFactorFloat=pFactorFloat, \
-                            pParams=pParams)
+                            pParams=pParams,\
+                            pColumnsToUse=pColumnList)
 
     if success != True:
         status = STATUS_FAIL
