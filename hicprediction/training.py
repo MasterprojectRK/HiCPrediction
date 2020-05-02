@@ -9,7 +9,6 @@ import sklearn.ensemble
 from sklearn.model_selection import KFold
 import numpy as np
 from hicprediction.tagCreator import createModelTag
-import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.tree import export_graphviz
@@ -23,7 +22,10 @@ import math
                                     ignore_unknown_options=True,
                                     allow_extra_args=True))
 @click.pass_context
-def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomiddle, nostartend, weightbound1, weightbound2, ovsfactor, ovsbalance, plottrees, splittrainset, useextratrees):
+def train(ctx, modeloutputdirectory, conversion, traindatasetfile, 
+            nodist, nomiddle, nostartend, weightbound1, weightbound2, 
+            weightingtype, featlist, ovsfactor,
+            plottrees, splittrainset, useextratrees):
     """
     Wrapper function for click
     """
@@ -88,13 +90,18 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile, nodist, nomid
                 pNoStartEnd= nostartend,\
                 pWeightBound1= weightbound1,\
                 pWeightBound2 = weightbound2,\
+                pWeightingType=weightingtype, \
+                pFeatList=featlist, \
                 pOvsFactor = ovsfactor,\
-                pOvsBalance = ovsbalance,\
                 pPlotTrees = plottrees,\
                 pSplitTrainset = splittrainset,\
                 pUseExtraTrees = useextratrees)
 
-def training(pModeloutputdirectory, pConversion, pModelParamDict, pTraindatasetfile, pNoDist, pNoMiddle, pNoStartEnd, pWeightBound1, pWeightBound2, pOvsFactor, pOvsBalance, pPlotTrees, pSplitTrainset, pUseExtraTrees):
+def training(pModeloutputdirectory, pConversion, pModelParamDict, 
+                pTraindatasetfile, pNoDist, pNoMiddle, pNoStartEnd, 
+                pWeightBound1, pWeightBound2, pWeightingType, 
+                pFeatList, pOvsFactor, pPlotTrees, 
+                pSplitTrainset, pUseExtraTrees):
     """
     Train function
     Attributes:
@@ -141,12 +148,28 @@ def training(pModeloutputdirectory, pConversion, pModelParamDict, pTraindatasetf
         print(msg)
         df.fillna(value=0, inplace=True)
 
-    ### add weights and over-emphasize some of them, if requested
-    # variableOversampling(df, params, pOvsPercentage, pOvsFactor, pOvsBalance, modeloutputdirectory, pPlotOutput=True)
-    success = computeWeights(df, pWeightBound1, pWeightBound2, pOvsFactor, params)
+    ### add weights and over-emphasize some samples, if requested
+    if pWeightingType == 'proteinFeatures' and not pFeatList or len(pFeatList) == 0:
+        msg = "weightingType proteinFeatures only possible when featList not empty"
+        raise SystemExit(msg)
+    elif pWeightingType == 'proteinFeatures':
+        columnList = pFeatList
+    else:
+        columnList = ['reads']
+    for element in pFeatList:
+        if element not in df.columns:
+            msg = "feature {:s} not contained in training set".format(str(element))
+            raise SystemExit(msg)
+    success = computeWeights(pDataframe=df, 
+                                pBound1=pWeightBound1, 
+                                pBound2=pWeightBound2, 
+                                pFactorFloat=pOvsFactor, 
+                                pParams=params, 
+                                pColumnsToUse=pFeatList)
     if success == False:
-        msg = "All samples weights set to 1"
+        msg = "All sample weights set to 1"
         print(msg)
+    
     ### drop columns that should not be used for training
     dropList = ['first', 'second', 'chrom', 'reads', 'avgRead', 'valid', 'weights']
     if pNoDist:
@@ -446,21 +469,29 @@ def checkTrainingset(pTrainDatasetFile, pKeepInvalid=False, pCheckReads=True):
         msg = None
     return trainDf, paramsDict, msg
 
-def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat, pParams):
+def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat, pParams, pColumnsToUse=['reads']):
+    ### weight all samples in pDataframe where the value of the columns 
+    ### in the pColumnsToUse list
+    ### is between pBound1 and pBound2.
+    ### Weighting will be done such that the weight sum of all samples 
+    ### between the bounds is pFactorFloat-times the weight sum 
+    ### of all samples outside the bounds
+    ### integer weights will be added added to pDataframe as a separate column 'weights'
+
     #equal weights for all samples as a start
     pDataframe['weights'] = 1 
     success = False
     #weight computation for oneHot method and factors <= 0 not supported
-    if pParams['method'] == 'oneHot' or pFactorFloat <= 0.0:
+    if not 'method' in pParams or pParams['method'] != 'multiColumn' or pFactorFloat <= 0.0:
         return False
-    #order boundaries and select
-    if pBound1 < pBound2:
-        lowerMask = pDataframe['reads'] >= pBound1
-        upperMask = pDataframe['reads'] <= pBound2
-    else:
-        lowerMask = pDataframe['reads'] >= pBound2
-        upperMask = pDataframe['reads'] <= pBound1
-    numberOfWeightedSamples = pDataframe[lowerMask & upperMask].shape[0]
+    #compute the mask for samples to weight, order of bounds shouldn't matter
+    #as long as min and max are defined
+    weightingMask = False
+    for column in pColumnsToUse:
+        lowerMask = pDataframe[column] >= min(pBound1, pBound2)
+        upperMask = pDataframe[column] <= max(pBound1, pBound2)
+        weightingMask |= (lowerMask & upperMask)
+    numberOfWeightedSamples = pDataframe[weightingMask].shape[0]
     numberOfUnweightedSamples = pDataframe.shape[0] - numberOfWeightedSamples
     if numberOfWeightedSamples == 0 or numberOfUnweightedSamples == 0:
         success = False
@@ -468,8 +499,8 @@ def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat, pParams):
         print("number of non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
         print("number of emphasized samples: {:d}".format(numberOfWeightedSamples))
         weightInt = int(np.round(pFactorFloat * numberOfUnweightedSamples / numberOfWeightedSamples))
-        pDataframe.loc[lowerMask & upperMask, 'weights'] = weightInt
-        weightSum = pDataframe.loc[lowerMask & upperMask, 'weights'].sum()
+        pDataframe.loc[weightingMask, 'weights'] = weightInt
+        weightSum = pDataframe.loc[weightingMask, 'weights'].sum()
         print("weight given: {:d}".format(weightInt))
         print("weight sum non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
         print("weight sum emphasized samples: {:d}".format(weightSum))
