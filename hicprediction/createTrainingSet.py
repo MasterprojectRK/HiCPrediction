@@ -7,13 +7,11 @@ import hicprediction.configurations as conf
 from hicprediction.tagCreator import createSetTag, createProteinTag, initParamDict
 from pkg_resources import resource_filename
 from tqdm import tqdm
-import sys
 import numpy as np
 import pandas as pd
 import h5py
 import joblib
 from hicmatrix import HiCMatrix as hm
-import itertools
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import math
@@ -37,10 +35,6 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                     normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
                    windowsize, smooth, method, removeempty, printproteins):
-    """
-    Wrapper function
-    calls function and can be called by click
-    """
     
     #sanity check of normalization params
     if normalizeproteins and normsignalvalue <= normsignalthreshold:
@@ -52,9 +46,9 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
         msg += "normCountThreshold must be (much) smaller than normCountValue"
         raise SystemExit(msg)
 
-    createTrainSet(chromosomes= chromosomes,\
-                   datasetoutputdirectory= datasetoutputdirectory,\
-                   basefile= basefile,\
+    createTrainSet(pChromosomes= chromosomes,\
+                   pDatasetOutputDirectory= datasetoutputdirectory,\
+                   pBasefile= basefile,\
                    pNormalizeProteins= normalizeproteins,\
                    pNormSignalValue= normsignalvalue,\
                    pNormSignalThreshold= normsignalthreshold,\
@@ -62,7 +56,7 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                    pNormalizeReadCounts= normalizereadcounts,\
                    pNormCountValue= normcountvalue,\
                    pNormCountThreshold= normcountthreshold,\
-                   internalInDir= internalindir, \
+                   pInternalInDir= internalindir, \
                    pWindowOperation= windowoperation,\
                    pMergeOperation= mergeoperation, \
                    pWindowsize= windowsize, \
@@ -71,38 +65,45 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                    pRemoveEmpty= removeempty, \
                    pPrintProteins= printproteins)
 
-def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
+def createTrainSet(pChromosomes, pDatasetOutputDirectory,pBasefile,
                    pNormalizeProteins, pNormSignalValue, pNormSignalThreshold,
                    pDivideProteinsByMean,
                    pNormalizeReadCounts, pNormCountValue, pNormCountThreshold,
-                   internalInDir, pWindowOperation, pMergeOperation, 
+                   pInternalInDir, pWindowOperation, pMergeOperation, 
                    pWindowsize, pSmooth, pMethod, pRemoveEmpty,
                    pPrintProteins):
     """
-    Main function
-    creates the training sets and stores them into the given directory
+    Create training- and test datasets and store them into the given directory
     Attributes:
             chromosomes -- list of chromosomes to be processed
             datasetoutputdirectory --  directory to store the created sets
             basefile -- file path to base file created in first script
-            centromeresfile --  file path  with the positions of the centromeres
-            ignorecentromeres --  Boolean to decide if centromeres are cut out
-            normalize -- Boolean to decide if proteins are normalized
+            normalizeProteins -- Boolean to decide if proteins are scaled
+            normSignalValue -- max. value P for protein scaling (0...P)
+            normSignalThreshold -- set all values < threshold to zero after scaling
+            divideProteinsByMean -- divide all protein features by their respective mean
+            normalizeReadCounts -- Boolean to decide if interaction counts are scaled
+            normCountValue -- max. value R for interaction count scaling (0...R)
+            normCountThreshold -- set all values < threshold to zero after scaling
             internalInDir -- path to directory where the per-chromosome cooler matrices are stored
-            windowoperation -- bin operation for windows
-            mergeoperation --  bin operations for protein binning
-            windowsize --  maximal genomic distance
-            peakcolumn -- Column in bed file that contains peak values
+            windowOperation -- bin operation for windows
+            mergeOperation --  bin operations for protein binning
+            windowSize --  maximal genomic distance
+            smooth -- sigma value for gaussian smoothing of protein inputs
+            method -- three features per protein (HiC-Reg) or three features in total + one hot encoding
+            removeEmpty -- invalidate samples where all features except distance are zero
+            printProteins -- print protein value over bins 
     """
     ### check extensions
-    if not conf.checkExtension(basefile, '.ph5'):
-        msg = "Aborted. Basefile {0:s} has the wrong format (wrong file extension) \n"
-        msg += "please specify a .ph5 file"
-        sys.exit(msg.format(basefile))
+    if not conf.checkExtension(pBasefile, '.ph5'):
+        pBasefile += ".ph5"
+        msg = "Basefile should have .ph5 file extension.\n"
+        msg += "Renamed to {:s}".format(pBasefile)
+        print(msg)
 
     ### convert chromosomes to list
-    if chromosomes:
-        chromosomeList = chromosomes.split(',')
+    if pChromosomes:
+        chromosomeList = pChromosomes.split(',')
     else:
         chromosomeList = range(1, 23)
 
@@ -114,7 +115,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
         if not chromosome in range(1,23):
             msg = 'Chromosome {0:d} is not in the range of 1 to 22.'
             msg += 'Please provide correct chromosomes'
-            sys.exit( msg.format(chromosome) )
+            raise SystemExit( msg.format(chromosome) )
         ### create parameter set
         params = initParamDict()
         params['chrom'] = chromTag
@@ -132,7 +133,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
         proteinTag = createProteinTag(params)
         proteinChromTag = proteinTag + "_" + chromTag
         ### retrieve proteins and parameters from base file
-        with pd.HDFStore(basefile) as store:
+        with pd.HDFStore(pBasefile) as store:
             proteins = store[proteinChromTag]
             params2 = store.get_storer(proteinChromTag).attrs.metadata
         for key, value in params2.items():
@@ -191,13 +192,13 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
                 ax1.set_ylabel('signal value')
                 ax1.set_title(params['proteinFileNames'][protein])
                 figname = str(params['cellType']) + '_protein_' + str(protein) + '.png' 
-                fig1.savefig(os.path.join(datasetoutputdirectory, figname))
+                fig1.savefig(os.path.join(pDatasetOutputDirectory, figname))
                 
         ### try to load HiC matrix
         hiCMatrix = None
         reads = None
         try:
-            with h5py.File(basefile, 'r') as baseFile:
+            with h5py.File(pBasefile, 'r') as baseFile:
                 matrixfile = baseFile[chromTag][()]
         except:
             #no matrix was present when creating the basefile 
@@ -205,16 +206,16 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
             matrixfile = None 
             
         if matrixfile:
-            if internalInDir:
+            if pInternalInDir:
                 filename = os.path.basename(matrixfile)
-                matrixfile = os.path.join(internalInDir, filename)
+                matrixfile = os.path.join(pInternalInDir, filename)
             if os.path.isfile(matrixfile):
                 hiCMatrix = hm.hiCMatrix(matrixfile)
             else:
                 msg = ("cooler file {0:s} is missing.\n" \
                           + "Use --iif option to provide the directory where the internal matrices " \
                           +  "were stored when creating the basefile").format(matrixfile)
-                sys.exit(msg)  
+                raise SystemExit(msg)  
             ### load reads and bins
             reads = hiCMatrix.matrix
         
@@ -274,7 +275,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
 
         #finally, store the dataset  
         setTag = createSetTag(params) + ".z"
-        datasetFileName = os.path.join(datasetoutputdirectory, setTag)  
+        datasetFileName = os.path.join(pDatasetOutputDirectory, setTag)  
         joblib.dump((df, params), datasetFileName,compress=True ) 
 
         #plot read count distribution
@@ -286,7 +287,7 @@ def createTrainSet(chromosomes, datasetoutputdirectory,basefile,
             ax3.set_ylim(ax1.get_ylim())
             rcDistributionFilename = createSetTag(params) + "_rcDistribution.png"
             fig1.suptitle("Read count distributions {:s}, {:s}".format(params['cellType'], params['chrom']))
-            fig1.savefig(os.path.join(datasetoutputdirectory, rcDistributionFilename))
+            fig1.savefig(os.path.join(pDatasetOutputDirectory, rcDistributionFilename))
 
 def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSize,
                    pChrom, pStart, pEnd, pAxis, pRemoveEmpty):
@@ -471,8 +472,8 @@ def createDatasetOneHot(pProteins, pFullReads, pWindowOperation, pWindowSize,
 
 def maskFunc(pArray, pWindowSize=0):
     maskArray = np.zeros(pArray.shape)
-    upperTriaInd = np.triu_indices(maskArray.shape[0])
-    notRequiredTriaInd = np.triu_indices(maskArray.shape[0], k=pWindowSize)
+    upperTriaInd = np.triu_indices(maskArray.shape[0]) # pylint: disable=unsubscriptable-object
+    notRequiredTriaInd = np.triu_indices(maskArray.shape[0], k=pWindowSize) # pylint: disable=unsubscriptable-object
     maskArray[upperTriaInd] = 1
     maskArray[notRequiredTriaInd] = 0
     return maskArray
