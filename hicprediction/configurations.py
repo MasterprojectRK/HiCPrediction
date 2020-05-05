@@ -101,24 +101,22 @@ _set_options = [
     click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing"),                
     click.option('--method',required=False, type=click.Choice(['oneHot', 'multiColumn']), default='multiColumn', help="how to build the dataset. MultiColumn = 3 columns for each protein (start, window, end), OneHot = 3 columns (start, window, end) + one-hot encoding for the proteins"),
     click.option('--removeEmpty', required=False, type=bool, default=True, help="remove samples which have no protein data"),
+    click.option('--noDiagonal', '-nd',required=False, type=click.IntRange(min=-1),default=-1,help="number of (side-)diagonals to ignore for training, default -1 (none), 0= main diagonal, 1= first side diagonal etc."),
     click.option('--printproteins', '-pp', required=False, type=bool, default=False, help="print protein plots"),
 ]
 _train_options = [
-    click.option('--trainDatasetFile', '-tdf',\
-                 required=True,\
-                 help='File from which training is loaded'\
-                 ,type=click.Path(exists=True)),
-    click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model"),
-    click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model"),
-    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model"),
-    click.option('--weightBound1', '-wb1', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0"),
-    click.option('--weightBound2', '-wb2', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0"),
-    click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=0.0, help="factor by which the weights within the range between weightBound1/2 are multiplied, default = 0 = no weighting"),
+    click.option('--trainDatasetFile', '-tdf',required=True,type=click.Path(exists=True, readable=True), help='dataset for training'),
+    click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model, default False"),
+    click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model, default False"),
+    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model, default False"),
+    click.option('--weightBound1', '-wb1', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0; default 0"),
+    click.option('--weightBound2', '-wb2', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0; default 0"),
+    click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=0.0, help="factor by which the weights within the range between weightBound1/2 are multiplied, default=0 => no weighting"),
     click.option('--weightingType', '-wt', type=click.Choice(choices=['reads', 'proteinFeatures']), default='reads', help="compute weights based on reads (default) or protein feature values, only relevant if ovsF > 0"),
     click.option('--featList', '-fl', multiple=True, type=str, default=['0','12','24'], required=True, help="name of features according to which the weight is computed; default is 0, 12, 24; only relevant if wt=proteinFeatures and ovsF > 0"),    
-    click.option('--plotTrees', required=False, type=bool, default=False, help="Plot decision trees"),
-    click.option('--splitTrainset', type=bool, default=False, help="Split Trainingset for a 5-fold Cross-Validation, i.e. return 5 models instead of 1"),
-    click.option('--useExtraTrees', type=bool, default=False, required=False, help="Use extra trees algorithm instead of random forests")
+    click.option('--plotTrees', required=False, type=bool, default=False, help="Plot decision trees, default False"),
+    click.option('--splitTrainset', type=bool, default=False, help="Split Trainingset for a 5-fold Cross-Validation, i.e. return 5 models instead of 1; default False"),
+    click.option('--useExtraTrees', type=bool, default=False, required=False, help="Use extra trees algorithm instead of random forests; default False")
 ]
 _alltrain_options = [
     click.option('--setDirectory', '-sd',type=click.Path(exists=True),\

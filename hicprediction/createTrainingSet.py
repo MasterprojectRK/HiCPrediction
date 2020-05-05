@@ -34,7 +34,7 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                      divideproteinsbymean,
                     normalizereadcounts, normcountvalue, normcountthreshold,
                    internalindir, windowoperation, mergeoperation, 
-                   windowsize, smooth, method, removeempty, printproteins):
+                   windowsize, smooth, method, removeempty, nodiagonal, printproteins):
     
     #sanity check of normalization params
     if normalizeproteins and normsignalvalue <= normsignalthreshold:
@@ -63,6 +63,7 @@ def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                    pSmooth= smooth,\
                    pMethod= method, \
                    pRemoveEmpty= removeempty, \
+                   pNoDiagonal= nodiagonal,\
                    pPrintProteins= printproteins)
 
 def createTrainSet(pChromosomes, pDatasetOutputDirectory,pBasefile,
@@ -70,7 +71,7 @@ def createTrainSet(pChromosomes, pDatasetOutputDirectory,pBasefile,
                    pDivideProteinsByMean,
                    pNormalizeReadCounts, pNormCountValue, pNormCountThreshold,
                    pInternalInDir, pWindowOperation, pMergeOperation, 
-                   pWindowsize, pSmooth, pMethod, pRemoveEmpty,
+                   pWindowsize, pSmooth, pMethod, pRemoveEmpty, pNoDiagonal,
                    pPrintProteins):
     """
     Create training- and test datasets and store them into the given directory
@@ -92,6 +93,7 @@ def createTrainSet(pChromosomes, pDatasetOutputDirectory,pBasefile,
             smooth -- sigma value for gaussian smoothing of protein inputs
             method -- three features per protein (HiC-Reg) or three features in total + one hot encoding
             removeEmpty -- invalidate samples where all features except distance are zero
+            noDiagonal -- integer N, do not use first N diagonals for training
             printProteins -- print protein value over bins 
     """
     ### check extensions
@@ -235,6 +237,15 @@ def createTrainSet(pChromosomes, pDatasetOutputDirectory,pBasefile,
             msg = "Could not create dataset. Aborting"
             raise SystemExit(msg)
         
+        #invalidate diagonals
+        params['noDiagnonal'] = pNoDiagonal
+        diagMask = df['distance'] <= pNoDiagonal
+        df.loc[diagMask, 'valid'] = False
+        invalidatedSampleCount = df[diagMask].shape[0]
+        if invalidatedSampleCount > 0:
+            msg = "Invalidated {:d} diagonal(s) ({:d} samples)."
+            msg = msg.format(pNoDiagonal, invalidatedSampleCount)
+            print(msg)
         #print some figures
         validMask = df['valid'] == True
         print( "{0:d} valid samples in dataset".format(df[validMask].shape[0]) )

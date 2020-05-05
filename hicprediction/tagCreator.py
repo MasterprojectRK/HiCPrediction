@@ -65,6 +65,7 @@ def initParamDict():
         'noDistance',
         'noMiddle',
         'noStartEnd',
+        'noDiagonal',
         'useExtraTrees',
         'learningParams',
         'smoothMatrix',
