@@ -359,7 +359,7 @@ def createDatasetMultiColumn(pProteins, pFullReads, pWindowOperation, pWindowSiz
         
         df['valid'] = True
         #invalidate diagonal
-        diagMask = df['distance'] <= 2
+        diagMask = df['distance'] <= 1
         df.loc[diagMask, 'valid'] = False
         if pRemoveEmpty:
             #invalidate rows where start / end proteins are both zero
@@ -510,4 +510,4 @@ def smoothenProteins(pProteins, pSmooth):
 
 
 if __name__ == '__main__':
-    createTrainingSet()
+    createTrainingSet() # pylint: disable=no-value-for-parameter
