@@ -98,16 +98,28 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile,
                 pUseExtraTrees = useextratrees)
 
 def training(pModeloutputdirectory, pConversion, pModelParamDict, 
-                pTraindatasetfile, pNoDist, pNoMiddle, pNoStartEnd, 
+                pTraindatasetfile, pNoDist, pNoMiddle, pNoStartEnd,
                 pWeightBound1, pWeightBound2, pWeightingType, 
                 pFeatList, pOvsFactor, pPlotTrees, 
                 pSplitTrainset, pUseExtraTrees):
     """
     Train function
     Attributes:
-        modeloutputdirectory -- path to desired store location of models
-        conversion --  read values conversion method 
-        traindatasetfile -- input data set for training
+        modeloutputdirectory -- str, path to desired store location of models
+        conversion --  str, read values conversion method 
+        modelParamDict -- dictionary with all options for random forest and extra trees
+        traindatasetfile -- str, input data set for training
+        noDist -- bool, do not use distance for training
+        noMiddle -- bool, do not use Window features for training
+        noStartEnd -- bool, do not use start- and end features for training
+        weightBound1 -- numeric upper or lower boundary for weighting samples
+        weightBound2 -- numeric upper or lower boundary for weighting samples
+        weightingType -- str, weight samples based on reads or protein Features
+        featList -- list of str, names of features for sample weighting
+        ovsFactor -- factor F for sample weighting such that weightSum_weightedSamples/weightSum_unweightedSamples = F
+        plotTrees -- plot resulting trees down to level 6 (slow!)
+        splitTrainset -- perform 5-fold cross validation split of dataset and train 5 models independently
+        useExtratrees -- use extra trees algorithm instead of random forests (includes bootstrap=False)
     """
 
     ### load dataset and set parameters
