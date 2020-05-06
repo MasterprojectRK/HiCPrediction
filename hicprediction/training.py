@@ -24,11 +24,8 @@ import math
 @click.pass_context
 def train(ctx, modeloutputdirectory, conversion, traindatasetfile, 
             nodist, nomiddle, nostartend, weightbound1, weightbound2, 
-            weightingtype, featlist, ovsfactor,
+            weightingtype, featlist, ovsfactor, taddomainfile,
             plottrees, splittrainset, useextratrees):
-    """
-    Wrapper function for click
-    """
 
     #default parameters for the random forest (trying to match HiC-Reg)
     modelParamDict = dict(n_estimators=20, 
@@ -48,7 +45,7 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile,
                             verbose=2, 
                             ccp_alpha=0.0, 
                             max_samples=0.75)
-    #allowed data types, if someone wanted to set random forest parameters
+    #allowed data types, if someone wanted to set other random forest parameters
     # different from the defaults above  
     allowedModelParamDytpeDict = dict(n_estimators=[int], 
                             criterion=[str], 
@@ -93,6 +90,7 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile,
                 pWeightingType=weightingtype, \
                 pFeatList=featlist, \
                 pOvsFactor = ovsfactor,\
+                pTadDomainFile = taddomainfile,\
                 pPlotTrees = plottrees,\
                 pSplitTrainset = splittrainset,\
                 pUseExtraTrees = useextratrees)
@@ -100,7 +98,7 @@ def train(ctx, modeloutputdirectory, conversion, traindatasetfile,
 def training(pModeloutputdirectory, pConversion, pModelParamDict, 
                 pTraindatasetfile, pNoDist, pNoMiddle, pNoStartEnd,
                 pWeightBound1, pWeightBound2, pWeightingType, 
-                pFeatList, pOvsFactor, pPlotTrees, 
+                pFeatList, pOvsFactor, pTadDomainFile, pPlotTrees, 
                 pSplitTrainset, pUseExtraTrees):
     """
     Train function
@@ -114,7 +112,7 @@ def training(pModeloutputdirectory, pConversion, pModelParamDict,
         noStartEnd -- bool, do not use start- and end features for training
         weightBound1 -- numeric upper or lower boundary for weighting samples
         weightBound2 -- numeric upper or lower boundary for weighting samples
-        weightingType -- str, weight samples based on reads or protein Features
+        weightingType -- str, weight samples based on reads, protein Features or TADs
         featList -- list of str, names of features for sample weighting
         ovsFactor -- factor F for sample weighting such that weightSum_weightedSamples/weightSum_unweightedSamples = F
         plotTrees -- plot resulting trees down to level 6 (slow!)
@@ -161,24 +159,28 @@ def training(pModeloutputdirectory, pConversion, pModelParamDict,
         df.fillna(value=0, inplace=True)
 
     ### add weights and over-emphasize some samples, if requested
-    if pWeightingType == 'proteinFeatures' and not pFeatList or len(pFeatList) == 0:
-        msg = "weightingType proteinFeatures only possible when featList not empty"
-        raise SystemExit(msg)
-    elif pWeightingType == 'proteinFeatures':
-        columnList = pFeatList
-    else:
+    columnList = None
+    featureBasedWeigthing = False
+    weightingSuccess = False
+    if pWeightingType == 'proteinFeatures':
+            columnList = [str(i) for i in pFeatList]
+            featureBasedWeigthing = True
+    elif pWeightingType == 'reads':
         columnList = ['reads']
-    for element in pFeatList:
-        if element not in df.columns:
-            msg = "feature {:s} not contained in training set".format(str(element))
-            raise SystemExit(msg)
-    success = computeWeights(pDataframe=df, 
+        featureBasedWeigthing = True
+    else: #TAD based weighting
+        weightingSuccess = tadWeighting(pInOutDataFrame=df,
+                            pParams=params, 
+                            pTadDomainFile=pTadDomainFile,
+                            pFactorFloat=pOvsFactor)
+    if featureBasedWeigthing: #based on reads or protein features
+        weightingSuccess = computeWeights(pDataframe=df, 
                                 pBound1=pWeightBound1, 
                                 pBound2=pWeightBound2, 
                                 pFactorFloat=pOvsFactor, 
                                 pParams=params, 
-                                pColumnsToUse=pFeatList)
-    if success == False:
+                                pColumnsToUse=columnList)
+    if weightingSuccess == False:
         msg = "All sample weights set to 1"
         print(msg)
     
@@ -252,100 +254,6 @@ def training(pModeloutputdirectory, pConversion, pModelParamDict,
         featNamesList = createNamesForFeatures(list(X.columns), params)
         visualizeModel(model, pModeloutputdirectory, featNamesList, modelTag, pPlotTrees)
 
-def variableOversampling(pInOutDataFrameWithReads, pParams, pCutPercentage=0.2, pOversamplingFactor=4.0, pBalance=False, pModeloutputdirectory=None, pPlotOutput=False):
-    #Select all rows (samples) from dataframe where "reads" (read counts) are in certain range,
-    #i.e. are higher than pCutPercentage*maxReadCount. This is the high-read-count-range.
-    #Emphasize this range by adjusting the weights such that (sum of high-read-count-weights)/(sum of low-read-count-weights) = pOversamplingFactor
-    #Additionally, the high-read-count-range can be approximately balanced in itself by binning it into regions 
-    #and emphasizing regions with lower numbers of samples more than the ones with higher number of samples.
-    
-    #if nothing works, all weights equally = 1.0
-    pInOutDataFrameWithReads['weights'] = 1.0
-
-    if pCutPercentage <= 0.0 or pCutPercentage >= 1.0 or pOversamplingFactor <= 0.0:
-        return
-
-    readMax = np.float32(pInOutDataFrameWithReads.reads.max())
-    print("Oversampling...")
-    if pModeloutputdirectory and pPlotOutput:
-        #plot the weight vs. read count distribution first
-        fig1, ax1 = plt.subplots(figsize=(8,6))
-        binSize = readMax / 100
-        bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
-        printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
-        printDf.reset_index(inplace=True, drop=False)
-        ax1.bar(printDf.reads, printDf.weights, width=binSize)
-        ax1.set_xlabel("read counts")
-        ax1.set_ylabel("weight sum")
-        ax1.set_yscale('log')
-        ax1.set_title("weight sum vs. read counts")
-        figureTag = createModelTag(pParams) + "_weightSumDistributionBefore.png"        
-        fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
-    
-    
-    #the range which doesn't get oversampled
-    smallCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads']<= pCutPercentage*readMax].weights.sum()
-    if smallCountWeightSum == 0:
-        print("Warning: no samples with read count less than {:.2f}*max read count in dataset".format(pCutPercentage))
-        print("No oversampling possible, continuing with next step and all weights = 1.0")
-        print("Consider increasing oversamling percentage using -ovsP parameter")
-        return
-    #the range we want to oversample, i.e. adjust the weights
-    highCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].weights.sum()
-    sampleRelation = highCountWeightSum / smallCountWeightSum
-    print("=> weight sum relation high-read-count-range :: low-read-count-range before oversampling {:.2f}".format(sampleRelation))
-    
-    #if balancing enabled, split the high-count samples into a reasonable number of bins, 
-    #then adjust the weights for the bins separately
-    #such that all bins have the same weight sum and all samples within each bin have the same weight
-    #if balancing disabled => corner case with just one bin
-    if pBalance:
-        binsizePercent = 0.025
-        nrOfBins = math.ceil( (1.0-pCutPercentage) / binsizePercent)
-    else:
-        nrOfBins = 1 
-    msg = "=> splitting the the high-read-count range into {:d} bins and adjusting weights"
-    msg = msg.format(nrOfBins)
-    print(msg)
-    oversamplingPercentageList = np.linspace(pCutPercentage,1.0, nrOfBins + 1)
-    #find the number of bins which have reads in them and compute the target weight sum
-    #at least one bin will have reads
-    nrOfNonzeroBins = nrOfBins
-    for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
-        gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
-        leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
-        if pInOutDataFrameWithReads[gtMask & leqMask].empty:
-            nrOfNonzeroBins -= 1
-    targetWeightSum = pOversamplingFactor * smallCountWeightSum / nrOfNonzeroBins #target weight sum for each bin
-    #adjust the weights for each bin separately
-    for percentageLow, percentageHigh in zip(oversamplingPercentageList[0:-1], oversamplingPercentageList[1:]):
-        gtMask = pInOutDataFrameWithReads['reads'] > percentageLow * readMax
-        leqMask = pInOutDataFrameWithReads['reads'] <= percentageHigh * readMax
-        if not pInOutDataFrameWithReads[gtMask & leqMask].empty:
-            currentNrOfSamples = pInOutDataFrameWithReads[gtMask & leqMask].shape[0]
-            pInOutDataFrameWithReads.loc[gtMask & leqMask, 'weights'] = targetWeightSum / currentNrOfSamples     
-
-    #recompute and print the new weight sums
-    highCountWeightSum = pInOutDataFrameWithReads[pInOutDataFrameWithReads['reads'] > pCutPercentage*readMax].weights.sum()
-    msg = "=> Sum of weights in low-read-count range (<={:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, smallCountWeightSum)
-    msg += "=> Sum of weights in high-read-count range (>{:.2f}*max. read count) is now {:.2f}\n".format(pCutPercentage, highCountWeightSum)
-    msg += "=> weight factor = {:.2f}\n".format(highCountWeightSum/smallCountWeightSum)
-    print(msg)
-
-    if pModeloutputdirectory and pPlotOutput:
-        #plot the weight vs. read count distribution after oversampling
-        binSize = readMax / 100
-        bins = pd.cut(pInOutDataFrameWithReads['reads'], bins=np.arange(0,readMax + binSize, binSize), labels=np.arange(0,readMax,binSize), include_lowest=True)
-        printDf = pInOutDataFrameWithReads[['weights']].groupby(bins).sum()
-        printDf.reset_index(inplace=True, drop=False)
-        ax1.bar(printDf.reads, printDf.weights, width=binSize)
-        ax1.set_xlabel("read counts")
-        ax1.set_ylabel("weight sum")
-        ax1.set_yscale('log')
-        ax1.set_title("weight sum vs. read counts")
-        figureTag = createModelTag(pParams) + "_weightSumDistributionAfter.png"        
-        fig1.savefig(os.path.join(pModeloutputdirectory, figureTag))
-
 def visualizeModel(pTreeBasedLearningModel, pOutDir, pFeatList, pModelTag, pPlotTrees):
     #plot visualizations of the trees to png files
     #only up to depth 6 to keep memory demand low and image "readable"
@@ -406,7 +314,6 @@ def tryConvert(pParamStr, pAllowedTypeList):
             try:
                 returnParam = pAllowedTypeList[i](returnParam)
                 converted = True
-
             except:
                 converted = False
             i += 1
@@ -496,6 +403,18 @@ def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat, pParams, pColumns
     #weight computation for oneHot method and factors <= 0 not supported
     if not 'method' in pParams or pParams['method'] != 'multiColumn' or pFactorFloat <= 0.0:
         return False
+    if not pColumnsToUse or len(pColumnsToUse) == 0:
+        return False
+    #all feature columns / read column must be present in df
+    for element in pColumnsToUse:
+        if element not in pDataframe.columns:
+            msg = "Warning: Column {:s} not contained in dataframe"
+            msg = msg.format(str(element))
+            print(msg)
+            return False
+    msg = "computing weights based on column(s): "
+    msg += ", ".join(pColumnsToUse)
+    print(msg)
     #compute the mask for samples to weight, order of bounds shouldn't matter
     #as long as min and max are defined
     weightingMask = False
@@ -510,9 +429,9 @@ def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat, pParams, pColumns
     else:
         print("number of non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
         print("number of emphasized samples: {:d}".format(numberOfWeightedSamples))
-        weightInt = int(np.round(pFactorFloat * numberOfUnweightedSamples / numberOfWeightedSamples))
+        weightInt = np.uint32(np.round(pFactorFloat * numberOfUnweightedSamples / numberOfWeightedSamples))
         pDataframe.loc[weightingMask, 'weights'] = weightInt
-        weightSum = pDataframe.loc[weightingMask, 'weights'].sum()
+        weightSum = pDataframe.loc[weightingMask, 'weights'].sum().astype('uint32')
         print("weight given: {:d}".format(weightInt))
         print("weight sum non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
         print("weight sum emphasized samples: {:d}".format(weightSum))
@@ -520,6 +439,58 @@ def computeWeights(pDataframe, pBound1, pBound2, pFactorFloat, pParams, pColumns
         print("actual factor weighted/unweighted: {:.3f}".format(weightSum/numberOfUnweightedSamples))
         success = weightInt != 1
     return success        
+
+def tadWeighting(pInOutDataFrame, pParams, pTadDomainFile, pFactorFloat, pMaxDistance=500000):
+    ### weight all samples within TADs shorter than pMaxDistance
+    ### until (weightSum of weightedSamples) / (weightSum of unweighted samples) = pFactorFloat
+    #if nothing works, all weights equally = 1.0
+    pInOutDataFrame['weights'] = 1.0
+    success = False
+    #check inputs
+    if not pTadDomainFile or pFactorFloat == 0: 
+        return False
+    try:
+        bedColumnNames = ["chrom", "chromStart", "chromEnd", "name", 
+                        "score", "strand", "thickStart", "thickEnd" , "itemRgb", "blockCount", "blockSizes", "blockStarts"]
+        tadDomainDf = pd.read_csv(pTadDomainFile, sep="\t", header=0)
+        tadDomainDf.columns = bedColumnNames[0:tadDomainDf.shape[1]]
+        chromMask = tadDomainDf['chrom'] == pParams['chrom']
+        tadDomainDf = tadDomainDf[chromMask]
+    except Exception as e:
+        msg = "Ignoring invalid tadDomainFile."
+        print(e, msg)
+        return False
+    if tadDomainDf.empty:
+        msg = "Warning: tadDomainFile does not contain data for chromosome {:s}\n"
+        msg += "Ignoring TADs"
+        msg = msg.format(str(pParams['chrom']))
+        print(msg)
+        return False
+    #compute weighting mask
+    #there are only few thousand TADs in a chromosome, so iterating should be ok
+    weightingMask = False
+    for start, end in zip(tadDomainDf['chromStart'], tadDomainDf['chromEnd']):
+        if end - start < pMaxDistance:
+            startMask = pInOutDataFrame['first'] >= math.floor(start / int(pParams['resolution']))
+            endMask = pInOutDataFrame['second'] <= math.floor(end / int(pParams['resolution']))
+            weightingMask |= (startMask & endMask)
+    numberOfWeightedSamples = pInOutDataFrame[weightingMask].shape[0]
+    numberOfUnweightedSamples = pInOutDataFrame.shape[0] - numberOfWeightedSamples
+    #give some feedback on the results
+    if numberOfWeightedSamples == 0 or numberOfUnweightedSamples == 0:
+        success = False
+    else:
+        weightInt = np.uint32(np.round(pFactorFloat * numberOfUnweightedSamples / numberOfWeightedSamples))
+        pInOutDataFrame.loc[weightingMask, 'weights'] = weightInt
+        weightSum = pInOutDataFrame.loc[weightingMask, 'weights'].sum().astype('uint32')
+        print("weight given: {:d}".format(weightInt))
+        print("weight sum non-emphasized samples: {:d}".format(numberOfUnweightedSamples))
+        print("weight sum emphasized samples: {:d}".format(weightSum))
+        print("target factor weighted/unweighted: {:.3f}".format(pFactorFloat))
+        print("actual factor weighted/unweighted: {:.3f}".format(weightSum/numberOfUnweightedSamples))
+        success = weightInt != 1
+    return success
+
 
 if __name__ == '__main__':
     train() # pylint: disable=no-value-for-parameter

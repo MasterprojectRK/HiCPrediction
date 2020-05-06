@@ -105,14 +105,15 @@ _set_options = [
     click.option('--printproteins', '-pp', required=False, type=bool, default=False, help="print protein plots"),
 ]
 _train_options = [
-    click.option('--trainDatasetFile', '-tdf',required=True,type=click.Path(exists=True, readable=True), help='dataset for training'),
+    click.option('--trainDatasetFile', '-tdf',required=True,type=click.Path(exists=True, dir_okay=False, readable=True), help='dataset for training'),
     click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model, default False"),
     click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model, default False"),
     click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model, default False"),
     click.option('--weightBound1', '-wb1', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0; default 0"),
     click.option('--weightBound2', '-wb2', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0; default 0"),
     click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=0.0, help="factor by which the weights within the range between weightBound1/2 are multiplied, default=0 => no weighting"),
-    click.option('--weightingType', '-wt', type=click.Choice(choices=['reads', 'proteinFeatures']), default='reads', help="compute weights based on reads (default) or protein feature values, only relevant if ovsF > 0"),
+    click.option('--tadDomainFile', '-tads', required=False, type=click.Path(exists=True, dir_okay=False, readable=True), default=None, help="TAD domain file in bed format"),
+    click.option('--weightingType', '-wt', type=click.Choice(choices=['reads', 'proteinFeatures', 'tads']), default='reads', help="compute weights based on reads (default) or protein feature values, only relevant if ovsF > 0"),
     click.option('--featList', '-fl', multiple=True, type=str, default=['0','12','24'], required=True, help="name of features according to which the weight is computed; default is 0, 12, 24; only relevant if wt=proteinFeatures and ovsF > 0"),    
     click.option('--plotTrees', required=False, type=bool, default=False, help="Plot decision trees, default False"),
     click.option('--splitTrainset', type=bool, default=False, help="Split Trainingset for a 5-fold Cross-Validation, i.e. return 5 models instead of 1; default False"),
