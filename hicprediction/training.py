@@ -8,7 +8,7 @@ import joblib
 import sklearn.ensemble
 from sklearn.model_selection import KFold
 import numpy as np
-from hicprediction.tagCreator import createModelTag
+from hicprediction.utilities import createModelTag
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.tree import export_graphviz

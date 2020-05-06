@@ -2,7 +2,6 @@ import click
 import os
 import pandas as pd
 import joblib
-import sys
 import numpy as np
 
 
@@ -22,7 +21,7 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             allTheData = [joblib.load(datasetfile) for datasetfile in datasetpaths]
         except:
             msg = "one of the datasets " + ", ".join(datasetpaths) +  " is not a proper dataset"
-            sys.exit(msg)
+            raise SystemExit(msg)
         datasets = [row[0] for row in allTheData]
         params = [row[1] for row in allTheData]
         if not outfile.endswith(".z"):
@@ -124,7 +123,7 @@ def concatTrainSets(datasetpaths, ignorechrom, ignoremerge, ignorewindowop, outf
             #fails only if columns had different names, since their original shapes are matching
             joblib.dump((concatDataset, paramsDict), outfile, compress=True)
         else:
-            sys.exit(errorMessage)
+            raise SystemExit(errorMessage)
 
 if __name__ == '__main__':
-    concatTrainSets()
+    concatTrainSets() # pylint: disable=no-value-for-parameter

@@ -4,7 +4,7 @@ os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import hicprediction.configurations as conf
 import click
-from hicprediction.tagCreator import createPredictionTag, getResultFileColumnNames
+from hicprediction.utilities import createPredictionTag, getResultFileColumnNames, checkExtension
 import joblib
 import pandas as pd
 import numpy as np
@@ -30,10 +30,10 @@ def executePredictionWrapper(modelfilepath, predictionsetpath,
     Wrapper function for Cli
     """
 
-    if not conf.checkExtension(modelfilepath, '.z'):
+    if not checkExtension(modelfilepath, '.z'):
         msg = "model file {0:s} does not have a .z file extension. Aborted"
         sys.exit(msg.format(modelfilepath))
-    if not conf.checkExtension(predictionsetpath, '.z'):
+    if not checkExtension(predictionsetpath, '.z'):
         msg = "prediction file {0:s} does not have a .z file extension. Aborted"
         sys.exit(msg.format(predictionsetpath))
 
@@ -398,7 +398,7 @@ def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore
         return
     
     #prepare dataframe for prediction results
-    if not conf.checkExtension(pResultsFilePath, '.csv'):
+    if not checkExtension(pResultsFilePath, '.csv'):
         resultsfilename = os.path.splitext(pResultsFilePath)[0]
         pResultsFilePath = resultsfilename + ".csv"
         msg = "result file must have .csv file extension"

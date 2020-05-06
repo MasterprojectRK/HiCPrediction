@@ -4,7 +4,7 @@ os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
 import click
 import hicprediction.configurations as conf
-from hicprediction.tagCreator import createSetTag, createProteinTag, initParamDict
+from hicprediction.utilities import createSetTag, createProteinTag, initParamDict, checkExtension
 from pkg_resources import resource_filename
 from tqdm import tqdm
 import numpy as np
@@ -97,7 +97,7 @@ def createTrainSet(pChromosomes, pDatasetOutputDirectory,pBasefile,
             printProteins -- print protein value over bins 
     """
     ### check extensions
-    if not conf.checkExtension(pBasefile, '.ph5'):
+    if not checkExtension(pBasefile, '.ph5'):
         pBasefile += ".ph5"
         msg = "Basefile should have .ph5 file extension.\n"
         msg += "Renamed to {:s}".format(pBasefile)

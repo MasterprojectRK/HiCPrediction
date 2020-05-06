@@ -100,22 +100,19 @@ def getResultFileColumnNames(distList):
     columns.append('Tag')
     return columns
 
-def normalizeDataFrameColumn(pDataFrame, pColumnName, pMaxValue, pThreshold):
-    #inplace zero-to-pMaxValue normalization of a column in a dataframe
-    #values below pThreshold will be set to zero, if pThreshold < pMaxValue
-    if not pColumnName in pDataFrame.columns:
-        return
-    
-    columnMax = pDataFrame[pColumnName].max()
-    columnMin = pDataFrame[pColumnName].min()
-    if columnMin == columnMax:
-        msg = "no variance in column {:s} of dataframe".format(str(pColumnName))
-        pDataFrame[pColumnName] = 0.0
-        raise Warning(msg)
-    else: #zero-to-one normalization first, then multiply with pMaxValue
-        diff = columnMax - columnMin
-        pDataFrame[pColumnName] = ((pDataFrame[pColumnName] - columnMin) / diff).astype('float32')
-        pDataFrame[pColumnName] *= pMaxValue
-    if pThreshold < pMaxValue:
-        setToZeroMask = pDataFrame[pColumnName] < pThreshold
-        pDataFrame.loc[setToZeroMask, pColumnName] = 0.0 #no-op if all values > threshold
+def checkExtension(fileName, extensionList):
+    success = False
+    if not fileName \
+        or not extensionList \
+        or not isinstance(extensionList, list) \
+        or len(list(extensionList)) == 0: 
+            success = False
+    else:
+        for extension in extensionList:
+            try:
+                extensionStr = str(extension)
+                fileNameStr = str(fileName)
+                success |= fileNameStr.endswith(extensionStr)
+            except:
+                success = False
+    return success

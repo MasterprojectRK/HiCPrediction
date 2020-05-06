@@ -4,7 +4,7 @@ import numpy as np
 import cooler
 import os
 import hicprediction.predict
-from hicprediction.tagCreator import getResultFileColumnNames
+from hicprediction.utilities import getResultFileColumnNames
 import sklearn.metrics as metrics
 
 @click.option('--resultsfile', '-r', type=click.Path(exists=True, readable=True), required=True, help="results file from HiC-Reg in text format")
@@ -116,4 +116,4 @@ def createCsvFromDf(pResultsDf, pResolution, pTag, pPredictionCellType, pTrainin
     df.to_csv(pOutfile)
 
 if __name__=="__main__":
-    convertHicReg()
+    convertHicReg() #pylint: disable=no-value-for-parameter

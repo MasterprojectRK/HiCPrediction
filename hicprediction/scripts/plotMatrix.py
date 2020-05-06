@@ -2,8 +2,8 @@
 import os
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
-import sys
 import hicprediction.configurations as conf
+from hicprediction.utilities import checkExtension
 from hicmatrix import HiCMatrix as hm
 from hicexplorer import hicPlotMatrix as hicPlot
 from scipy.sparse import triu, tril
@@ -27,15 +27,15 @@ import matplotlib.gridspec as gridspec
 @click.option('--bigwig', '-bw', type=click.Path(exists=True), required=False, default=None)
 @click.command()
 def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comparematrix, title, bigwig):
-        if not conf.checkExtension(matrixinputfile, '.cool'):
+        if not checkExtension(matrixinputfile, '.cool'):
             msg = "input matrix must be in cooler format (.cool)"
-            sys.exit(msg)
-        if comparematrix and not conf.checkExtension(comparematrix, ".cool"):
+            raise SystemExit(msg)
+        if comparematrix and not checkExtension(comparematrix, ".cool"):
             msg = "if specified, compare matrix must be in cooler format (.cool)"
-            sys.exit(msg)
+            raise SystemExit(msg)
         if not imageoutputfile:
             imageoutputfile = matrixinputfile.rstrip('cool') + 'png'
-        elif imageoutputfile and not conf.checkExtension(imageoutputfile, ".png"):
+        elif imageoutputfile and not checkExtension(imageoutputfile, ".png"):
             imageoutputfile = os.path.splitext(imageoutputfile)[0] + ".png"
        
         #get the full matrix first to extract the desired region
@@ -46,10 +46,10 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         #check indices and get the region if ok
         if regionindex1 > maxIndex:
             msg = "invalid start region. Allowed is 0 to {0:d} (0 to {1:d})".format(maxIndex, cuts[maxIndex][1])
-            sys.exit(msg)
+            raise SystemExit(msg)
         if regionindex2 < regionindex1:
            msg = "region index 2 must be smaller than region index 1"
-           sys.exit(msg)
+           raise SystemExit(msg)
         if regionindex2 > maxIndex:
             regionindex2 = maxIndex
             print("region index 2 clamped to max. value {0:d}".format(maxIndex))
@@ -67,13 +67,13 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
             lowerHiCMatrix = hm.hiCMatrix(comparematrix)
             if chromosome not in [row[0] for row in lowerHiCMatrix.cut_intervals]:
                 msg = "compare matrix must contain the same chromosome as the input matrix"
-                sys.exit(msg)
+                raise SystemExit(msg)
             lowerHiCMatrix = hm.hiCMatrix(comparematrix , pChrnameList=[region])
             lowerMatrix = tril(lowerHiCMatrix.matrix, k=0, format="csr") 
 
             if lowerMatrix.get_shape() != upperMatrix.get_shape():
                 msg = "shapes of input matrix and compare matrix do not match. Check resolutions"
-                sys.exit(msg)
+                raise SystemExit(msg)
 
         #arguments for plotting
         plotArgs = Namespace(bigwig=bigwig, 
@@ -106,15 +106,15 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
             mixedMatrix = np.asarray(upperHiCMatrix.matrix.todense().astype(float))
         
         #colormap for plotting
-        cmap = cm.get_cmap(plotArgs.colorMap)
+        cmap = cm.get_cmap(plotArgs.colorMap) # pylint: disable=no-member
         cmap.set_bad('black')
         
         bigwig_info = None
-        if plotArgs.bigwig:
+        if plotArgs.bigwig: # pylint: disable=no-member
             bigwig_info = {'args': plotArgs, 'axis': None, 'axis_colorbar': None, 'nan_bins': upperHiCMatrix.nan_bins}
         norm = None
 
-        if plotArgs.log or plotArgs.log1p:
+        if plotArgs.log or plotArgs.log1p: # pylint: disable=no-member
             mask = mixedMatrix == 0
             try:
                 mixedMatrix[mask] = np.nanmin(mixedMatrix[mask == False])
@@ -131,13 +131,13 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
 
         log.debug("any nan after remove of nan: {}".format(np.isnan(mixedMatrix).any()))
         log.debug("any inf after remove of inf: {}".format(np.isinf(mixedMatrix).any()))
-        if plotArgs.log1p:
+        if plotArgs.log1p: # pylint: disable=no-member
             mixedMatrix += 1
             norm = LogNorm()
-        elif plotArgs.log:
+        elif plotArgs.log: # pylint: disable=no-member 
             norm = LogNorm()
 
-        if plotArgs.bigwig:
+        if plotArgs.bigwig: # pylint: disable=no-member
             # increase figure height to accommodate bigwig track
             fig_height = 8.5
         else:
@@ -148,9 +148,9 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         width = 5.0 / fig_width
         left_margin = (1.0 - width) * 0.5
 
-        fig = plt.figure(figsize=(fig_width, fig_height), dpi=plotArgs.dpi)
+        fig = plt.figure(figsize=(fig_width, fig_height), dpi=plotArgs.dpi) # pylint: disable=no-member
 
-        if plotArgs.bigwig:
+        if plotArgs.bigwig: # pylint: disable=no-member
             gs = gridspec.GridSpec(2, 2, height_ratios=[0.90, 0.1], width_ratios=[0.97, 0.03])
             gs.update(hspace=0.05, wspace=0.05)
             ax1 = plt.subplot(gs[0, 0])
@@ -167,7 +167,7 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         hicPlot.plotHeatmap(mixedMatrix, ma.get_chromosome_sizes(), fig, position,
                     plotArgs, cmap, xlabel=chrom, ylabel=chrom2,
                     start_pos=start_pos1, start_pos2=start_pos2, pNorm=norm, pAxis=ax1, pBigwig=bigwig_info)
-        plt.savefig(imageoutputfile, dpi=plotArgs.dpi)
+        plt.savefig(imageoutputfile, dpi=plotArgs.dpi) # pylint: disable=no-member
         plt.close(fig)
 
         #the following does not work, unfortunately
@@ -176,4 +176,4 @@ def plotMatrix(matrixinputfile,imageoutputfile, regionindex1, regionindex2, comp
         ##lowerHiCMatrix.save("test.cool", pSymmetric=False)
 
 if __name__ == '__main__':
-    plotMatrix()
+    plotMatrix() # pylint: disable=no-value-for-parameter

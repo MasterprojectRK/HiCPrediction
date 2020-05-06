@@ -5,7 +5,7 @@ import pandas as pd
 from hicprediction.createTrainingSet import maskFunc
 import numpy as np
 from hicprediction.predict import getCorrelation
-from hicprediction.tagCreator import getResultFileColumnNames
+from hicprediction.utilities import getResultFileColumnNames
 import sklearn.metrics as metrics
 
 @click.option('-i1','--infile1',required=True,
@@ -129,4 +129,4 @@ def computeMetrics(infile1,infile2,windowsize,outfile, predictioncelltype, model
     resultsDf.to_csv(outfile)
 
 if __name__ == "__main__":
-    computeMetrics()
+    computeMetrics() # pylint: disable=no-value-for-parameter

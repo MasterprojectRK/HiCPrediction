@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pybedtools
 import pyBigWig
-from hicprediction.tagCreator import createProteinTag, initParamDict
+from hicprediction.utilities import createProteinTag, initParamDict, checkExtension
 from tqdm import tqdm
 
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
@@ -57,7 +57,7 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
 
 
     ### checking extensions of files
-    if not conf.checkExtension(basefile, '.ph5'):
+    if not checkExtension(basefile, '.ph5'):
         basefilename = os.path.splitext(basefile)[0]
         basefile = basefilename + ".ph5"
         msg = "basefile must have .ph5 file extension\n"
@@ -68,8 +68,8 @@ def loadAllProteins(proteinfiles, basefile, chromosomes,
         os.remove(basefile)
     
     #split up the inputs and separate by file extensions
-    protPeakFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName,'.narrowPeak', '.broadPeak')]
-    bigwigFileList = [fileName for fileName in proteinfiles if conf.checkExtension(fileName, 'bigwig')]
+    protPeakFileList = [fileName for fileName in proteinfiles if checkExtension(fileName,['.narrowPeak', '.broadPeak'])]
+    bigwigFileList = [fileName for fileName in proteinfiles if checkExtension(fileName, 'bigwig')]
     wrongFileExtensionList = [fileName for fileName in proteinfiles \
         if not fileName in protPeakFileList and not fileName in bigwigFileList]
     if wrongFileExtensionList:
