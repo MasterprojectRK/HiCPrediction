@@ -102,11 +102,12 @@ def getResultFileColumnNames(distList):
 
 def checkExtension(fileName, extensionList):
     success = False
-    if not fileName \
-        or not extensionList \
-        or not isinstance(extensionList, list) \
-        or len(list(extensionList)) == 0: 
-            success = False
+    if not fileName or not extensionList:
+        success = False
+    elif isinstance(extensionList, str):
+        extensionList = [extensionList] #accept single strings
+    if not isinstance(extensionList, list):
+        success = False
     else:
         for extension in extensionList:
             try:
