@@ -1,0 +1,105 @@
+\section{Discussion} \label{sec:discussion:main}
+Throughout this masterproject, hicprediction as been amended in many ways,
+and several ideas for improving predictions have been investigated.
+
+On the \emph{input side}, hicprediction now supports protein inputs in broadPeak- and bigwig formats,
+besides the originally used narrowPeak files, as well as a combination of all three.
+Additionally, the protein inputs can be smoothed using a Gaussian kernel.
+With regard to \emph{dataset creation and training}, it is now possible to
+remove empty samples, remove samples with a distance smaller than a certain threshold 
+and emphasize samples based on interaction count, feature value or TADs.
+Furthermore, protein signal values and interaction counts can be scaled to arbitrary value ranges,
+extra trees can be used in addition to random forests, and training datasets from different cell lines
+can be concatenated. 
+Moreover, cross-validation can now be performed as proposed by Zhang and colleagues \cite{Zhang2019}.
+With regard to \emph{predictions}, it is now possible to smoothen the predicted matrix.
+
+However, most of the changes did not improve the predictions significantly with respect
+to the main metrics, distance stratified Pearson correlation,
+and in most cases, the predicted matrices also did not improve visually.
+
+Higher-density inputs, like bigwig files, 
+have been shown to reduce ``inverted-triangle''- and gradient-style-errors in the predictions,
+but there were also regions where the predictions from narrowPeak files 
+were actually more informative.
+To this end, the combination of narrowPeak- and bigwig-inputs might be a useful one,
+but would need further investigations.
+Smoothing the protein inputs also worked surprisingly well in some regions,
+but was not able to fill all empty bins when using sparse input data (narrowPeak files),
+at least not in the simple setting investigated within this masterproject.
+
+Removing empty samples prevented errors like inverted triangles in the predictions,
+but also made it impossible to detect interacting regions when sparse inputs like
+narrowPeak files were used. 
+Conversely, removing empty samples did not change the results much when using higher-density inputs, 
+since most samples were then actually \emph{not} empty.
+
+As expected, Hi-C matrix-scaling did not influence the results much,
+yet too small values should be avoided to evade problems with ``logarithm plus one'' representations.
+Scaling proteins unexpectedly had a negative impact on the resulting predictions.
+The underlying problem should be investigated further, maybe starting with floating point resolution.
+
+Computing the mean from several single predictions seems to have its merits, 
+as it smoothed out small errors and noise which occurred only in one (or few) of the single predictions.
+In the example used throughout this masterproject report, the difference between the best single
+prediction and the mean prediction was small; the averaged prediction actually even looked a bit better.
+No efforts have been made to check whether this generalizes to other cell lines.
+However, it is generally recommendable to always compute predictions from all available (training-)cell lines,
+and then the overhead for computing the mean from the predicted matrices should be acceptable.
+It would also be conceivable to look into the single predictions first and then compute the mean only
+from those predictions which actually have some structure.
+Similar considerations also hold for predictions from concatenated datasets -- based on the available results,
+using them alone seems questionable, but they may be useful as an addition to the single predictions, again
+possibly leaving out datasets from cell lines where the single predictions justify doing so.
+However, training concatenated datasets typically requires considerably more memory than computing the
+mean of the corresponding cooler matrices, and it is much slower.
+
+The usage of extra trees instead of random forests did not cause major changes in the predictions made 
+for this masterproject; however, this should be verified for other cell lines and chromosomes.
+If the results proof comparable across all cell lines, then using extra trees might be favorable,
+because computing \emph{random} split points is usually faster than computing the \emph{best} split points,
+as required by random forests.
+
+Emphasizing samples with interaction count or protein feature values in a certain range as
+well as emphasizing samples within TADs did not have the anticipated positive effect on the predictions.
+It is not yet clear whether these sample-weighting approaches do not work in general or whether 
+their failure was due e.\,g. to inappropriate parameter search spaces. 
+Also, the objective function has been selected in a rather ad-hoc fashion and might be inappropriate, 
+since cross-validation results were always quite good, 
+but did not -- and still do not -- generalize very well to cross-cell predictions.
+Removing samples with distances smaller than \SI{5}{\kilo\bp} can also not be considered successful,
+but its influence on the results seemed generally stronger than the one from the sample weighting
+approaches above.
+While removing all samples within a certain distance might not be useful, 
+dropping outliers might be, especially when adjusting the value range \emph{after} removing outliers.
+
+The comparison between HiC-Reg and hicprediction supports the notion 
+that the prediction results strongly depend on the inputs.
+Using (converted) inputs from hicprediction in HiC-Reg, 
+the comparatively good results from the publication \cite{Zhang2019} could not be confirmed.
+Instead, the predictions were very similar to the ones from hicprediction,
+the latter however being much faster and requiring considerably less memory.
+In this regard, it should also not be forgotten that hicprediction
+is using two proteins fewer than HiC-Reg, because data for RAD21
+and TBP was not available in the required input formats, cf.\;\autoref{sec:methods:matricesAndPlots}.
+
+To comprehend, at least three tasks have to remain for future research.
+First, there are meanwhile a vast number of tuning parameters for hicprediction,
+so figuring out useful combinations and testing them within
+a reasonable timeframe has become a challenging task. 
+Within this masterproject, usually only one parameter has been tuned at a time, 
+leaving open the question whether various combinations would yield better results.
+Secondly, the generalization of learned models to different cell lines seems still insufficient,
+despite acceptable cross-validation results on the training datasets.
+Investing time in improving generalization, whether from the input or the models' side,
+would therefor certainly pay off.
+Thirdly, selecting and possibly filtering inputs such that they are on the one hand dense enough 
+to allow predicting a reasonable portion of the interaction count matrix,
+but on the other hand are still indicative of DNA-DNA interactions remains a challenge.
+Looking at the comparison between the published results from HiC-Reg and the ones from hicprediction
+in \autoref{sec:res:compare}, this task seems the most important.
+
+
+
+
+

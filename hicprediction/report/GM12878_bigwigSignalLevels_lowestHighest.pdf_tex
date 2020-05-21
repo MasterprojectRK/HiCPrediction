@@ -1,0 +1,74 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'GM12878_bigwigSignalLevels_lowestHighest.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{374.17322835bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.39393939)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{GM12878_bigwigSignalLevels_lowestHighest.pdf}}%
+    \put(0.0470776,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0 }}}%
+    \put(0.14967402,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0 }}}%
+    \put(0.26502774,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0 }}}%
+    \put(0.38038142,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{30.0 }}}%
+    \put(0.49573517,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{40.0 }}}%
+    \put(0.61108889,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0 }}}%
+    \put(0.72644258,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{60.0 }}}%
+    \put(0.84179626,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{70.0 }}}%
+    \put(0.95682756,0.02823539){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{80.0 Mbp}}}%
+    \put(0.54521119,0.00871677){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr17}}}%
+    \put(0.79063391,0.34552518){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{H3k9me3}}}%
+    \put(0.79081008,0.32511353){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{(lowest signal value)}}}%
+    \put(0.79063391,0.17715971){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{H3k79me2}}}%
+    \put(0.79063391,0.15674801){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{(highest signal value)}}}%
+    \put(0.04190586,0.23607896){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{0}}}%
+    \put(0.04156779,0.37745859){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{269}}}%
+    \put(0.04190586,0.06941225){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{0}}}%
+    \put(0.04161004,0.2107919){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{1744}}}%
+    \put(0.45586683,0.40961933){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{}}}%
+    \put(0.143547,0.17958387){\color[rgb]{0.83137255,0,0}\makebox(0,0)[lb]{\smash{note the different scales}}}%
+  \end{picture}%
+\endgroup%

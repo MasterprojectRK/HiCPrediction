@@ -1,0 +1,330 @@
+\begin{appendices}
+\section*{Figures}
+\begin{figure}[h]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_bigwig_otherPreds_5kb.pdf_tex}
+ \caption{Example predictions from bigwig, all samples}
+ \label{fig:app:bw:others:5k}
+\end{figure}
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_bigwig_removeEmpty_otherPreds.pdf_tex}
+ \caption{Example predictions from bigwig, no empty samples}
+ \label{fig:app:bw:noEmpty:others:5k}
+\end{figure}
+\begin{figure}[hb]
+\centering
+\begin{subfigure}{0.495\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+ \scriptsize
+ \import{figures/}{pearson_HMEC-on-HUVEC_5kb.pdf_tex}}
+ \caption{HMEC on HUVEC, 5\,kb}
+ \label{fig:app:Pearson:HMEC:HUVEC:5k}
+\end{subfigure}\hfill
+\begin{subfigure}{0.495\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+ \scriptsize
+ \import{figures/}{pearson_K562-on-NHEK_5kb.pdf_tex}}
+ \caption{K562 on NHEK, 5\,kb}
+ \label{fig:app:Pearson:K562:NHEK:5k}
+ \end{subfigure}
+ \caption{Pearson correlations for further cell lines}
+ \label{fig:app:Pearson:furtherCellLines}
+\end{figure}
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr21-10-13_GM12878-on-K562_25kb.pdf_tex}
+ \caption{Predictions on chr21 where removing empty samples is better}
+ \label{fig:app:GM12878:K562:chr21:25k:goodToRemove}
+\end{figure}
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr21-33-36_GM12878-on-K562_25kb.pdf_tex}
+ \caption{Predictions on chr21 where removing empty samples is worse}
+ \label{fig:app:GM12878:K562:chr21:25k:badToRemove}
+\end{figure}
+
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr21-10-13_GM12878-on-K562_25kb_combi.pdf_tex}
+ \caption{combi prediction chr21 -- few interactions}
+ \label{fig:app:GM12878:K562:chr21:25k:combiFew}
+\end{figure}
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr21-33-36_GM12878-on-K562_25kb_combi.pdf_tex}
+ \caption{combi prediction chr21 -- many interactions}
+ \label{fig:app:GM12878:K562:chr21:25k:combiMany}
+\end{figure}
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{pearson_chr21_GM12878-on-K562_25kb.pdf_tex}
+ \caption{Pearson correlation, 25kb, GM12878 on K562}
+ \label{fig:app:Pearson:GM12878:K562:chr21:25kb}
+\end{figure}
+
+\begin{figure}[hb]
+ \centering
+ \begin{subfigure}{0.495\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+ \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_chr17_combi.pdf_tex}}
+ \caption{chromosome 17}
+ \label{fig:app:Pearson:GM12878:K562:chr17:25kb:combi}
+\end{subfigure} \hfill
+\begin{subfigure}{0.495\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+ \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_chr21_combi.pdf_tex}}
+ \caption{chromosome 21}
+ \label{fig:app:Pearson:GM12878:K562:chr21:25kb:combi}
+ \end{subfigure}
+ \caption{Pearson correlation for combined predictions, GM12878 on K562}
+\end{figure}
+
+\begin{figure}[hb]
+ \centering
+ \resizebox*{!}{0.9\textheight}{
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_matrixScaling.pdf_tex}}
+ \caption{Predictions GM12878 on K562 with scaled matrices}
+ \label{fig:app:GM12878:K562:chr17:normalizedMatrices}
+\end{figure}
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_protVsNormal_5k.pdf_tex}
+ \caption{Predictions GM12878 on K562 with scaled proteins}
+ \label{fig:app:GM12878:K562:chr17:normalizedProteins}
+\end{figure}
+
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_protNorm_25k.pdf_tex}
+ \caption{Predictions GM12878 on K562 with scaled proteins}
+ \label{fig:app:GM12878:K562:chr17:normalizedProteins:25k}
+\end{figure}
+
+\begin{figure}[hb]
+ \centering
+ \begin{subfigure}{0.495\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+ \import{figures/}{chr17_signal-value-ranges_beforeDivByMean.pdf_tex}}
+ \caption{before scaling / normalization}
+ \label{fig:app:prots:valueRangeBefore}
+\end{subfigure} \hfill
+\begin{subfigure}{0.495\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+ \import{figures/}{chr17_signal-value-ranges_afterDivByMean.pdf_tex}}
+ \caption{division-by-mean normalized }
+ \label{fig:app:prots:valueRangeDivByMean}
+ \end{subfigure}
+ \caption{Protein signal value ranges for chromosome 17, \SI{25}{\kilo\bp}}
+\end{figure}
+\begin{figure}
+ \centering
+ \resizebox{0.8\textwidth}{!}{
+ \import{figures/}{chr17_signal-value-ranges_divByMeanFactors.pdf_tex}}
+ \caption{chr17 divison factors / mean signal values, \SI{25}{\kilo\bp}}
+ \label{fig:app:prots:divByMeanFactors}
+ \end{figure}
+
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_protNorms_25k.pdf_tex}
+ \caption{Pearson correlation, 25kb, GM12878 on K562}
+ \label{fig:app:Pearson:GM12878:K562:chr17:protNorms:25kb}
+\end{figure}
+
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_concatPredictions_5k.pdf_tex}
+ \caption{Predictions on K562, single vs. joint datasets}
+ \label{fig:app:all:K562:chr17:singleVsJoint:5k}
+\end{figure}
+
+ \begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_extraVsForests_5k.pdf_tex}
+ \caption{matrix comparison: random forest vs. extra trees}
+ \label{fig:app:GM12878:K562:chr17:forestVsExtratrees}
+\end{figure}
+
+ \begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf_tex}
+ \caption{matrix comparison: interaction-count-based sample weighting vs. normal prediction}
+ \label{fig:app:GM12878:K562:chr17:interactionCountWeighting:matrices}
+\end{figure}
+
+ \begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_5k_CTCFWeighting.pdf_tex}
+ \caption{matrix comparison: CTCF-based sample weighting vs. normal prediction}
+ \label{fig:app:GM12878:K562:chr17:CTCFWeighting:matrices}
+\end{figure}
+
+ \begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{GM12878-on-K562_CTCFWeighting_importance.pdf_tex}
+ \caption{feature importances CTCF-based sample weighting}
+ \label{fig:app:GM12878:K562:chr17:CTCFWeighting:importances}
+\end{figure}
+
+ \begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_5k_noDiagonal.pdf_tex}
+ \caption{matrix comparison: samples $\leq$\SI{5}{\kilo\bp} removed vs. normal prediction}
+ \label{fig:app:GM12878:K562:chr17:noDiagonal}
+\end{figure}
+
+ \begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_5k_TadWeighting.pdf_tex}
+ \caption{matrix comparison: TAD-based sample weighting vs. normal prediction}
+ \label{fig:app:GM12878:K562:chr17:TadWeighting}
+\end{figure}
+
+\clearpage
+\section*{Listings}
+
+\begin{lstlisting}[language=bash, caption=bam to bigwig, label=list:methods:bamtobigwig]
+ #bash-style code
+ #indexing a bam file
+ samtools index ${BAMFILE} ${BAMFILE%bam}.bai
+ #creating a bigwig file from the bam file above
+ OUTFILE="${BAMFILE%bam}bigwig"
+ hg19SIZE="2685511504"
+ COMMAND="--numberOfProcessors 10 --bam ${BAMFILE}" 
+ COMMAND="${COMMAND} --outFileName ${OUTFILE}"
+ COMMAND="${COMMAND} --outFileFormat bigwig" 
+ COMMAND="${COMMAND} --binSize 5000 --normalizeUsing RPGC"
+ COMMAND="${COMMAND} --effectiveGenomeSize ${hg19SIZE}"
+ COMMAND="${COMMAND} --scaleFactor 1.0 --extendReads 200"
+ COMMAND="${COMMAND} --minMappingQuality 30"
+ bamCoverage ${COMMAND}
+ #computing mean from replicate 1 and 2 bigwig files
+ REPLICATE1="${FOLDER1}${PROTEIN}.bigwig"
+ REPLICATE2="${FOLDER2}${PROTEIN}.bigwig"
+ OUTFILE="${OUTFOLDER}${PROTEIN}.bigwig"
+ COMMAND="-b1 ${REPLICATE1} -b2 ${REPLICATE2}"
+ COMMAND="${COMMAND} -o ${OUTFILE} -of bigwig"
+ COMMAND="${COMMAND} --operation mean -bs 5000"
+ COMMAND="${COMMAND} -p 10 -v"
+ bigwigCompare ${COMMAND}
+\end{lstlisting}
+
+\begin{lstlisting}[language=python, caption=hicprediction random forest, label=list:methods:RandomForestRegressor]
+   #default parameters for the random forest 
+   #(trying to match HiC-Reg)
+   modelParamDict = dict(n_estimators=20,
+                            criterion='mse', 
+                            max_depth=None, 
+                            min_samples_split=2, 
+                            min_samples_leaf=1, 
+                            min_weight_fraction_leaf=0.0, 
+                            max_features=1./3.,
+                            max_leaf_nodes=None, 
+                            min_impurity_decrease=0.0, 
+                            min_impurity_split=None, 
+                            bootstrap=True, 
+                            oob_score=False, 
+                            n_jobs=-1, 
+                            random_state=5, 
+                            verbose=2, 
+                            ccp_alpha=0.0, 
+                            max_samples=0.75)
+   # ... ... ...
+   #train(..., pModelParamDict= modelParamDict, ...)
+   # ... ... ... 
+   model = sklearn.ensemble.RandomForestRegressor(**pModelParamDict)
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash, caption=compute mean prediction, label=list:methods:averagePredictions]
+ #sum up the four single predictions for cell line CL
+ #pred-On-CL_1 to _4 stand for the predicted
+ #cooler matrices from the four training cell lines
+ cmd="--matrices"
+ cmd="${cmd} ${pred-On-CL_1} ${pred-On-Cl_2}"
+ cmd="${cmd} ${pred-on-CL_3} ${pred-On-CL_4}"
+ cmd="${cmd} -o summed-all-on-CL.cool"
+ hicSumMatrices ${cmd}
+ #divide the summed matrix by 4
+ cmd="-m summed-all-on-CL.cool"
+ cmd="${cmd} --normalize multiplicative"
+ cmd="${cmd} --multiplicativeValue 0.25"
+ cmd="${cmd} -o mean-all-on-CL.cool"
+ hicNormalize ${cmd}
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption=command for finding TADs on GM12878,label=methods:list:TADs]
+ cmd="-m GSE63525_GM12878_combined_30_5kb.cool"
+ cmd="${cmd} --minDepth 80000"
+ cmd="${cmd} --maxDepth 160000"
+ cmd="${cmd} --correctForMultipleTesting fdr"
+ cmd="${cmd} --outPrefix ${destinationFolder}"
+ hicFindTADs ${cmd}
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption=preparing inputs for HiC-Reg  (example),label=methods:list:hicregInputs]
+ # prepare interaction count file e.g. for CTCF
+ chromosome="chr17"
+ protName="CTCF"
+ tmpfile="${protName}_${chromosome}.bam"
+ countfile="${tmpfile%bam}count"
+ outfile="${tmpfile%bam}txt"
+ cmd="${protName}.bam ${chromosome}"
+ samtools view ${cmd} > ${tmpfile}
+ cmd="-ibam ${tmpfile} -bg"
+ bedtools genomecov ${cmd} > ${countfile}
+ # $countfile is in bedgraph format
+
+ # bin the protein signals
+ # no specification could be found for the region file
+ # so just used the example
+ regionfile="Scripts/aggregateSignalInRegion/hg19_5kbp_chr17.txt"
+ chromsizefile="hg19.fa.fai"
+ cmd="${regionfile} ${chromsizefile} ${countfile} ${outfile}"
+ ./aggregateSignal ${cmd}
+ # outfile is in tab-separated text format
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption=computing window features for HiC-Reg (example),label=methods:list:hicregWindow]
+ # text file which holds file names for all 12 protein features
+ featurefiles="textfileWithNamesOfAllProteinInputs.txt"
+ # tab-separated Hi-C matrix created by convertForHicReg.py
+ matrixfile="GM12878matrixConvertedFromHicprediction.txt"
+ outfolder="out/"
+ cmd="${matrixfile}"
+ cmd="${cmd} 1000000 5 regionwise ${featurefiles}"
+ cmd="${cmd} no ${outfolder} yes Window"
+ ./genDatasetsRH ${cmd}
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption=measuring ressource consumption,label=methods:list:usrbintime]
+ /usr/bin/time -p -v -o $OUTFILE $COMMAND $ARGS
+\end{lstlisting}
+
+\end{appendices}

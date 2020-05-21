@@ -1,0 +1,171 @@
+\section{Prior Work}
+Having introduced the fundamentals of both processes,
+it shall now be shown how existing ChIP-seq- and Hi-C data 
+can be used to to predict unknown Hi-C matrices.
+The following subsections will thus give an overview of the
+method developed by Andre Bajorat during his masterproject, hicprediction \cite{Bajorat2019},
+and its foundation, HiC-Reg \cite{Zhang2019, Zhang2018}.
+This is preceded by a brief introduction into random forests,
+which are the common basis of both approaches.
+
+\subsection{Random forests} \label{sec:prior:randomForests}
+Random forests were conceived by Leo Breiman in 2001 \cite{Breiman2001} and are based on decision trees,
+the probably most simple approach for supervised machine learning.
+
+Decision trees take as input a set of samples with relevant features and then
+``learn'' to predict a target feature by splitting the input dataset step by step, 
+until the target feature can be decided on.
+Here, only binary decision criteria on the training features are allowed (True/False), so the decision path can be
+visualized in form of a tree, see \autoref{tab:prior:dataset:decisionTree} and \autoref{fig:prior:decisionTree}.
+\begin{table}[hb]
+\centering
+\begin{tabular}{lccc} \hline
+	   & \multicolumn{2}{c}{\textbf{train. features}} & \textbf{target feature}\\
+ \textbf{sample nr.} & p0  	& p2 	& interact. count\\
+ \hline
+ 0	& 0.0	& 0.0	& 0\\
+ ...	& ...	& ...	& ...\\
+ 40000 	& 10.0  & 10.0	& 100\\
+ 40001 	& 10.0  & 0.0 	& 100\\
+ 40002  & 10.0  & 0.0 	& 100\\
+ ...	& ...	& ...	& ...\\
+ \hline
+\end{tabular}
+\caption{excerpt of a training dataset for a decision tree} \label{tab:prior:dataset:decisionTree}
+\end{table}
+\begin{figure}[hb]
+ \centering
+ \resizebox{0.75\textwidth}{!}{
+ \import{figures/}{decisionTree.pdf_tex}}
+ \caption{decision tree from hicprediction}
+ \label{fig:prior:decisionTree}
+\end{figure}
+
+Withing this masterproject, the target feature is Hi-C interaction count
+and the training features are the signal values from ChIP-seq data of several proteins,
+along with the genomic distance of the interacting regions.
+
+Because decision trees are well known for overfitting, i.\,e. for adapting too much
+to the data they have been trained with,
+random forests contain not only one, but generally a large number of decision trees.
+Each of the trees is trained on a random subset of the original samples, potentially using random subsets
+of the features for each splitting step.
+For regression problems, the final prediction is then the average output of all trees, 
+for classification problems usually the majority vote.
+The rationale here is that random selection of the samples and features reduces the risk of overfitting,
+while errors in the single predictions cancel out by averaging.
+
+For regression trees, the cut points, e.\,g. ``p2 $\leq$ 5.0'', cf.\;\autoref{fig:prior:decisionTree}, 
+are usually selected such that the variance in the remaining two datasets -- here, 
+all samples with p2 $\leq$ 5.0 on the one hand and all samples with p2 $>$ 5.0 on
+the other hand -- is reduced the most.
+Searching for the optimal cut-point is computationally involved,
+but meanwhile there are several open source implementations which handle the task efficiently.
+
+Random forests have a number of tuning parameters. 
+The most important ones are the number of trees in the forest, 
+the size of the subsample used to train each tree,
+the maximum number of features to investigate for splitting
+and the minimum number of samples allowed to remain in internal nodes.
+All of these are used by HiC-Reg and hicprediction, two random-forest-based methods
+to predict unknown Hi-C matrices.
+
+
+\subsection{HiC-Reg}
+HiC-Reg was proposed by Shilu Zhang and colleagues at the Wisconsin Institute for Discovery in 2018 \cite{Zhang2019, Zhang2018}.
+It takes known Hi-C matrices and ChIP-seq data as inputs to predict unknown Hi-C matrices using random forest regression.
+
+HiC-reg accepts inputs as custom tab-separated text files \cite{Roy2020}.
+For all pairs of (\SI{5000}{\kilo\bp})-regions within a size-adjustable window, the average
+ChIP-seq read counts of all bins within the window and the distance itself 
+are computed and a so-called \textsc{window}-dataset is formed from the valid pairs, see \autoref{fig:priorW:hicreg2}, upper left and middle.
+Such a dataset and corresponding Hi-C interaction counts are then merged into a training set
+for a custom random forest regressor. 
+
+After training the regressor, predicting Hi-C interaction counts just requires feeding a test dataset, 
+i.\,e. processed ChIP-seq data for the target cell line, into the trained random forest, 
+which yields predicted interaction counts as output, \autoref{fig:priorW:hicreg2}, middle left. 
+The results, too, are stored in a custom tab-separated text format.
+\begin{figure}[p]
+\centering
+  \resizebox{!}{0.7\textheight}{
+  \import{figures/}{hicreg5.pdf_tex}}
+ \caption{HiC-Reg principle - \textsc{window} prediction}
+ \label{fig:priorW:hicreg2}
+\end{figure}
+\begin{figure}[p]
+\tiny
+\centering
+ \import{figures/}{zhang2019_predictions.pdf_tex}
+ \caption[Hi-C matrices predicted by HiC-Reg]{Hi-C matrices predicted by HiC-Reg in \textsc{multi-cell} mode, cf.\,\cite[p.\,9]{Zhang2019}}
+ \label{fig:priorW:hicregPredictions}
+\end{figure}
+
+In case data from multiple cell lines is available for training,
+the window features of all training cell lines can be concatenated into so-called \textsc{multi-cell} test sets, 
+cf.\,\cite[Fig. 1]{Zhang2019}, but these were not used throughout this masterproject.
+By default, HiC-Reg is using five-fold cross validation on training sets, 
+so it actually trains five different models for each training cell line and chromosome.
+These models can then be used to predict interactions for a different
+chromosome in the same cell line (\textsc{cross-chromosome}) or to predict interactions for the same chromosome in 
+another cell line (\textsc{cross-cell}) -- which is more relevant for practical use cases of HiC-Reg.
+The five separate predictions are simply averaged into a single one by taking the mean.
+
+Despite the aim of predicting Hi-C interaction counts, the publication by Zhang et al. unfortunately contains only two small plots 
+of actual Hi-C matrix snippets, depicted in their original size in \autoref{fig:priorW:hicregPredictions}, 
+and instead relies on statistical measures to assess the quality of the predictions.
+To this end, the two main metrics used are distance stratified Pearson 
+correlation and the corresponding area under the correlation curve, \textsc{auc}.
+While this choice is in line with other relevant publications in the field \cite{Pierro2017, Farre2018, Schwessinger2019},
+it seems unfavorable to rely on Pearson correlation too much, since the correlation can be high for Hi-C matrices
+of biologically unrelated origin \cite{Yang2017}. 
+Within this report, correlation plots are thus always used in combination with plots of Hi-C matrix snippets.
+
+Most of HiC-Reg, including the custom random forest regression model, is implemented in C++, 
+complemented by python-, shell- and matlab scripts e.\,g. for converting and concatenating input data or 
+computing various metrics. The source code and most binaries are available from github \cite{Roy2020}.
+
+\subsection{hicprediction}
+Hicprediction was conceived and implemented as part of Andre Bajorat's masterproject at the Bioinformatics Group of the University of Freiburg
+in 2019 \cite{Bajorat2019}. It is basically a python implementation of the ideas of Zhang et al. outlined above, 
+yet with a few technical differences.
+
+In distinction from HiC-Reg, hicprediction accepts the common file formats narrowPeak and cooler \cite{Abdennur2019}
+as inputs for ChIP-seq and Hi-C data, respectively, and also outputs Hi-C matrices directly in cooler format.
+This eliminates the need for text format conversions, 
+but also limits applicability to cases where appropriate input files are available.
+Another major difference to HiC-Reg is that hicprediction does not perform cross-validation on the training data
+for \textsc{cross-cell} and \textsc{cross-chromosome} predictions.
+Instead, it always trains its random forest on the full training set, 
+employing HiC-Reg's \textsc{window} approach described above.
+With regard to binning proteins and computing \textsc{window}-features, 
+hicprediction supports more aggregation methods than HiC-Reg, mean (``avg''), sum and max, see \autoref{fig:priorW:hicpredFlow}.
+While this might be interesting for future research, sum and max have not been used throughout this masterproject to
+maintain comparability with the results from Zhang and colleagues.
+
+Hicprediction is made up from four main python modules, which basically implement the workflow depicted in 
+\autoref{fig:priorW:hicreg2}. 
+\begin{figure}[htb]
+ \small
+ \centering
+ \resizebox{\textwidth}{!}{
+ \import{figures/}{hicprediction_flow1.pdf_tex}}
+ \caption{Flow diagram of hicprediction (cross-chromosome prediction)}
+ \label{fig:priorW:hicpredFlow}
+\end{figure}
+First, \emph{createBasefile.py} aggregates the protein data for training and test into bins of fixed width and stores them in an h5py file, see 
+\autoref{fig:priorW:hicpredFlow}, upper and lower left.
+Additionally, input Hi-C matrices are cut into separate matrices, one per chromosome, and stored for further usage.
+Next, \emph{createTrainingSet.py} joins binned protein data with Hi-C interaction counts, computes the \textsc{window}-features mentioned above and 
+stores the resulting datasets in a compressed binary format (\autoref{fig:priorW:hicpredFlow}, right).
+The training dataset is then used by \emph{training.py} to train a scikit-learn random forest regressor \cite{Pedregosa2011}, 
+which is again stored in binary format (\autoref{fig:priorW:hicpredFlow}, middle).
+Finally, \emph{predict.py} takes the test set with protein data from the target cell line, 
+runs it through the trained model and outputs a predicted Hi-C matrix in cooler format (\autoref{fig:priorW:hicpredFlow}, middle left).
+Additionally, a tab-separated text file can be output, containing distance stratified Pearson correlation values and \textsc{auc},
+plus some other statistical measures and parameter settings for reference. 
+
+The original version of hicprediction is available from github \cite{BajoratHicpredWWW2019} and can be 
+installed using conda \cite{minicondaWWW2019}.
+Each of the four python modules mentioned above takes a number of options and further inputs, 
+which are described in detail on the readme page in github.

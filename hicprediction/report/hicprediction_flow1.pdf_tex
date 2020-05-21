@@ -1,0 +1,104 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'hicprediction_flow1.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{478.68569201bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.68816187)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{hicprediction_flow1.pdf}}%
+    \put(0.25453994,0.64275048){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createBasefile.py}}}%
+    \put(0.03616881,0.5521338){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{narrowPeak}}}%
+    \put(0.02370393,0.63503778){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{cooler matrix}}}%
+    \put(0.80674435,0.36390562){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{training.py}}}%
+    \put(0.56742818,0.62144159){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{basefile}}}%
+    \put(0.53961367,0.55289045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{cooler matrix}}}%
+    \put(0.58090579,0.52778049){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr1}}}%
+    \put(0.53856767,0.35659746){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{trained\,model}}}%
+    \put(0.2997158,0.36393908){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{predict.py}}}%
+    \put(0.01887439,0.35496467){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{cooler matrix}}}%
+    \put(0.05663591,0.3307596){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr2}}}%
+    \put(0.7680733,0.64186115){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createTrainingset.py}}}%
+    \put(0.57066896,0.25853634){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{test set}}}%
+    \put(0.01223354,0.61029076){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr1, chr2, ...}}}%
+    \put(0.03767974,0.24499197){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{metrics}}}%
+    \put(0.33208304,0.52942649){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize sum}}}%
+    \put(0.41719698,0.52942649){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize max}}}%
+    \put(0.2508487,0.52942649){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize avg}}}%
+    \put(0.56742818,0.1058023){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{basefile}}}%
+    \put(0.53961367,0.03877327){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{cooler matrix}}}%
+    \put(0.58090579,0.01190241){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr2}}}%
+    \put(0.81396688,0.45571906){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{training set}}}%
+    \put(0.01076727,0.66911562){\color[rgb]{0.49803922,0.16470588,1}\makebox(0,0)[lb]{\smash{training inputs}}}%
+    \put(0.02429051,0.15320648){\color[rgb]{0.78431373,0.44313725,0.21568627}\makebox(0,0)[lb]{\smash{test inputs}}}%
+    \put(0.74169849,0.52783731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize start}}}%
+    \put(0.81019322,0.52783731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize end}}}%
+    \put(0.87069427,0.52783731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize window}}}%
+    \put(0.93826036,0.52783731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize dist.}}}%
+    \put(0.25622812,0.12406826){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createBasefile.py}}}%
+    \put(0.33377122,0.01074435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize sum}}}%
+    \put(0.41888515,0.01074435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize max}}}%
+    \put(0.25253688,0.01074435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize avg}}}%
+    \put(0.00784489,0.306179){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{-- predicted --}}}%
+    \put(0.5823643,0.23386985){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr2}}}%
+    \put(0.58090579,0.33064219){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr1}}}%
+    \put(0.85767778,0.43203223){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr1}}}%
+    \put(0.02660432,0.48876395){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize chr1, chr2 are examples}}}%
+    \put(0.02660432,0.47418617){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize any numerical chromosome is possible}}}%
+    \put(0.02660432,0.45960829){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize mutliple narrowPeak files possible }}}%
+    \put(0.7680733,0.12637224){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createTrainingset.py}}}%
+    \put(0.74169849,0.01234838){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize start}}}%
+    \put(0.81019322,0.01234838){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize end}}}%
+    \put(0.87069427,0.01234838){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize window}}}%
+    \put(0.93826036,0.01234838){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize dist.}}}%
+    \put(0.07531048,0.52580201){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{files}}}%
+    \put(0.03616881,0.03619714){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{narrowPeak}}}%
+    \put(0.02370393,0.11927201){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{cooler matrix}}}%
+    \put(0.01223354,0.09452499){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr1, chr2, ...}}}%
+    \put(0.07531048,0.00986538){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{files}}}%
+    \put(0.03767974,0.38871885){\color[rgb]{0,0.66666667,0}\makebox(0,0)[lb]{\smash{outputs}}}%
+  \end{picture}%
+\endgroup%

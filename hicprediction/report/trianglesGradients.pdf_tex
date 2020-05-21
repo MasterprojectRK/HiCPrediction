@@ -1,0 +1,88 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'trianglesGradients.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{421.3761169bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.40194326)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{trianglesGradients.pdf}}%
+    \put(0.49902546,0.3522672){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 predicted from GM12878}}}%
+    \put(0.36475159,0.03392775){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 from Rao et al. 2014 \cite{Rao2014} }}}%
+    \put(0.04035175,-0.00123627){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.0 }}}%
+    \put(0.1975455,-0.00123627){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.5 }}}%
+    \put(0.35473923,-0.00123627){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.0 }}}%
+    \put(0.511933,-0.00123627){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.5 }}}%
+    \put(0.66912695,-0.00123627){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.0 }}}%
+    \put(0.82819311,-0.00123627){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.5 Mbp}}}%
+    \put(0.91660783,-0.00123627){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr17}}}%
+    \put(0.0083186,0.2099489){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.0083186,0.22846152){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0.0083186,0.25271674){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(-0.00190665,0.27106509){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(-0.00190665,0.28941345){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(-0.00190665,0.31366871){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(-0.0121319,0.33201707){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(-0.0121319,0.35036544){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{200.0}}}%
+    \put(0.0083186,0.02423813){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.0083186,0.05150191){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0.0083186,0.08750324){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(-0.00190665,0.11473726){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(-0.00190665,0.14197122){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(-0.00190665,0.17797261){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(0.35075982,0.1909291){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{A}}}%
+    \put(0.33364752,0.26146134){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+    \put(0.74876988,0.25614041){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+    \put(0.82122335,0.23197656){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{A}}}%
+    \put(0.13993294,0.24830349){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+    \put(0.20147171,0.38104737){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\normalsize Prediction GM12878 on K562 vs. target}}}%
+    \put(0.25041731,0.23310968){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+    \put(0.43380934,0.24208628){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+    \put(0.57376036,0.24208628){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+    \put(0.65134194,0.27060891){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+    \put(0.8874744,0.24547973){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{B}}}%
+  \end{picture}%
+\endgroup%

@@ -1,0 +1,80 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'chr17-12-15_pk_GM12878-on-K562_25k_removeEmpty.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{425.19680714bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.42333338)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{chr17-12-15_pk_GM12878-on-K562_25k_removeEmpty.pdf}}%
+    \put(0.82929697,0.0000839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.5 Mbp}}}%
+    \put(0.5154702,0.0000839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.5}}}%
+    \put(0.67125154,0.0000839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.0}}}%
+    \put(0.93156058,0.0000839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr\,17}}}%
+    \put(0.04812625,0.0000839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.0}}}%
+    \put(0.20390751,0.0000839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.5}}}%
+    \put(0.35968874,0.0000839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.0}}}%
+    \put(-0.01477557,0.24090497){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(-0.0144071,0.26341293){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{200.0}}}%
+    \put(-0.0144464,0.29316681){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{500.0}}}%
+    \put(-0.02491358,0.31567484){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1000.0}}}%
+    \put(-0.0245451,0.33818284){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2000.0}}}%
+    \put(-0.02458441,0.36793677){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5000.0}}}%
+    \put(-0.03505158,0.39039118){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10000.0}}}%
+    \put(0.00550043,0.02951895){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0.00550043,0.05649822){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(-0.00463757,0.07568766){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(-0.00463757,0.09487707){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(-0.00463757,0.12024409){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(-0.01477557,0.1394335){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(-0.01477557,0.15862291){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{200.0}}}%
+    \put(-0.01477557,0.18398993){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{500.0}}}%
+    \put(-0.02491358,0.20312566){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1000.0}}}%
+    \put(0.29212546,0.40303077){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\normalsize Prediction GM12878 on K562 vs. target}}}%
+    \put(0.26744894,0.3772065){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 predicted from GM12878}}}%
+    \put(0.22773306,0.044959){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 from Rao et al. 2014 \cite{Rao2014}}}}%
+  \end{picture}%
+\endgroup%

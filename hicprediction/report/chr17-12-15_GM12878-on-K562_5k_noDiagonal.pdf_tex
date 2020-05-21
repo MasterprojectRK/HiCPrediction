@@ -1,0 +1,86 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'chr17-12-15_GM12878-on-K562_5k_noDiagonal.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{425.19682617bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.64244609)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{chr17-12-15_GM12878-on-K562_5k_noDiagonal.pdf}}%
+    \put(0.00879062,0.44607093){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0.00879062,0.47582027){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(-0.00187751,0.49832479){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(-0.00187751,0.52082928){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(-0.00187751,0.55057866){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(-0.01254565,0.57308315){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(-0.01254565,0.59606574){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{200.0}}}%
+    \put(0.00879062,0.25883443){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0.00879062,0.28858375){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(-0.00187751,0.31108829){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(-0.00187751,0.33359284){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(-0.00187751,0.36334213){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(-0.01254565,0.38584661){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(-0.01254565,0.40882919){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{200.0}}}%
+    \put(0.00879062,0.04641796){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.00879062,0.07498515){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0.00879062,0.10921217){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(-0.00187751,0.13510396){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(-0.00187751,0.16099578){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(-0.00187751,0.19522284){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(-0.01254565,0.22159266){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(0.82672538,0.02062045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.5 Mbp}}}%
+    \put(0.51289644,0.02062045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.5}}}%
+    \put(0.66867994,0.02062045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.0}}}%
+    \put(0.92898886,0.02062045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr\,17}}}%
+    \put(0.04555323,0.02062045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.0}}}%
+    \put(0.20133499,0.02062045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.5}}}%
+    \put(0.35711496,0.02062045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.0}}}%
+    \put(0.30193907,0.00169447){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\tiny matrices scaled to [0...1000], proteins unscaled }}}%
+    \put(0.25027055,0.20765946){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 from Rao et al. \cite{Rao2014}}}}%
+    \put(0.25027055,0.39425448){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 prediction, samples with distance $\leq$ \SI{5000}{\bp} removed }}}%
+    \put(0.25027055,0.58257582){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 standard prediction}}}%
+  \end{picture}%
+\endgroup%

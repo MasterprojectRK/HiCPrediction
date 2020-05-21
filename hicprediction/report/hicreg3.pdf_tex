@@ -1,0 +1,87 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'hicreg3.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{370.42883685bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.6215489)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{hicreg3.pdf}}%
+    \put(0.00726962,0.5696642){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{cell line 1}}}%
+    \put(0.15589769,0.5704355){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{cell line 2}}}%
+    \put(0.30514552,0.5704355){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{cell line 3}}}%
+    \put(0.6304442,0.48559746){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{cl3}}}%
+    \put(0.01824836,0.24317973){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{window features -- target}}}%
+    \put(0.52800678,0.53827465){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{HiC interaction counts}}}%
+    \put(0.49045937,0.48591113){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{distance}}}}%
+    \put(0.86394192,0.38547497){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Random}}}%
+    \put(0.5512794,0.15147094){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{MULTI-CELL}}}%
+    \put(0.28032513,0.10652221){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{predicted counts}}}%
+    \put(0.33127039,0.0711717){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{for cell line 1}}}%
+    \put(0.81203596,0.08677867){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{\small{average}}}}%
+    \put(0.55018863,0.01639361){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{ENSEMBLE}}}%
+    \put(0.58293892,0.4851622){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{-0.09719202}{\makebox(0,0)[lb]{\smash{cl2}}}}%
+    \put(0.53502277,0.48399917){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{cl1}}}%
+    \put(0.50466627,0.44452688){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{+}}}%
+    \put(0.50466627,0.39027349){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{+}}}%
+    \put(0.86394192,0.35732521){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{forests}}}%
+    \put(0.03771054,0.48594276){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{start}}}}%
+    \put(0.07985409,0.48591113){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{end}}}}%
+    \put(0.12239525,0.48633821){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{win.}}}}%
+    \put(0.18687423,0.48594276){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{start}}}}%
+    \put(0.22941546,0.48591113){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{end}}}}%
+    \put(0.27125266,0.48633821){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{win.}}}}%
+    \put(0.33612208,0.48594276){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{start}}}}%
+    \put(0.37866327,0.48591113){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{end}}}}%
+    \put(0.42050053,0.48633821){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{win.}}}}%
+    \put(0.01824836,0.35089293){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{window features -- training}}}%
+    \put(0.01271338,0.08855548){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize cl1: cell line 1}}}%
+    \put(0.01271338,0.06949982){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize cl2: cell line 2}}}%
+    \put(0.01271338,0.05137412){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize cl3: cell line 3}}}%
+    \put(0.01271338,0.03363404){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize win.: window}}}%
+    \put(0.01271338,0.01635677){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize the number of cell lines is just an example}}}%
+  \end{picture}%
+\endgroup%

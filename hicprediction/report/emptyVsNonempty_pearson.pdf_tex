@@ -1,0 +1,73 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'emptyVsNonempty_pearson.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{283.85728491bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.81124349)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{emptyVsNonempty_pearson.pdf}}%
+    \put(0.22766077,0.78848751){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Pearson correlation vs. genomic distance}}}%
+    \put(0.29798487,0.75491705){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{GM12878, chr17 on K562, chr17}}}%
+    \put(0.72924146,0.69852435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{all samples}}}%
+    \put(0.72924146,0.66190418){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{no empty samples}}}%
+    \put(0.01896331,0.28632009){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Pearson correlation}}}}%
+    \put(0.03413397,0.06626438){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.03413397,0.19910439){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.03413397,0.33194445){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.03413397,0.46478454){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.03413397,0.59762455){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.03413397,0.73046462){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.07145611,0.03931594){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.22001461,0.03931594){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.36857311,0.03931594){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.51713159,0.03931594){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.66569007,0.03931594){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.81424864,0.03931594){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.96280712,0.03931594){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.2}}}%
+    \put(0.38591912,0.00519174){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Genomic distance / Mbp}}}%
+  \end{picture}%
+\endgroup%

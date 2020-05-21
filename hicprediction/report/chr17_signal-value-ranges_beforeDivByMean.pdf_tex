@@ -1,0 +1,82 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'chr17_signal-value-ranges_beforeDivByMean.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{450.70866142bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.70127662)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{chr17_signal-value-ranges_beforeDivByMean.pdf}}%
+    \put(0.02059474,0.26163908){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{signal value range [0...x]}}}}%
+    \put(0.84634599,0.64781945){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{GM12878}}}%
+    \put(0.84634599,0.62249823){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{HMEC}}}%
+    \put(0.84634599,0.59558809){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{HUVEC}}}%
+    \put(0.84634599,0.56830578){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{K562}}}%
+    \put(0.84634599,0.54063127){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{NHEK}}}%
+    \put(0.0911226,0.10538775){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{0}}}%
+    \put(0.0911226,0.16911345){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{200}}}%
+    \put(0.0911226,0.23283922){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{400}}}%
+    \put(0.0911226,0.29656498){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{600}}}%
+    \put(0.0911226,0.36029071){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{800}}}%
+    \put(0.0911226,0.42401645){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{1000}}}%
+    \put(0.0911226,0.48774218){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{1200}}}%
+    \put(0.0911226,0.55146791){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{1400}}}%
+    \put(0.0911226,0.61519368){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{1600}}}%
+    \put(0.0911226,0.67891942){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{1800}}}%
+    \put(0.15196567,0.10653936){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{CTCF}}}}%
+    \put(0.2257675,0.10749271){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{DNaseI}}}}%
+    \put(0.52463103,0.10736162){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K4me1}}}}%
+    \put(0.59930617,0.10755228){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K4me2}}}}%
+    \put(0.67398121,0.1070637){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K4me3}}}}%
+    \put(0.82333127,0.10663469){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K9ac}}}}%
+    \put(0.89800635,0.1070637){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K9me3}}}}%
+    \put(0.30060586,0.10663469){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K27ac}}}}%
+    \put(0.37528092,0.1070637){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K27me3}}}}%
+    \put(0.44995598,0.1070637){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K36me3}}}}%
+    \put(0.74865624,0.10755228){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3K79me2}}}}%
+    \put(0.97268144,0.10736162){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H4K20me1}}}}%
+  \end{picture}%
+\endgroup%

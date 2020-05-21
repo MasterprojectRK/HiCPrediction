@@ -1,0 +1,130 @@
+\documentclass[
+		a4paper,
+		11pt,
+		%DIV=calc,
+		BCOR7mm,
+		headsepline,
+		captions=tableheading,
+		english,
+		parskip=half,
+		bibliography=totoc
+		]
+		{scrartcl}
+\usepackage[automark]{scrlayer-scrpage}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage[table,xcdraw]{xcolor}
+\definecolor{darkblue}{rgb}{0,0,0.5} 
+\usepackage{transparent}
+\usepackage{import}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup{
+	      justification=RaggedRight,
+	      singlelinecheck=true
+	      }
+\usepackage{wrapfig}
+\usepackage[
+	    left=4cm,
+	    right=2cm,
+	    top=2cm,
+	    bottom=2cm,
+	    includeheadfoot,
+	    headheight=26pt
+	    ]
+	    {geometry}
+\usepackage{colortbl}
+\usepackage[hyphens]{url}
+\Urlmuskip=0mu  plus 10mu
+\usepackage[hidelinks]{hyperref}
+\usepackage[figure]{hypcap}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{enumitem} 
+\usepackage{listings}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codegreen}{rgb}{0.24,0.55,0.35}
+\lstset{basicstyle=\ttfamily\footnotesize,
+  showstringspaces=false,
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{blue},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  breakatwhitespace=false,         
+  breaklines=true,                 
+  captionpos=b,                    
+  keepspaces=true,                 
+  numbers=left,                    
+  numbersep=5pt,                  
+  showspaces=false,                
+  showstringspaces=false,
+  showtabs=false,                  
+  tabsize=2,
+  xleftmargin=.05\textwidth, 
+  xrightmargin=.03\textwidth
+}
+\usepackage{lipsum}
+\usepackage{lscape}
+\usepackage{tabu}
+\usepackage{csquotes}
+\usepackage{multirow}
+\usepackage{siunitx}
+\DeclareSIUnit\bp{bp}
+\usepackage[style=numeric,
+	    citestyle=numeric,
+	    backend=biber,
+	    sorting=none]{biblatex}
+\addbibresource{../literature/masterproject.bib}
+\DefineBibliographyExtras{english}{%
+  \let\finalandcomma\empty
+  \let\finalandsemicolon\empty
+}
+\usepackage[toc,page]{appendix}
+
+%break on URL lower case letters
+\setcounter{biburllcpenalty}{5000}
+\emergencystretch=1em
+
+\newcommand{\xxx}{\textcolor{red}{XXX}}
+
+\DeclareUnicodeCharacter{202F}{FIX ME!!!!}
+\renewcommand{\labelenumi}{\alph{enumi})}
+
+\pdfsuppresswarningpagegroup=1
+
+%\RedeclareSectionCommand[
+%  beforeskip=.5\baselineskip,
+%  afterskip=.002\baselineskip]{section}
+%\RedeclareSectionCommand[
+%  beforeskip=0.4\baselineskip,
+%  afterskip=0.002\baselineskip]{subsection} 
+
+% left fixed width:
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+
+\begin{document}
+
+\include{titlepage}
+\cleardoublepage
+\pdfbookmark[1]{\contentsname}{toc}
+\tableofcontents
+\cleardoublepage
+\include{introduction}
+\include{priorWork}
+\include{improvingPredictions}
+\include{methods}
+\include{results}
+\include{discussionOutlook}
+\include{appendix}
+
+\cleardoublepage
+\printbibliography
+
+\end{document}

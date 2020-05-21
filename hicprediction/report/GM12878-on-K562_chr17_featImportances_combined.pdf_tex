@@ -1,0 +1,139 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'GM12878-on-K562_chr17_featImportances_combined.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{425.19685039bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.69333333)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{GM12878-on-K562_chr17_featImportances_combined.pdf}}%
+    \put(0.99073091,0.2251572){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{distance}}}}%
+    \put(0.50321172,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9me3.narrowPeak.window}}}}%
+    \put(0.43906447,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me1.narrowPeak.window}}}}%
+    \put(0.42623497,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k36me3.narrowPeak.window}}}}%
+    \put(0.36208772,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H4k20me1.bigwig.start}}}}%
+    \put(0.33642882,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9ac.bigwig.start}}}}%
+    \put(0.37491717,0.22693522){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Ctcf.narrowPeak.window}}}}%
+    \put(0.64433563,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9ac.bigwig.window}}}}%
+    \put(0.45189389,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me2.narrowPeak.window}}}}%
+    \put(0.97790138,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H4k20me1.bigwig.end}}}}%
+    \put(0.59301784,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me1.bigwig.window}}}}%
+    \put(0.51604114,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H4k20me1.narrowPeak.window}}}}%
+    \put(0.54170004,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Dnase.bigwig.window}}}}%
+    \put(0.66999459,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H4k20me1.bigwig.window}}}}%
+    \put(0.84960694,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Dnase.bigwig.end}}}}%
+    \put(0.46472334,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me3.narrowPeak.window}}}}%
+    \put(0.95224248,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9ac.bigwig.end}}}}%
+    \put(0.90092468,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me1.bigwig.end}}}}%
+    \put(0.23379321,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Dnase.bigwig.start}}}}%
+    \put(0.41340554,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27me3.narrowPeak.window}}}}%
+    \put(0.61867679,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me3.bigwig.window}}}}%
+    \put(0.52887062,0.22693522){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Ctcf.bigwig.window}}}}%
+    \put(0.28511102,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me1.bigwig.start}}}}%
+    \put(0.58018842,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k36me3.bigwig.window}}}}%
+    \put(0.65716511,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9me3.bigwig.window}}}}%
+    \put(0.55452952,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27ac.bigwig.window}}}}%
+    \put(0.68282401,0.22499816){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Ctcf.narrowPeak.end}}}}%
+    \put(0.22096376,0.22353009){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Ctcf.bigwig.start}}}}%
+    \put(0.60584731,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me2.bigwig.window}}}}%
+    \put(0.06701034,0.22353009){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Ctcf.narrowPeak.start}}}}%
+    \put(0.74697129,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me1.narrowPeak.end}}}}%
+    \put(0.96507196,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9me3.bigwig.end}}}}%
+    \put(0.56735894,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27me3.bigwig.window}}}}%
+    \put(0.49038224,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9ac.narrowPeak.window}}}}%
+    \put(0.63150616,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k79me2.bigwig.window}}}}%
+    \put(0.83677746,0.22499816){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Ctcf.bigwig.end}}}}%
+    \put(0.3492583,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9me3.bigwig.start}}}}%
+    \put(0.8880952,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k36me3.bigwig.end}}}}%
+    \put(0.38774665,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Dnase.narrowPeak.window}}}}%
+    \put(0.1311576,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me1.narrowPeak.start}}}}%
+    \put(0.25945212,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27me3.bigwig.start}}}}%
+    \put(0.40057607,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27ac.narrowPeak.window}}}}%
+    \put(0.27228157,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k36me3.bigwig.start}}}}%
+    \put(0.24662267,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27ac.bigwig.start}}}}%
+    \put(0.07983979,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Dnase.narrowPeak.start}}}}%
+    \put(0.75980077,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me2.narrowPeak.end}}}}%
+    \put(0.939413,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k79me2.bigwig.end}}}}%
+    \put(0.19530485,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9me3.narrowPeak.start}}}}%
+    \put(0.32359937,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k79me2.bigwig.start}}}}%
+    \put(0.29794047,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me2.bigwig.start}}}}%
+    \put(0.87526578,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27me3.bigwig.end}}}}%
+    \put(0.91375416,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me2.bigwig.end}}}}%
+    \put(0.8624363,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27ac.bigwig.end}}}}%
+    \put(0.69565349,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{Dnase.narrowPeak.end}}}}%
+    \put(0.92658364,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me3.bigwig.end}}}}%
+    \put(0.11832815,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k36me3.narrowPeak.start}}}}%
+    \put(0.31076995,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me3.bigwig.start}}}}%
+    \put(0.1568165,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me3.narrowPeak.start}}}}%
+    \put(0.81111851,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9me3.narrowPeak.end}}}}%
+    \put(0.14398705,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me2.narrowPeak.start}}}}%
+    \put(0.20813431,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H4k20me1.narrowPeak.start}}}}%
+    \put(0.47755279,0.22658462){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k79me2.narrowPeak.window}}}}%
+    \put(0.09266925,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27ac.narrowPeak.start}}}}%
+    \put(0.70848297,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27ac.narrowPeak.end}}}}%
+    \put(0.1824754,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9ac.narrowPeak.start}}}}%
+    \put(0.73414181,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k36me3.narrowPeak.end}}}}%
+    \put(0.77263019,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k4me3.narrowPeak.end}}}}%
+    \put(0.79828903,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k9ac.narrowPeak.end}}}}%
+    \put(0.16964596,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k79me2.narrowPeak.start}}}}%
+    \put(0.78545961,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k79me2.narrowPeak.end}}}}%
+    \put(0.10549869,0.22317926){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27me3.narrowPeak.start}}}}%
+    \put(0.72131233,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H3k27me3.narrowPeak.end}}}}%
+    \put(0.82394798,0.22464745){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[rb]{\smash{H4k20me1.narrowPeak.end}}}}%
+    \put(0.57338797,0.00066984){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize feature name}}}%
+    \put(0.02319746,0.22846117){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.02319746,0.28461714){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.1}}}%
+    \put(0.02319746,0.340773){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.02319746,0.39692892){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.3}}}%
+    \put(0.02319746,0.45308484){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.02319746,0.50924075){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.5}}}%
+    \put(0.02319746,0.56539667){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.02319746,0.62155253){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.7}}}%
+    \put(0.02319746,0.67770845){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.01473677,0.41860908){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{\scriptsize feature importance}}}}%
+    \put(0.3159938,0.61174555){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize feature importances and std. deviations (20 trees)}}}%
+  \end{picture}%
+\endgroup%

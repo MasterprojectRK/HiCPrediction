@@ -1,0 +1,77 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'pearson_GM12878-on-K562_protsNormalized.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{255.11811024bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.82222222)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{pearson_GM12878-on-K562_protsNormalized.pdf}}%
+    \put(0.23202747,0.79308815){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Pearson correlation vs. genomic distance}}}%
+    \put(0.30343655,0.75899977){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{GM12878, chr17 on K562, chr17}}}%
+    \put(0.64547426,0.70173702){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{no prot. scaling}}}%
+    \put(0.64547426,0.66455195){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{prot. scale [0...1000]}}}%
+    \put(0.64547426,0.62736679){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{prot. scale [0...100]}}}%
+    \put(0.64547426,0.59018168){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{prot. scale [0...10]}}}%
+    \put(0.64547426,0.55299661){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{prot. scale [0...1]}}}%
+    \put(0.64547426,0.51581145){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{prot. divided by mean}}}%
+    \put(0.03551499,0.05972276){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.03551499,0.19461226){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.03551499,0.32950162){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.03551499,0.46439109){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.03551499,0.59928056){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.03551499,0.73417003){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.02011029,0.28317344){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Pearson correlation}}}}%
+    \put(0.07341298,0.03235862){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.22426337,0.03235862){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.37511354,0.03235862){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.52596397,0.03235862){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.67681439,0.03235862){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.82766488,0.03235862){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.97851525,0.03235862){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.2}}}%
+    \put(0.39272719,-0.00229205){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Genomic distance / Mbp}}}%
+  \end{picture}%
+\endgroup%

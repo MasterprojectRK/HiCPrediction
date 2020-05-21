@@ -1,0 +1,78 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'pearson_GM12878-on-K562_25k.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{255.11811024bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.82133331)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{pearson_GM12878-on-K562_25k.pdf}}%
+    \put(0.07241836,0.0359744){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.22317546,0.0359744){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.37393253,0.0359744){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.52468967,0.0359744){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.67544676,0.0359744){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.82620395,0.0359744){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.97696104,0.0359744){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.2}}}%
+    \put(0.39153529,0.00134516){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Genomic distance / Mbp}}}%
+    \put(0.57545176,0.70493874){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{all samples, pk, 25kb}}}%
+    \put(0.57545176,0.66777659){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{no empty samples, pk, 25kb}}}%
+    \put(0.57545176,0.63061453){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{all samples, bw, 25kb}}}%
+    \put(0.57545176,0.59345238){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{no empty samples, bw, 25kb}}}%
+    \put(0.57545176,0.55629038){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{prot. smoothed, pk, 25kb}}}%
+    \put(0.57545176,0.50291776){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{no empty samples, bw, 5kb}}}%
+    \put(0.23093477,0.79623329){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Pearson correlation vs. genomic distance}}}%
+    \put(0.30229969,0.76216603){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{GM12878, chr17 on K562, chr17}}}%
+    \put(0.03454387,0.06332167){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.03454387,0.19812768){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.03454387,0.33293359){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.03454387,0.4677397){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.03454387,0.60254576){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.03454387,0.73735168){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.0191487,0.28663409){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Pearson correlation}}}}%
+    \put(0.57561316,0.46206336){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.41907859\unitlength}\raggedright pk: narrow-/broadPeak\\ bw: bigwig\end{minipage}}}%
+  \end{picture}%
+\endgroup%

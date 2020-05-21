@@ -1,0 +1,77 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'pearson_GM12878-on-K562_chr21_combi.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{255.11811024bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.82133331)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{pearson_GM12878-on-K562_chr21_combi.pdf}}%
+    \put(0.18800623,0.26698936){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{bw, all samples}}}%
+    \put(0.18800623,0.2299053){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{pk, all samples}}}%
+    \put(0.18800623,0.19282143){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{combi, all samples}}}%
+    \put(0.18800623,0.13692256){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{bw, no empty samples}}}%
+    \put(0.18800623,0.09983869){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{combi, no empty samples}}}%
+    \put(0.03658994,0.06224121){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.03658994,0.19676377){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.03658994,0.33128623){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.03658994,0.46580879){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.03658994,0.6003312){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.03658994,0.73485376){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.02122715,0.28508406){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Pearson correlation}}}}%
+    \put(0.2325678,0.79361154){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Pearson correlation vs. genomic distance}}}%
+    \put(0.30378259,0.75961586){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{GM12878, chr21 on K562, chr21}}}%
+    \put(0.07438479,0.03495156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
+    \put(0.2248248,0.03495156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%
+    \put(0.37526478,0.03495156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.4}}}%
+    \put(0.52570487,0.03495156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.6}}}%
+    \put(0.67614487,0.03495156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
+    \put(0.82658482,0.03495156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0.97702496,0.03495156){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.2}}}%
+    \put(0.39283058,0.00039524){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Genomic distance / Mbp}}}%
+    \put(0.63735921,0.29582646){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.34601884\unitlength}\raggedright pk: narrow-/broadPeak\\ bw: bigwig\\ combi: both pk and bw\end{minipage}}}%
+  \end{picture}%
+\endgroup%

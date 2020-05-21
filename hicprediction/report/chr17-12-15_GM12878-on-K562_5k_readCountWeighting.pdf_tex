@@ -1,0 +1,107 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{425.19680714bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.60666673)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.00774734,0.44688557){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=2]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.00774734,0.47668188){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=3]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.49922196){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=4]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.521762){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=5]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.55155835){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=6]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.01254681,0.57409839){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=7]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.01254681,0.5965794){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{200.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=8]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.00774734,0.25935341){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=9]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.00774734,0.28914971){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=10]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.31168971){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=11]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.33422979){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=12]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.3640261){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=13]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.01254681,0.38656614){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=14]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.01254681,0.40904712){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{200.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=15]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.00774734,0.04767728){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=16]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.00774734,0.07521378){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=17]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.00774734,0.10949491){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=18]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.13542759){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=19]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.16136028){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{20.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=20]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.00239974,0.19564137){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{50.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=21]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(-0.01254681,0.22151494){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100.0}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=22]{chr17-12-15_GM12878-on-K562_5k_readCountWeighting.pdf}}%
+    \put(0.23994164,0.20860293){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 from Rao et al. \cite{Rao2014}}}}%
+    \put(0.23994164,0.39519797){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 prediction w. weighted samples, $lower=292.635$, $upper=857.073$, $k=14.625$}}}%
+    \put(0.23994164,0.58351933){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 prediction with unweighted samples}}}%
+    \put(0.82527174,0.01992332){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.5 Mbp}}}%
+    \put(0.51144284,0.01992332){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.5}}}%
+    \put(0.66722635,0.01992332){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14.0}}}%
+    \put(0.92753527,0.01992332){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr\,17}}}%
+    \put(0.04409938,0.01992332){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.0}}}%
+    \put(0.19988115,0.01992332){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12.5}}}%
+    \put(0.35566111,0.01992332){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{13.0}}}%
+    \put(0.30048526,0.0009975){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\tiny matrices scaled to [0...1000], proteins unscaled }}}%
+  \end{picture}%
+\endgroup%

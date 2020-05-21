@@ -1,0 +1,505 @@
+\section{Results} \label{sec:results:main}
+In the following subsections, the results for the changes to hicprediction introduced in 
+\autoref{sec:improve:main} will be presented and interpreted. 
+Furthermore, \autoref{sec:res:compare} provides a direct comparison 
+of the (improved) results from hicprediction to the ones from HiC-Reg.
+
+\subsection{Avoiding training samples without protein data} \label{sec:res:removeEmptySamples}
+\begin{wrapfigure}{r}{0.5\textwidth}
+ \centering
+ \resizebox{0.5\textwidth}{!}{
+ \scriptsize
+ \import{figures/}{pearson_emptyVsNonempty_narrowPeak.pdf_tex}}
+ \caption{Pearson correlation before/after removing samples}
+ \label{fig:results:emptyVsNonempty:Pearson}
+\end{wrapfigure}
+The effect of removing empty samples from the datasets was clearly visible,
+both in terms of Pearson correlation and matrix plots, 
+see \autoref{fig:results:emptyVsNonempty:Pearson} and \ref{fig:results:pk:noEmpty:5k}.
+It is obvious that inverted triangles and gradient-style predictions were removed by discarding empty samples,
+but the prediction is also strongly fragmented, so that structures like TADs and loops are hardly visible in the plots.
+For example, in GM12878 and K562, only about 25\% of the originally \num{3227900} samples remained in the datasets,
+which means that 75\% of all pairs in the predicted Hi-C matrix for K562 had the default interaction count zero.
+This effect would be even more striking for the explanation example from \autoref{sec:improve:emptySamples},
+where only 6 of \num{79900} samples would remain in the dataset. 
+In this (staged) case, the algorithm then just ``learns'' the relation 
+``sample exists $\Rightarrow$ read count is 100'',
+without any of the features (start, end, window, distance) being considered as a decision criterion.
+\begin{figure}[h]
+ \centering
+ \scriptsize
+ \import{figures/}{trianglesGradientsAfter2.pdf_tex}
+ \caption{Example prediction, without empty samples}
+ \label{fig:results:pk:noEmpty:5k}
+\end{figure}
+
+\subsection{Dealing with sparse input data} \label{sec:res:dealing_with_sparse_input}
+Filtering fragmented output matrices like the ones obtained in \autoref{sec:res:removeEmptySamples} 
+was unsuccessful, since no parametrization of the 2D-Gaussian filters proved useful -- either the gaps were not 
+filled, or the structures in the matrix were
+blurred too much, or both, see \autoref{fig:results:pk:smoothened:5k}.
+Other kernel types and more sophisticated image-inpainting methods \cite{Elharrouss2019}
+might do better, but choosing the appropriate ones and adapting them to the problem at hand would be 
+laborious and beyond the scope of this masterproject.
+Additionally, and even more important, it is not clear whether such sparse matrices as depicted in
+\autoref{fig:results:pk:noEmpty:5k} would be a good starting point for suchlike approaches. 
+The missing regions can be several \num{100000}s of base pairs wide (e.\,g. \autoref{fig:results:pk:noEmpty:5k}, upper right),
+and both the low Pearson correlation (\autoref{fig:results:emptyVsNonempty:Pearson}) and the lack of structure in the predicted matrices
+(\autoref{fig:results:pk:noEmpty:5k}) suggest there might simply not be enough information 
+for imputing missing values, with whatever approach.
+
+Filtering the inputs with one-dimensional Gaussian filters was more successful.
+While it seems impossible to fill long stretches of empty bins by Gaussian smoothing alone, some structures became quite well visible
+and the Pearson correlation also improved slightly, \autoref{fig:results:pk:sigma4p0:5k} and \ref{fig:results:pk:Pearson:sigma4p0:5k}.
+Apart from the gaps remaining in the prediction, smoothing the proteins also has the disadvantage of blurring and shifting the structures in 
+the predictions compared to the target matrices.
+This is typical for Gauss filters, but probably acceptable in this case.
+
+In predictions from bigwig files, there were much less empty bins and no inverted triangles or gradient-style regions, 
+\autoref{fig:results:bigwig:allsamples} and \autoref{fig:app:bw:others:5k} to \ref{fig:app:Pearson:furtherCellLines} 
+on page \pageref{fig:app:bw:others:5k}\,ff.
+Due to the higher peak density in the bigwig files, the effect of leaving out 
+empty samples was sometimes hardly recognizable, compare \autoref{fig:results:bigwig:allsamples} and \ref{fig:results:bigwig:noemptysamples}.
+The Pearson correlations were also similar for both approaches, and both were better than the ones from using peak files, 
+\autoref{fig:results:bigwig:Pearson}.
+However, the effect of removing samples was found to be dependent on cell line, chromosome and genomic position. 
+Some chromosomes, e.\,g. 21, have large contiguous regions which seem to be deprived of all proteins,
+probably for biological reasons.
+For such regions, removing empty samples was significantly better, \autoref{fig:app:GM12878:K562:chr21:25k:goodToRemove}, 
+but detrimental for other regions of the same chromosome, see \autoref{fig:app:GM12878:K562:chr21:25k:badToRemove}.
+This was unfortunately not reflected in the Pearson correlation, \autoref{fig:app:Pearson:GM12878:K562:chr21:25kb}.
+Note that the area under the correlation curve is up to 0.7, which is a surprisingly high value considering
+the modest look of the matrix plots, \autoref{fig:app:GM12878:K562:chr21:25k:goodToRemove} 
+and \ref{fig:app:GM12878:K562:chr21:25k:badToRemove}.
+
+With regard to background signal and sequencing noise in the bigwig files, 
+the results from chromosome 17 suggest that the algorithm can at least partially 
+learn which ChIP-seq read count values are indicative of high interaction counts and which are not. 
+Beyond that, using a threshold to set signal values below a certain level to zero is possible,
+but finding a value which works well across all cell lines, chromosomes and proteins seems challenging.
+Too large values again lead to sparsity and too small values
+do not have noteworthy influence on the result.
+
+Avoiding empty bins in the inputs by increasing the input matrix resolution (bin size) to 25\,kbp 
+worked surprisingly well, even without further measures, \autoref{fig:results:pk:allsamples:25k}.
+Especially larger structures like the ones from 12...\SI{13}{\mega\bp} and 13...\SI{14}{\mega\bp} were usually at least signified.
+However, gradient-style regions and inverted triangles triangles still occurred, albeit to a lesser extent, 
+since the underlying problem remains the same, see e.\,g. the regions around 13 and \SI{14.5}{\mega\bp}
+in \autoref{fig:results:pk:allsamples:25k}.
+
+As expected, discarding empty samples led to less fragmentation with 25\,kbp than with 5\,kbp,
+because fewer input bins were empty; the result was still not useful, \autoref{fig:results:pk:noemptysamples:25k}.
+Again, it was not possible to fill in missing values with a Gauss filter without blurring the
+matrix too much, \autoref{fig:results:pk:smoothened:25k}.
+For 25\,kbp resolution, too, smoothing the proteins worked better than smoothing the predicted matrix. 
+Larger gaps could again not be closed, but apart from that, structures were often more easy to identify than 
+without smoothing, compare \autoref{fig:results:pk:allsamples:25k} and \ref{fig:results:pk:proteinsSmoothened:25k}.
+
+Predictions using bigwig files were also performed, 
+but at 25\,kbp resolution, it was even more difficult to say whether these were better or worse than the ones from peak files,
+compare \autoref{fig:results:bigwig:allsamples:25k} and \ref{fig:results:pk:allsamples:25k}.
+As already mentioned above, it cannot generally be said whether leaving out or keeping empty samples is better.
+In the example matrix snippet from chromosome 17, it was again difficult to determine differences, 
+\autoref{fig:results:bigwig:allsamples:25k}, \ref{fig:results:bigwig:noemptysamples:25k} 
+and \ref{fig:results:bigwig:Pearson25k}, but this might not hold for all regions.
+
+In terms of Pearson correlation, all predictions from 25\,kbp resolution were better
+than the best one from \SI{5}{\kilo\bp}, \autoref{fig:results:bigwig:Pearson25k}, and structures indeed sometimes seemed 
+more recognizable in the plots for \SI{25}{\kilo\bp}. 
+Interestingly, the fragmented prediction from peak files without empty samples, \autoref{fig:results:pk:noemptysamples:25k},
+showed one of the best Pearson correlations obtained thus far.
+This is probably because interaction counts of discarded regions are set to zero, 
+which seems to be correct in many cases, especially in the distance range [0.4...1.0]\,Mbp.
+Independent of the root cause, this example again underscores that relying on Pearson correlation alone is unfavorable,
+because the corresponding matrices can be useless in practice.
+
+For \SI{25}{\kilo\bp}, predictions were also performed using bigwig- and peak files simultaneously,
+thus increasing the number of features in the samples from $3\cdot12+1=37$ to $3\cdot24+1=73\,$\footnote{2x12 start-, 2x12 window- and 2x12 end features plus 
+distance}.
+While the Pearson correlations were mostly better than with bigwig files alone, especially when keeping empty 
+samples, \autoref{fig:app:Pearson:GM12878:K562:chr17:25kb:combi} and \ref{fig:app:Pearson:GM12878:K562:chr21:25kb:combi},
+not much improvement was visible in the predicted matrices, \autoref{fig:results:combined:chr17:25k}, \ref{fig:app:GM12878:K562:chr21:25k:combiFew} and 
+\ref{fig:app:GM12878:K562:chr21:25k:combiMany}.
+Feature importance plots show that the influence of the start- and end features from the peak files was generally negligible, 
+but the window features were often considered more important than most features from 
+bigwig files, \autoref{fig:chr17:GM12878:K562:combined:featImport} and \ref{fig:chr21:GM12878:K562:combined:featImport}.
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_pk_GM12878-on-K562_5k_sigma5p0.pdf_tex}
+ \caption{Example prediction from peaks, no empty samples, 5\,kbp, matrix filtered $\sigma=5.0$}
+ \label{fig:results:pk:smoothened:5k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_pk_GM12878-on-K562_5k_smooth4p0.pdf_tex}
+ \caption{Example prediction from peaks, no empty samples, 5\,kbp, proteins filtered $\sigma=4.0$}
+ \label{fig:results:pk:sigma4p0:5k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_5k_smooth4p0.pdf_tex}
+ \caption{Pearson correlation, 5\,kbp, proteins filtered $\sigma=4.0$}
+ \label{fig:results:pk:Pearson:sigma4p0:5k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_bigwig_GM12878-on-K562.pdf_tex}
+ \caption{Example prediction from bigwig, all samples}
+ \label{fig:results:bigwig:allsamples}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_bigwig_removeEmpty_GM12878-on-K562.pdf_tex}
+ \caption{Example prediction from bigwig, no empty samples}
+ \label{fig:results:bigwig:noemptysamples}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{pearson_emptyVsNonempty_bigwig-GM12878-on-K562.pdf_tex}
+ \caption{Pearson correlation before/after removing samples, 5\,kbp}
+ \label{fig:results:bigwig:Pearson}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_pk_GM12878-on-K562_25k_noRemoveEmpty.pdf_tex}
+ \caption{Example prediction from narrow-/broadPeak, 25\,kbp, all samples}
+ \label{fig:results:pk:allsamples:25k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_pk_GM12878-on-K562_25k_removeEmpty.pdf_tex}
+ \caption{Example prediction from peaks, no empty samples, 25\,kbp}
+ \label{fig:results:pk:noemptysamples:25k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_pk_GM12878-on-K562_25k_smoothMatrix1p0.pdf_tex}
+ \caption{Example prediction from peaks, no empty samples, 25\,kbp, matrix filtered $\sigma=1.0$}
+ \label{fig:results:pk:smoothened:25k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_pk_GM12878-on-K562_25k_smoothProteins1p0.pdf_tex}
+ \caption{Example prediction from peaks, no empty samples, \SI{25}{\kilo\bp}, proteins filtered $\sigma=1.0$}
+ \label{fig:results:pk:proteinsSmoothened:25k}
+\end{figure}
+\begin{figure}[hp]
+ \tiny
+ \centering
+ \import{figures/}{GM12878-on-K562_chr17_featImportances_combined.pdf_tex}
+ \caption{feature importances, GM12878 on K562, chr17, bigwig- and peak files combined}
+ \label{fig:chr17:GM12878:K562:combined:featImport}
+\end{figure}
+\begin{figure}[hp]
+ \tiny
+ \centering
+ \import{figures/}{GM12878-on-K562_chr21_featImportances_combined.pdf_tex}
+ \caption{feature importances, GM12878 on K562, chr21, bigwig- and peak files combined}
+ \label{fig:chr21:GM12878:K562:combined:featImport}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15-bw-GM12878-on-K562-25k_noRemoveEmpty.pdf_tex}
+ \caption{Example prediction from bigwig, \SI{25}{\kilo\bp}, all samples}
+ \label{fig:results:bigwig:allsamples:25k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_bw_GM12878-on-K562_25k_removeEmpty.pdf_tex}
+ \caption{Example prediction from bigwig, no empty samples, \SI{25}{\kilo\bp}}
+ \label{fig:results:bigwig:noemptysamples:25k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_25k.pdf_tex}
+ \caption{Pearson correlation comparison}
+ \label{fig:results:bigwig:Pearson25k}
+\end{figure}
+\begin{figure}[hp]
+ \centering
+ \scriptsize
+ \import{figures/}{chr17-12-15_GM12878-on-K562_25kb_combi.pdf_tex}
+ \caption{Example combined prediction, \SI{25}{\kilo\bp}}
+ \label{fig:results:combined:chr17:25k}
+\end{figure}
+
+\subsection{Scaling protein signal values and Hi-C interaction counts} \label{sec:res:normalization}
+For three of four tested scales for Hi-C interaction counts, [0..10], [0...100] and [0...1000],
+predicted and (scaled) target value were in the desired order of magnitude and 
+the Pearson correlation was very similar to the status quo, 
+see \autoref{fig:app:Pearson:GM12878:K562:chr17:5kb:normalized} and 
+\ref{fig:app:GM12878:K562:chr17:normalizedMatrices}.
+For value range [0...1], the Pearson correlation was notably worse than without scaling, 
+at least for distances greater than \SI{0.2}{\mega\bp}.
+No obvious reason for this could be found in the plots of the predicted matrices, 
+but the usual ``logarithm plus 1''-representation is also not well suited 
+for matrices with interaction counts generally smaller than 1. 
+The target matrices, too, do not look very informative when scaled and plotted this way,
+which is a reason on its own to go without the [0...1] range.
+\begin{figure}[hb]
+ \centering
+ \begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+  \import{figures/}{pearson_GM12878-on-K562_normalized.pdf_tex}}
+  \caption{matrices normalized}
+  \label{fig:app:Pearson:GM12878:K562:chr17:5kb:normalized}
+ \end{subfigure}\hfill
+\begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+  \import{figures/}{pearson_GM12878-on-K562_protsNormalized.pdf_tex}}
+  \caption{proteins normalized}
+  \label{fig:app:Pearson:GM12878:K562:chr17:5kb:protsNormalized}
+ \end{subfigure}
+ \caption{Pearson correlations, matrices / proteins normalized}
+ \label{fig:res:Pearson:matrices:proteins:normalized:5kb}
+\end{figure}
+
+Feature scaling yielded the expected outcome in terms of Pearson correlations,
+\autoref{fig:app:Pearson:GM12878:K562:chr17:5kb:protsNormalized}, i.\,e. all value ranges
+had similar performance and were no better or worse than without.
+In terms of Hi-C matrices, the results were surprisingly worse than without scaling,
+with errors in the predictions e.\,g. around 13.5 and \SI{14.0}{\mega\bp},  
+see \autoref{fig:app:GM12878:K562:chr17:normalizedProteins}.
+
+The comparatively bad outcome might partially be due to the small set-to-zero threshold
+which was applied after adjusting the value range, \autoref{sec:methods:normalization}.
+As this is a non-continuous transformation of the value range, thresholding could in principle affect the splitting.
+However, it would be very surprising if this was the main cause, 
+as only very few values fell below the threshold for each protein; 
+for example, in value range [0...10], at most 53, or 0.3\% of \num{16240} samples from a single protein were set to zero. 
+Additionally, the threshold hypothesis does not explain the errors in predictions with value range [0...1],
+where the threshold was not applied.
+On the other hand, it is also hard to imagine that 
+the errors in the predictions occurred by chance, as they were approximately at the same positions across all
+concerned predictions.
+
+To investigate further on the issue, predictions were also made for \SI{25}{\kilo\bp} resolution,
+Here, too, the outcome was partially unexpected.
+While the Pearson correlations indicated a positive influence of scaling for all but
+the division-by-mean method, \autoref{fig:app:Pearson:GM12878:K562:chr17:protNorms:25kb},
+the plots of the matrices looked very similar to the non-scaled state, 
+\autoref{fig:app:GM12878:K562:chr17:normalizedProteins:25k}.
+The reason for this behavior could unfortunately not be determined.
+
+Because scaling input features does not seem very common for random forests, only a single paper was
+found on the topic.
+Here, Dinc. et al. investigated the influence of value-range (min-max) scaling and z-score normalization\footnote{
+subtract mean and divide by standard deviation} 
+on the performance of several classifiers for protein crystallization images \cite{Dinc2014}.
+For the random forest classifier, some improvements for the z-score normalization,
+but only very little change for value-range scaling were recorded. 
+However, the reasons for the improvement were not investigated.
+The already mentioned study by Strobl et colleagues \cite{Strobl2007} does not cover feature scaling
+directly, but found that features with different value ranges can cause bias in variable 
+selection, especially when used in combination with categorical variables and bootstrapping with replacement.
+
+Within this masterproject, it could not be clarified what exactly caused the
+unexpected results when scaling feature value ranges.
+However, first tests showed an interesting relation between the
+floating point precision of the feature values and the predicted matrices,
+which could be investigated in future studies.
+Currently, hicprediction is using 32-bit floating point numbers rounded
+to 6 digits after the decimal point -- and this may be insufficient
+for small value ranges, considering the strongly nonuniform interaction count distribution, 
+\autoref{fig:GM12878:K562:interactionCountDistribution}.
+For example, when using value range [0...1] and \SI{5}{\kilo\bp} matrix resolution, 
+there are \num{100000} different floating point numbers in the 
+interval [0,~0.100000) after rounding to six digits after the decimal point -- but more than half of the approximately 3.2 million samples have interaction 
+counts lying in this interval.
+
+Since protein scaling yielded unfavorable results,
+the remaining computations were performed without.
+
+\subsection{Concatenating datasets and predictions from different cell lines}\label{sec:res:concat}
+In order to combine predictions from different cell lines on K562, 
+the single predictions were computed first, \autoref{fig:app:all:K562:chr17:singleVsJoint:5k},
+top 4 panels.
+It is obvious that not all cell lines  are equally well suited for predicting K562,
+which is probably due to different biological functions.
+Although e.\,g. the prediction from HUVEC showed only fairly few structures,
+the averaged prediction from GM12878, HMEC, HUVEC and NHEK on K562 was still acceptable,
+partially even better than the best single-cell-line prediction, 
+\autoref{fig:res:Pearson:singleVsTogether:K562:chr17:5k} and 
+\ref{fig:app:all:K562:chr17:singleVsJoint:5k}. 
+Both the Pearson correlation and the plot of the predicted matrix look more smooth than the ones
+from single cell lines, which is due to the averaging process and thus not surprising.
+The structures in the matrix plot were still distinguishable and not significantly worse
+than the ones from single-cell-line predictions.
+
+The prediction from concatenated datasets performed not as well as the averaged single predictions,
+but still better than the single predictions from ``less suitable'' cell lines. 
+It should however be noted that the datasets have been concatenated without prior feature scaling, due 
+to the problems mentioned in \autoref{sec:res:normalization} above.
+This is probably suboptimal, because the same features can have significantly different value ranges in different cell lines,
+see \autoref{fig:app:prots:valueRangeBefore}.
+The predictions from concatenated datasets might thus improve once the 
+existing feature scaling problems have been investigated and resolved.
+
+
+\begin{figure}
+\centering
+\begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{pearson_allSingle-on-K562_chr17_5k.pdf_tex}}
+ \caption{single predictions}
+ \label{fig:res:Pearson:allSingle:K562:chr17:5kb}
+\end{subfigure}\hfill%
+\begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{pearson_allTogether-on-K562_chr17_5k.pdf_tex}}
+ \caption{joint predictions}
+ \label{fig:res:Pearson:allTogether:K562:chr17:5kb}
+\end{subfigure}
+\caption{Pearson correlations, single vs. joint predictions on K562}
+\label{fig:res:Pearson:singleVsTogether:K562:chr17:5k}
+\end{figure}
+
+
+
+\subsection{Emphasizing certain samples} \label{sec:res:emphasizing}
+After 200 runs of the tree-structured Parzen estimator, see \autoref{sec:methods:emphasizing},
+the supposedly best parameters for weighting samples according to interaction count were determined as 
+$lower=292.635$, $upper=857.073$ and $k=14.625$. 
+This means that all samples with an interaction count in the range [292.635...857.073] were given integer weights such that 
+the sum of the weighted samples was approximately 14.625 times the weight sum (=number) of the unweighted samples.
+Unfortunately, there were only six samples in the given range, 
+so the effect of interaction-count-based weighting on the predictions was quite small.
+Both the resulting Pearson correlation and the matrix plots looked fairly similar for predictions with weighted samples
+and usual predictions, \autoref{fig:res:Pearson:K562:chr17:5kb:weightingInteractionCts} 
+and \ref{fig:app:GM12878:K562:chr17:interactionCountWeighting:matrices}.
+
+With another 200 runs of the estimator, the supposedly best parameters for weighting samples according to CTCF signal value
+were determined as $lower=228.8$, $upper=670.112$ and $k=4.241$. 
+In this case, there were \num{285242} samples with CTCF start-, end- or window-feature in the given range, 
+so an influence of CTCF-based weighting on the results was to be expected, which also precipitated in the feature importances,
+\autoref{fig:app:GM12878:K562:chr17:CTCFWeighting:importances}. 
+Interestingly, only the CTCF-window feature gained importance, while start- and end-feature 
+remained at low levels.
+However, the Pearson correlation of the prediction from weighted samples was actually worse than before, 
+\autoref{fig:res:Pearson:K562:chr17:5kb:weightingCTCF},
+and the matrix plots showed at least no significant improvement, fig\,\ref{fig:app:GM12878:K562:chr17:CTCFWeighting:matrices}.
+
+Removing all samples with a distance below \SI{5000}{\bp} surprisingly improved and also slightly smoothened the Pearson correlation, 
+\autoref{fig:res:Pearson:K562:chr17:5kb:noDiags}.
+The matrix plots also clearly differed from the standard predictions, but it is difficult to say whether they are better,
+\autoref{fig:app:GM12878:K562:chr17:noDiagonal}.
+While some predicted structures were more distinct, there were also some which do not seem to match any real interacting regions, 
+and the contrast between interacting- and non-interacting regions also seemed lower than in the standard predictions.
+
+TAD-based weighting of samples did not change the prediction results much.
+Both the Pearson correlation and the resulting matrices were quite similar to the ones from standard predictions,
+\autoref{fig:res:Pearson:K562:chr17:5kb:weightingTADs} and \ref{fig:app:GM12878:K562:chr17:TadWeighting}.
+Note that for weighting factor $k=0.1$ the results were identical to the the status quo,
+because it turned out that $\frac{\sum_{weightedSamples}weight}{\sum_{unweightedSamples}weight}\approx 0.1$, so no weighting was performed at all
+due to rounding (\autoref{sec:methods:emphasizing}).
+
+
+\begin{figure}
+\centering
+\begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_chr17_readCountWeighting.pdf_tex}}
+ \caption{weighting according to interaction counts}
+ \label{fig:res:Pearson:K562:chr17:5kb:weightingInteractionCts}
+\end{subfigure}\hfill%
+\begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_chr17_CTCFweighting.pdf_tex}}
+ \caption{weighting according to CTCF signal value}
+ \label{fig:res:Pearson:K562:chr17:5kb:weightingCTCF}
+\end{subfigure}
+
+\vspace{5mm}
+\begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_chr17_noDiagonal.pdf_tex}}
+ \caption{removing samples with distance $\leq$ \SI{5}{\kilo\bp}}
+ \label{fig:res:Pearson:K562:chr17:5kb:noDiags}
+\end{subfigure}
+\begin{subfigure}{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{pearson_GM12878-on-K562_5k_TADweighting.pdf_tex}}
+ \caption{weighting according to TADs}
+ \label{fig:res:Pearson:K562:chr17:5kb:weightingTADs}
+\end{subfigure}
+\caption{Pearson correlations for different sample weighting approaches}
+\label{fig:res:Pearson:sampleWeighting:5k}
+\end{figure}
+
+\subsection{Replacing random forest by extra tree regression} \label{sec:res:extratrees}
+Predictions using the extra trees algorithm were generally similar to predictions from random forests.
+While Pearson correlations were in favor of the random forest algorithm, \autoref{fig:res:Pearson:extratreesVsForests},
+the matrix plots looked fairly similar, \autoref{fig:app:GM12878:K562:chr17:forestVsExtratrees}.
+It remains for future research whether this holds for other cell lines and chromosomes as well.
+\begin{figure}[hb]
+  \centering
+  \scriptsize
+  \import{figures/}{pearson_GM12878-on-K562_extraTrees_vs_Forests.pdf_tex}
+  \caption{Pearson correlations extra trees vs. random forest}
+  \label{fig:res:Pearson:extratreesVsForests}
+\end{figure}
+
+\subsection{Comparison between HiC-Reg and hicprediction} \label{sec:res:compare}
+Looking at the matrices obtained with hicprediction thus far, it is obvious that -- despite some improvements compared to the original state -- 
+the predictions are still inferior to the ones published for HiC-Reg.
+\autoref{fig:res:HicregVsHicprediction_supplementary} shows a direct juxtaposition between a cross-cell prediction from HiC-Reg -- 
+reconstructed from data published along with the article \cite{Zhang2019} --
+and the corresponding prediction from hicprediction.
+\begin{figure}[hb]
+\import{figures/}{dummy150x150.pdf_tex}
+\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}}
+\label{fig:res:HicregVsHicprediction_supplementary}
+\end{figure}
+
+To check whether the inferior results from hicprediction where due to the underlying algorithm or to the input data,
+new HiC-Reg predictions were made by converting the corresponding hicprediction training sets to text files and using them for
+training and prediction with HiC-Reg.
+It is obvious from \autoref{fig:res:HicregVsHicprediction_recomputed} that the results do no longer differ much,
+pointing to the input data as the cause.
+\begin{figure}[hb]
+\import{figures/}{dummy150x150.pdf_tex}
+\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}}
+\label{fig:res:HicregVsHicprediction_recomputed}
+\end{figure}
+\xxx cross validation results GM12878
+
+Predictions with HiC-Reg from the ground up, starting with the same BAM files used for hicprediction
+unfortunately did not yield useful results, see \xxx.
+It could not be clarified what went wrong, 
+but gradient-like predictions like these can occur when only distance is
+considered as a feature, cf. \autoref{sec:improve:emptySamples}.
+This could have happened either due to a bug in HiC-Reg 
+or a misunderstanding of its input file formats, some of which are 
+only specified by example.
+
+A concluding discussion of all changes made to hicprediction within this masterproject
+will be given in \autoref{sec:discussion:main}.

@@ -1,0 +1,91 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'hicreg2.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{380.49110232bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,1.34075681)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{hicreg2.pdf}}%
+    \put(0.42856112,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq1}}}}%
+    \put(0.58693461,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq1}}}}%
+    \put(0.74482305,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq1}}}}%
+    \put(0.47018489,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq2}}}}%
+    \put(0.62835049,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq2}}}}%
+    \put(0.78623893,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq2}}}}%
+    \put(0.5116008,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq3}}}}%
+    \put(0.66976637,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq3}}}}%
+    \put(0.82765481,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq3}}}}%
+    \put(0.96444387,0.99461997){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{HiC interaction count}}}}%
+    \put(0.45692386,0.76743754){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[b]{\smash{start bin}}}%
+    \put(0.61587612,0.76743754){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[b]{\smash{end bin}}}%
+    \put(0.69525961,0.77348235){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{window avg.}}}%
+    \put(0.90226092,0.98200469){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Distance}}}}%
+    \put(0.99253578,0.99451432){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{between start/end bin}}}}%
+    \put(0.16112375,0.98197396){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq1}}}}%
+    \put(0.20460103,0.98197396){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq2}}}}%
+    \put(0.24590105,0.98197396){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq3}}}}%
+    \put(0.52320318,1.17400965){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{test set (training)}}}%
+    \put(0.08263272,0.96441262){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{0}}}%
+    \put(0.0728789,0.92364454){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{5k}}}%
+    \put(0.05356186,0.88109583){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{10k}}}%
+    \put(0.05382734,0.83832717){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{15k}}}%
+    \put(0.0271084,0.83122822){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{5 kbp bins}}}}%
+    \put(0.50753007,1.13018403){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{window features}}}%
+    \put(0.71071378,0.60974467){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{training set}}}%
+    \put(0.45058562,0.37757825){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{HiC-Reg Random Forest Regressor}}}%
+    \put(0.5370875,0.04029551){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{test set (target)}}}%
+    \put(0.02419074,1.21007668){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{ChIPseq input}}}%
+    \put(0.06530691,1.17452691){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{(training)}}}%
+    \put(0.09723868,0.04210996){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{ChIPseq input}}}%
+    \put(0.13835486,0.0065602){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{(target)}}}%
+    \put(0.16417289,0.35410389){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Predicted}}}}%
+    \put(0.19434268,0.35410389){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{HiC interaction count}}}}%
+    \put(0.69459576,0.7504393){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{start...end}}}%
+    \put(0.01284882,0.01086026){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{\tiny number of ChIPseq inputs can be more/less than 3}}}}%
+    \put(0.02861792,0.01086026){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{\tiny the orignal paper is using 14}}}}%
+  \end{picture}%
+\endgroup%

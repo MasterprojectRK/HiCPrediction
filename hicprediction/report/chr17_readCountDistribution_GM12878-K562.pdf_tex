@@ -1,0 +1,87 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'chr17_readCountDistribution_GM12878-K562.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%% 
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{416.51873251bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.48819784)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{chr17_readCountDistribution_GM12878-K562.pdf}}%
+    \put(0.31178831,0.47024737){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Read count distribution GM12878}}}%
+    \put(0.10717736,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0}}}%
+    \put(0.1913251,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2000}}}%
+    \put(0.29213663,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{4000}}}%
+    \put(0.39704321,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{6000}}}%
+    \put(0.50118631,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{8000}}}%
+    \put(0.59925498,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{10000}}}%
+    \put(0.70256543,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12000}}}%
+    \put(0.80493822,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{14000}}}%
+    \put(0.91342093,0.26762183){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{16000}}}%
+    \put(0.8307696,0.42338283){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100 bins}}}%
+    \put(0.06027682,0.41496718){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^5$}}}%
+    \put(0.06027682,0.39073577){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^4$}}}%
+    \put(0.06027682,0.36650439){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^3$}}}%
+    \put(0.06027682,0.34227298){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^2$}}}%
+    \put(0.06027682,0.31804156){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^1$}}}%
+    \put(0.06027682,0.29381018){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^0$}}}%
+    \put(0.01722369,0.30610092){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Frequency}}}}%
+    \put(0.8307696,0.16456087){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{100 bins}}}%
+    \put(0.06261409,0.15691654){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^5$}}}%
+    \put(0.06261409,0.13268516){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^4$}}}%
+    \put(0.06261409,0.10845375){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^3$}}}%
+    \put(0.06261409,0.08422235){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^2$}}}%
+    \put(0.06261409,0.05999097){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^1$}}}%
+    \put(0.06261409,0.03575957){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{$10^0$}}}%
+    \put(0.01722369,0.04805028){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Frequency}}}}%
+    \put(0.10527014,0.00688747){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0}}}%
+    \put(0.24557513,0.00688747){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{500}}}%
+    \put(0.39325123,0.00688747){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1000}}}%
+    \put(0.54599492,0.00688747){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1500}}}%
+    \put(0.6996762,0.00688747){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2000}}}%
+    \put(0.85127233,0.00688747){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2500}}}%
+    \put(0.30780193,0.21021678){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Read count distribution K562}}}%
+  \end{picture}%
+\endgroup%

@@ -1,0 +1,346 @@
+\section{Ideas to improve hicprediction} \label{sec:improve:main}
+Despite noticeable progress in recent years, no machine learning method is currently able
+to predict flawless Hi-C matrices, hicprediction being no exception.
+The following subsections will thus
+investigate some of its shortcomings and present ideas
+to improve on them. 
+
+While the reasons for erroneous predictions can be manifold,
+this report mainly focuses on filtering, rectifying and enhancing input data.
+Additionally, a different machine learning model for hicprediction -- extra trees -- will be investigated.
+
+\subsection{Avoiding training samples without protein data} \label{sec:improve:emptySamples}
+In the initial results from hicprediction, at least two issues are obvious, \autoref{fig:improve:gradientsTrianglesBefore}:
+The gradient-like regions (A) and the ubiquitous inverted ``triangles'' (B) in the prediction.
+\begin{figure}[h]
+ \scriptsize
+ \import{figures/}{trianglesGradients2.pdf_tex}
+ \caption{Example prediction from hicprediction with gradients and inverted triangles}
+ \label{fig:improve:gradientsTrianglesBefore}
+\end{figure}
+
+The causes of these errors shall be investigated by means of a simple example.
+Assume a training situation as in \autoref{fig:improve:triangle-err-example}a, which comprises
+one region with a lot of interactions, a large remaining area without any interactions 
+and three ChIP-seq peaks from a single protein distributed within and delimiting the interacting region.
+From that, it should be easy to predict the target situation in \autoref{fig:improve:triangle-err-example}b, 
+since the latter is just the training situation shifted \SI{1}{\mega\bp} to the right.
+However, even in such a simple case, the predicted matrix from hicprediction is erroneous
+and contains both gradient-like regions and a number of inverted triangles, \autoref{fig:improve:triangle-err-example}c. 
+What looks confused at the first glance is actually to a large extent well explainable, 
+if one considers the values of the features for different regions of the training set 
+and recalls what the algorithm could learn from them, 
+\autoref{fig:improve:learnRegions} and \autoref{tab:improve:learnRegions}.
+\begin{figure}[ht]
+ \centering
+ \resizebox{\textwidth}{!}{
+  \import{figures/}{sampleRemoval_combined.pdf_tex}}
+ \caption{example with inverted triangles and gradient-style predictions}
+ \label{fig:improve:triangle-err-example}
+\end{figure}
+
+Gradient-like predictions are most prevalent in those regions where distance is the only feature available for predicting,
+\autoref{fig:improve:predExplained} ($\alpha + \beta$), corresponding to training regions (A) and (B), 
+\autoref{fig:improve:learnRegions}.
+To understand this fact, it helps to recall how decision trees can split the datasets in such distance-only cases.
+For a distance of \SI{1}{\bp} for example, there are approximately four times more training samples
+in region (A) with a target read count of zero than in region (B) with a read count of 100. 
+The resulting predictions for such samples are then around $\frac{1}{4}\cdot100=25$. 
+For a distance of \SI{500000}{\bp}, there are about 8 times more training samples in region (A) than in (B), 
+causing predictions of around $\frac{1}{8}\cdot100=12.5$.
+For distances greater than \SI{1}{\mega\bp} (and all other features still zero), there are no more samples in region (B), 
+so the prediction relies on training samples from region (A), 
+which are all zero, \autoref{fig:improve:predExplained} ($\alpha$) and\;($\epsilon$).
+\begin{figure}[ht]
+\begin{subfigure}{\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+  \import{figures/}{sampleRemoval_explainPrediction.pdf_tex}}
+ \caption{learning regions for the random forest}
+ \label{fig:improve:learnRegions}
+\end{subfigure}\vspace{3mm}
+\begin{subfigure}{\textwidth}
+ \centering
+ \resizebox{\textwidth}{!}{
+  \import{figures/}{sampleRemoval_prediction_revisited.pdf_tex}}
+ \caption{prediction regions}
+ \label{fig:improve:predExplained}
+\end{subfigure}
+\caption{explanation approach for inverted triangles and gradient-style predictions}
+\end{figure}
+
+The inverted-triangle predictions from \autoref{fig:improve:triangle-err-example}c occur in situations 
+where distance and window protein are the only available training features, 
+\autoref{fig:improve:predExplained}, ($\gamma_1$), ($\gamma_2$), ($\gamma_3$) and ($\delta$),
+corresponding to training regions \autoref{fig:improve:learnRegions} (C1), (C2), (C3) and (D).
+Again, it helps to look at different distances. Between \SI{1}{\bp} and \SI{1}{\mega\bp},
+there are constantly about twice as many training samples
+in region (C1) than in (C2), with target read counts of 0 and 100, respectively. 
+The resulting prediction is thus about $0.5\cdot100 = 50$, \autoref{fig:improve:predExplained}, ($\gamma_1,\,\gamma_2$). 
+For distances greater than \SI{1}{\mega\bp}, the number of samples in region (C1) grows linearly, 
+while the number of samples in region (C3) shrinks linearly, causing a gradient prediction within the inverted triangles, 
+\autoref{fig:improve:predExplained} ($\gamma_1$, $\gamma_3$).
+Region (D) is distinguishable from regions (C1) to (C3) by the window feature value, 
+which is always twice as large in region (D) for the same distance, because the window contains two protein peaks.
+Since all training samples within region (D) are zero, 
+the corresponding regions ($\delta$) in the prediction are also zero,
+causing the inverted-triangle-shaped ``cut-outs'' in the prediction, \autoref{fig:improve:predExplained}.
+
+In reality, the learning process is of course more complicated than described above, 
+because not all features are taken into account at each split, cf.\;\autoref{sec:prior:randomForests}, 
+so that some trees put more weight on features like start and end.
+This is probably the reason for the few outliers in the prediction, \autoref{fig:improve:predExplained} ($\zeta$), 
+which cannot directly be explained from the learning regions above.
+Across all trees, distance is still by far the most important feature, \autoref{fig:improve:featureImportance},
+followed by the window feature and lastly by the equally (un-)important start and end features.
+
+The probably most simple way to prevent the random forest from learning gradients and inverted triangles 
+is discarding all ``empty'' training- and test samples, i.\,e. samples which have zero signal value for all proteins, cf.\;\autoref{sec:methods:discardEmpty}.
+The results of this approach are shown in \autoref{sec:res:removeEmptySamples}.
+However, discarding empty samples usually leads to sparse training- and test sets, causing other types of problems.
+These will be handled below in \autoref{sec:improve:peakDensity}.
+
+\begin{figure}[p]
+ \centering
+ \scriptsize
+  \import{figures/}{sampleRemoval_featureImportances.pdf_tex}
+ \caption{example feature importances}
+ \label{fig:improve:featureImportance}
+\end{figure}
+
+\begin{table}
+ \centering
+ \begin{tabular}{lL{9cm}}
+  \hline
+  \textbf{region} 	& \textbf{potential decision rules learned} \\ \hline
+  A		& When all features except $distance$ are zero, the $target\,value$ is~0 \\[1mm]
+  B		& When all features except $distance$ are zero and $distance \leq \SI{1}{\mega\bp}$, the $target\,value$ is~100 \\[1mm]
+  C1		& When $window\,feature = \frac{10}{distance}$, the $target\,value$ is~0 \\[1mm]
+  C2		& When $window\,feature = \frac{10}{distance}$ and $distance \leq \SI{1}{\mega\bp}$, the $target\,value$ is~100 \\[1mm]
+  C3		& When $window\,feature = \frac{10}{distance}$ and $distance > \SI{1}{\mega\bp}$, the $target\,value$ is~100 \\[1mm]
+  D		& When $window\,feature = \frac{2\cdot10}{distance}$, the $target\,value$  is~0 \\[1mm]
+  E		& When $distance > \SI{2}{\mega\bp}$ or $window\,feature = \frac{3\cdot10}{distance}$, the $target\,value$ is~0 \\[1mm]
+  yellow solid lines	& When $end\,feature$ nonzero, the $target\,value$ is between~0 (about 80\% of samples) and~100 (about 20\% of samples) \\[1mm]
+  yellow dashed lines	& When $start\,feature$ nonzero, the $target\,value$ is between~0 (about 80\% of samples) and~100 (about 20\% of samples) \\[1mm]
+  yellow circles	& When $start$- and $end\,feature$ nonzero, the $target\,value$ is~100 \\ \hline
+ \end{tabular}
+ \caption{learning regions for the random forest}
+ \label{tab:improve:learnRegions}
+\end{table}
+
+\clearpage
+\subsection{Dealing with sparse input data} \label{sec:improve:peakDensity}
+As already mentioned in \autoref{sec:intro:chipseq} and \autoref{fig:priorW:hicpredFlow}, 
+hicprediction thus far relies on narrowPeak-files for incorporating ChIP-seq data.
+Compared to the length of the single chromosomes, 
+the number of peaks contained in these files is often small.
+For example, in K562, there are 2180 ChIP-seq peaks in the CTCF-narrowPeak file for chromosome 17, 
+while the length of the chromosome is \SI{81195210}{\bp}\footnote{reference genome hg19} -- roughly one peak every \SI{37246}{\bp}.
+After binning at \SI{5}{\kilo\bp} resolution, only 1943, or 11.96\% of \num{16240} CTCF bins are nonzero in K562, 
+cf.\,\autoref{tab:improve:numbernonzerobins}.
+\begin{table}[htb]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lS[table-format=2.2]S[table-format=2.2]S[table-format=2.2]S[table-format=2.2]S[table-format=2.2]S[table-format=2.2]S[table-format=2.2]S[
+table-format=2.2]S[table-format=2.2]S[ table-format=2.2]}
+\hline
+\multirow{2}{*}{protein} & \multicolumn{2}{c}{GM12878} & \multicolumn{2}{c}{HMEC} & \multicolumn{2}{c}{HUVEC} & \multicolumn{2}{c}{K562} & 
+\multicolumn{2}{c}{NHEK} \\
+         & pk    & bw    & pk    & bw    & pk    & bw    & pk    & bw    & pk    & bw    \\ \hline
+CTCF     & 10,39 & 94,86 & 9,01  & 94,77 & 9,75  & 94,36 & 11,96 & 94,42 & 10,68 & 93,85 \\
+DNaseI   & 29,53 & 93,95 & 34,05 & 93,80 & 28,25 & 93,61 & 27,03 & 94,28 & 31,38 & 93,94 \\
+H3K4me1  & 9,06  & 93,83 & 9,48  & 94,52 & 9,01  & 94,05 & 8,34  & 94,33 & 10,39 & 93,23 \\
+H3K4me2  & 2,51  & 94,54 & 2,08  & 94,78 & 6,45  & 94,30 & 6,70  & 94,44 & 7,07  & 94,20 \\
+H3K4me3  & 11,06 & 94,55 & 8,23  & 94,66 & 7,92  & 94,18 & 9,76  & 93,93 & 12,60 & 93,44 \\
+H3K9ac   & 12,19 & 94,59 & 17,34 & 94,90 & 14,53 & 94,04 & 15,14 & 94,16 & 18,28 & 93,53 \\
+H3K9me3  & 12,64 & 94,20 & 13,78 & 94,73 & 10,92 & 94,08 & 11,07 & 94,14 & 15,25 & 93,89 \\
+H3K27ac  & 7,78  & 94,77 & 8,90  & 94,61 & 6,91  & 93,96 & 7,39  & 94,42 & 8,86  & 94,22 \\
+H3K27me3 & 8,95  & 94,83 & 6,96  & 94,95 & 6,50  & 94,85 & 7,19  & 94,83 & 6,88  & 95,26 \\
+H3K36me3 & 7,16  & 94,33 & 7,37  & 94,74 & 7,77  & 94,17 & 6,64  & 94,48 & 9,61  & 94,34 \\
+H3K79me2 & 3,75  & 94,95 & 8,19  & 94,76 & 7,57  & 95,21 & 1,03  & 95,14 & 10,95 & 95,33 \\
+H4K20me1 & 2,42  & 94,56 & 1,75  & 95,06 & 1,77  & 94,60 & 5,21  & 94,53 & 3,50  & 94,22 \\ 
+	 &\multicolumn{10}{l}{\scriptsize total 16240 bins, pk: narrow-/broadPeak, bw: bigwig} \\ \hline
+\end{tabular}}
+\caption{percentage of nonzero bins for chr17 at \SI{5}{\kilo\bp} resolution}
+\label{tab:improve:numbernonzerobins}
+\end{table}
+
+Even with the 12 proteins used throughout this masterproject,
+the training sets remain quite sparse.
+When discarding empty samples to avoid inverted triangles and gradient-style predictions, often only few valid samples
+remain in the datasets, causing fragmented predictions, \autoref{fig:results:pk:noEmpty:5k}.
+
+To reduce the number of empty ranges in the predictions, two simple techniques were tried first,
+\emph{filling empty areas in the predicted matrix} using a two-dimensional Gaussian kernel and 
+\emph{filling empty bins in the inputs} using a one-dimensional Gauss filter on each of the narrowPeak Files.
+While the first filtering approach is mitigating the symptoms, 
+the second is addressing the underlying problem of sparse input data directly.
+Both smoothing techniques could in principle also be combined, but this has not been investigated.
+
+Another option for dealing with sparse inputs 
+is coarsening the resolution of all Hi-C matrices to \SI{25}{\kilo\bp}.
+This leads to a five times smaller number of bins in every chromosome, 
+reducing the probability of empty bins and thus the sparsity of the input data.
+
+Since the three approaches mentioned above either did not yield satisfying results or involved a loss of resolution, 
+another approach directed at generating more dense inputs was made.
+The reason for the narrowPeak-files being sparse is that they contain peaks only at
+those genomic positions were a certain protein is most likely to interact with the appropriate DNA.
+However, it is also possible to directly use the (normalized) number of mapped ChIP-seq reads per genomic position for the 
+protein of interest, the so-called read coverage, and let the random forest learn the relation
+between read coverage and interaction count itself.
+For convenience, the read coverage was computed from the mapped reads in BAM-format and stored in so-called bigwig files, see \autoref{sec:methods:chipseqdata}.
+It is obvious from \autoref{fig:improve:bigwigVsNarrowPeak} and \autoref{tab:improve:numbernonzerobins} 
+that these files cover more genomic positions than the corresponding narrowPeak files, 
+but they may also have the  disadvantage of including background noise.
+\begin{figure}[htb]
+ \centering
+ \small
+ \resizebox{\textwidth}{!}{
+ \import{figures/}{bigwigVsNarrowPeak.pdf_tex}}
+ \caption{ChIP-seq data for CTCF from bigwig and narrowPeak files}
+ \label{fig:improve:bigwigVsNarrowPeak}
+\end{figure}
+
+This is because they usually contain reads from genomic positions where the proteins of interest
+were found only accidentally, 
+e.\,g. because they were floating around these positions when the fixation step of the ChIP-seq process
+(\autoref{fig:intro:HiC}, top) was performed.
+
+The results for the two filter-based approaches and predictions from bigwig files at 5 and \SI{25}{\kilo\bp} resolution 
+are shown in \autoref{sec:res:dealing_with_sparse_input}.
+
+\subsection{Scaling protein signal values and Hi-C interaction counts}
+Remarkably, no matter which types of input files were used thus far, 
+the absolute values of the predicted Hi-C interaction counts were usually not in the target range, 
+and sometimes off by factors of 5 or more, see e.\,g. \autoref{fig:results:bigwig:allsamples}. 
+Such discrepancies can arise when the magnitude and distribution of the values in training samples differ from 
+the target -- which is often the case for the cell lines and chromosomes used throughout this masterproject.
+For example, when predicting K562 from GM12878, 
+the random forest is trained on interaction counts from GM12878, 
+which are mainly in the range [0...4000], \autoref{fig:GM12878:K562:interactionCountDistribution} top panel.
+As the algorithm has seen many training samples within this value range,
+it overestimates the interaction counts from K562, 
+which are actually mostly in the smaller range [0...800],
+\autoref{fig:GM12878:K562:interactionCountDistribution} bottom panel.
+To circumvent this, all Hi-C matrices were scaled to the same fixed value range on a per-chromosome basis.
+Four ranges were tried, [0...1], [0...10], [0...100] and [0...1000]; the results are shown in \autoref{sec:res:normalization}.
+\begin{figure}
+ \small
+ \centering
+ \import{figures/}{chr17_readCountDistribution_GM12878-K562.pdf_tex}
+ \caption{Hi-C interaction count distributions for chr17}
+ \label{fig:GM12878:K562:interactionCountDistribution}
+\end{figure}
+
+Looking at the protein data, it can be seen that the absolute read coverage values (signal values)
+also vary significantly among the 12 inputs of each cell line, see e.\,g. \autoref{fig:GM12878:bigwig:lowest-highest}.
+The same holds for the signal values of narrow- and broadPeak files.
+The signal values were thus again scaled into the same fixed ranges as above, on a per-chromosome basis.
+\begin{figure}
+ \scriptsize
+ \centering
+ \import{figures/}{GM12878_bigwigSignalLevels_lowestHighest.pdf_tex}
+ \caption{bigwig signal value comparison GM12878, chromosome 17}
+ \label{fig:GM12878:bigwig:lowest-highest}
+\end{figure}
+
+In a further test, all protein signal values were scaled by dividing them by their respective mean.
+This somewhat unorthodox way of scaling was found commented out in the code by Zhang et al. \cite{Roy2020}.
+Division-by-mean scaling reduces the value ranges of all proteins, 
+as the mean values of the protein signals are all greater than one,
+but does not guarantee a uniform value range, 
+\autoref{fig:app:prots:valueRangeBefore} and \ref{fig:app:prots:valueRangeDivByMean}.
+For chromosome 17, it turned out that the divisors differed from protein to protein, 
+but within a single protein, they were often roughly equivalent across all five cell lines, \autoref{fig:app:prots:divByMeanFactors}.
+Note that a unified range could be achieved by subsequent value range scaling, but this was not tested.
+
+Feature- and interaction count scaling should theoretically not affect the performance of hicprediction.
+Pearson correlation is invariant to scaling by definition,
+and random forests, unlike many other supervised learning techniques, are also impervious to different value ranges of the features.
+The latter holds because split points for the decision trees are only computed for a single feature at a time, 
+compare \autoref{sec:prior:randomForests}.
+For example, if the optimal cut-point was 0.8 for a certain feature with value range [0...1],
+it would simply be 8.0 for the same feature scaled to range [0...10], 
+and the cut-point would be no different, if another feature had value range [0...5] or [20...1000].
+However, adjusting value ranges should be useful
+for concatenating datasets from different cell lines (cf.\,\autoref{sec:improve:concatdatasets}) and can
+help avoid problems interpreting feature importances \cite{Strobl2007}.
+
+\subsection{Concatenating datasets and predictions from different cell lines} \label{sec:improve:concatdatasets}
+In the previous sections, only training data from single cell lines have been used at a time 
+to predict interactions in another cell line.
+However, as the cell lines used within this masterproject have different biological functions, 
+they are likely to have alternative 3D-conformations, too.
+This means that different relations between proteins and Hi-C interaction counts
+can be learned from each cell line, so that the choice of the training cell line can make a significant difference.
+
+To reduce the dependency on the choice of the training cell line on the one hand 
+and make full use of all available training data on the other hand,
+two approaches were investigated.
+Firstly, it is obviously possible to train models separately for all (four)
+available cell lines, sum up the predicted matrices and compute the mean.
+This is somewhat similar to the \textsc{ensemble} approach by Zhang et al. \cite{Zhang2019}
+and can easily be accomplished using existing scripts from \texttt{deeptools}, see \autoref{sec:methods:concatenating}.
+Secondly, although the \textsc{multi-cell} approach from \cite{Zhang2019} is not yet implemented,
+it is still possible to create a joint dataset by simply concatenating the datasets from the single training 
+cell lines into one larger dataset.
+This joint dataset can then be used as input to the existing training- and prediction modules of hicprediction.
+
+The results of both concatenation approaches are to be found in \autoref{sec:res:concat}.
+
+\subsection{Emphasizing certain samples}
+Revisiting the read count distribution in \autoref{fig:GM12878:K562:interactionCountDistribution},
+it is obvious that the vast majority of training samples
+will have an interaction count close to zero. 
+The random forest is thus likely to associate the protein inputs of the corresponding training samples
+with small interaction counts.
+However, structures like TADs should correspond to samples with nonzero, hopefully comparatively high 
+interaction counts, which seem underrepresented in the training data.
+In total, three options to improve on this were investigated.
+First, samples with ``high'' Hi-C interaction counts were given higher weights
+to make them more relevant when the splits for the single decision trees were computed.
+Second, samples within certain TADs were given higher weights, and finally, 
+samples with ``high'' CTCF signal value were given higher weights.
+The last method is based on the idea that CTCF is known to be enriched in TADs \cite{Lee2012},
+and determining samples with ``high'' CTCF signal value is easier than finding TADs.
+
+A problem common to all methods mentioned above is that the choice of the samples to emphasize is 
+not straightforward -- for example, there is no obvious way to define ``high'' CTCF signal values.
+Within this report, three parameters were used to select and weight samples: $lower$ and $upper$ for
+selecting samples based on their CTCF signal value and interaction count, respectively, and a factor $k$, which 
+allows to control the weights of the selected samples in relation to the weights of the non-selected ones.
+To find optimal values for the three parameters, a search strategy based on tree-structured Parzen estimators
+was followed, cf. \autoref{sec:methods:emphasizing}.
+For TAD-based weighting, TADs were called with an established algorithm and samples within TADs were 
+weighted using a factor $k$ as above, see \autoref{sec:methods:emphasizing} for details.
+
+One further approach, which is in a similar spirit as the weight-based ones above,
+was again borrowed from Zhang et al. \cite{Zhang2019}. 
+Although apparently not documented anywhere in the paper,
+the supplementary data as well as the two small plots of predicted matrices, 
+\autoref{fig:priorW:hicregPredictions},
+suggest that interacting pairs with a distance of less than \SI{5000}{\bp} have been discarded
+from the HiC-Reg datasets. 
+Since the highest interaction counts typically occur at the lowest distances,
+this way of pruning the datasets predominantly discards samples with high interaction counts
+and thus implicitly gives more weight to samples with \emph{lower} interaction counts.
+As a side effect, outliers with very high interaction counts are often also removed,
+because they commonly stem from the main- or first side diagonal of the matrix, i.\,e. have a distance below \SI{5}{\kilo\bp}.
+
+The results of all sample-emphasizing methods are to be found in \autoref{sec:res:emphasizing}.
+
+\subsection{Replacing random forest by extra tree regression}
+Extremely randomized trees, or extra trees, are an advancement from random forests \cite{Geurts2006}.
+They have the same adjustment parameters as random forests and are thus a natural choice to be investigated.
+
+The main difference between the two models is that the computation of the cut-points is randomized in extra trees,
+while random forests always search for the optimal cut-point in the given (sub-)set of features.
+Additionally, extra trees typically draw from the training datasets without replacement,
+while random forests use bootstrapping by default.
+Both changes are meant to reduce variance while maintaining a low bias \cite{Geurts2006}.
+
+The results for all improvement ideas discussed above, as well as a concluding comparison between
+(improved) hicprediction- and HiC-Reg results will be shown in \autoref{sec:results:main},
+while the following \autoref{sec:methods:main} will provide implementation details for the methods introduced above.
+

@@ -1,0 +1,379 @@
+\section{Methods} \label{sec:methods:main}
+In the following subsections, implementation details are provided for the measures to improve
+hicprediction described in \autoref{sec:improve:main},
+preceded by a description of input data preparation.
+Finally, the approach for comparing hicprediction and HiC-Reg is discussed.
+
+\subsection{Hi-C matrices and matrix plots} \label{sec:methods:matricesAndPlots}
+As in Zhang et al. \cite{Zhang2019}, Hi-C matrices of five well-investigated training and test cell lines were taken from Rao et al. \cite{Rao2014}. 
+All matrices were downloaded directly from the gene expression omnibus, accession GSE63525, in .hic-format, see \autoref{tab:methods:hicmatrices}.
+In all cases, the ``combined\_30'' datasets were selected, 
+which contain only high-quality read pairs from primary and replicate.
+\begin{table}[h]
+ \begin{tabular}{lll}
+ \hline
+ cell line & file name & link\\
+ \hline
+ GM12878 & GSE63525\_GM12878\_insitu\_primary+replicate\_combined\_30.hic & \cite{GM12878mx}\\
+ HMEC & GSE63525\_HMEC\_combined\_30.hic & \cite{HMECmx}  \\
+ HUVEC & GSE63525\_HUVEC\_combined\_30.hic & \cite{HUVECmx} \\
+ K562 & GSE63525\_K562\_combined\_30.hic & \cite{K562mx} \\
+ NHEK & GSE63525\_NHEK\_combined\_30.hic & \cite{NHEKmx} \\
+ \hline
+ \end{tabular}
+ \caption{File names and links for Hi-C matrices}
+ \label{tab:methods:hicmatrices}
+\end{table}
+
+All Hi-C matrices were then converted to cooler format using \texttt{hic2cool convert}, version 0.7.1. 
+This was done twice, for \SI{5000}{\bp} and \SI{25000}{\bp} resolution, using \texttt{hic2cool}'s \texttt{-r} option with values of \num{5000} and \num{25000}, 
+respectively.
+For HMEC, HUVEC and NHEK, \SI{5}{\kilo\bp} is the highest available resolution.
+
+All heatmap plots of Hi-C matrices within this report were made with \texttt{pyGenomeTracks} setting a width of \SI{15}{\centi\meter}
+at 200\,dpi resolution (\texttt{--width 15 --dpi 200}), using the log scale plus one, ``log1p''.
+As is common for Hi-C matrices, only the upper or lower triangular part is shown, rotated counterclockwise by \SI{45}{\degree},
+so that the diagonals become horizontal lines.
+The plotted region is given at the bottom of each plot -- here, chromosome 17, 12...\SI{15}{\mega\bp} was often used,
+because this region originally featured many ``inverted triangles'' and ``gradient-style'' predictions, 
+see \autoref{fig:improve:gradientsTrianglesBefore}.
+Any improvements made to the predictions were thus thought to appear particularly obvious in this region.
+The color coding of the plots was approximately scaled to the actual value range in the plotted region,
+and not to the value range of the full matrix.
+This is advantageous for identifying structures in the plots, 
+but also means that different plots as well as different panels in the same plot may have different scales and color coding.
+To ensure comparability with the data from Zhang et al. \cite{Zhang2019}, 
+only interacting regions with a distance below \SI{1}{\mega\bp} were considered for hicprediction,
+and the plots were limited to \SI{1.1}{\mega\bp}.
+
+\subsection{ChIP-seq data} \label{sec:methods:chipseqdata}
+In their publication on HiC-Reg \cite{Zhang2019}, Zhang and colleagues used data from 14 proteins and histones, which they partially downloaded from ENCODE and 
+partially feature-engineered, see table \autoref{tab:methods:protHistList} for a list of all features used.
+\begin{table}[h]
+\centering
+\begin{minipage}{0.6\textwidth}
+ \begin{tabular}{lc@{\hskip 10mm}ccc}
+  \hline
+	  &	    & \multicolumn{3}{c}{hicprediction}\\	
+  protein & HiC-Reg &  npk & bpk & bigwig\\
+  \hline
+  CTCF		& + & + & - & +\\
+  DNaseI	& + & + & - & +\\
+  H3K27ac 	& + & + & - & +\\
+  H3K27me3 	& + & + & - & +\\
+  H3K36me3 	& + & + & - & +\\
+  H3K4me1 	& + & + & - & +\\
+  H3K4me2 	& + & + & - & +\\
+  H3K4me3 	& + & + & - & +\\
+  H3K79me2 	& + & 1) & 2) & + \\
+  H3K9ac 	& + & + & - & +\\
+  H3K9me3 	& + & 1) & 2) & + \\
+  H4K20me1 	& + & + & - & +\\
+  RAD21 	& + & - & - & -\\
+  TBP		& + & - & - & -\\
+  \hline\\
+ \end{tabular}
+\end{minipage}
+\begin{minipage}{0.35\textwidth}
+ \scriptsize npk: narrowPeak\\ 
+ \scriptsize bpk: broadpeak\\
+ \scriptsize 1) GM12878, K562\\
+ \scriptsize 2) HMEC, HUVEC, NHEK
+\end{minipage}
+ \caption{proteins and histones for HiC-reg and hicprediction}
+ \label{tab:methods:protHistList}
+\end{table} 
+
+For hicprediction, the relevant narrowPeak files of the proteins and histones in \autoref{tab:methods:protHistList} were downloaded from ENCODE/Broad Institute 
+\url{http://ftp.ebi.ac.uk/pub/databases/ensembl/encode/integration_data_jan2011/byDataType/peaks/jan2011/spp/optimal/} 
+and unpacked into separate folders, one per cell line. 
+DNAse data was downloaded from \url{ 
+https://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeOpenChromDnase/}.
+Next, the 12 files in each of the five folders were renamed such that the lexicographic order of the files, 
+and thus the order of processing in hicprediction, was the same within each folder.
+
+To enable working with higher-density input data, BAM files containing mapped reads from ChIP-seq experiments were downloaded from 
+\url{https://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeBroadHistone/} (proteins, histones) and 
+\url{https://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeOpenChromDnase/} (DNaseI). 
+The files were then indexed using \texttt{samtools} version 1.9
+and aggregated into bigwig files using \texttt{bamCoverage} version 3.3.1. 
+These steps were done for replicate 1 and 2 of each ChIP-seq experiment.
+Next, the mean read coverage was computed from each pair of replicates using \texttt{bigwigCompare} version 3.3.1, 
+resulting in a single bigwig file per cell line per protein/histone/DNaseI.
+The full commands and their corresponding options are given below in \autoref{list:methods:bamtobigwig} (p.\;\pageref{list:methods:bamtobigwig}).
+Finally, the bigwig files were renamed as described above.
+
+Bigwig files can efficiently be queried for aggregated read counts from selected regions
+and are comparatively small when stored at a resolution of \SI{5}{\kilo\bp}, which allows fast and simple protein binning.
+For all ChIP-seq experiments in this masterproject, bigwig files could also have been downloaded directly from the sources mentioned above.
+However, it proved difficult to find out how exactly these files were created, so this was not done.
+
+In HMEC, HUVEC and NHEK, ChIP-seq data for H3k79me2 and H3k9me3 are not available in narrowPeak,
+but instead in broadPeak format. This is format-wise essentially the same as narrowPeak
+without the ``Peak'' column, i.\,e. without the position of the called peaks. 
+BroadPeak files were downloaded from 
+\url{https://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeBroadHistone/}, 
+unpacked and renamed as described above. 
+Hicprediction was then modified to internally convert the broadPeak files to 
+narrowPeak, taking $\lfloor\frac{start + end}{2}\rfloor$ as peak position. 
+It is possible to use narrowPeak-, broadPeak- and bigWig-files simultaneously in hiprediction, 
+provided the same order of the inputs is maintained across all cell lines and chromosomes, cf.\;\autoref{sec:res:dealing_with_sparse_input}.
+
+For RAD21 and TBP, no BAM-files and neither of the three usable file formats bigwig, narrow- or broadPeak 
+could be found for cell lines HMEC, HUVEC and NHEK.
+This is probably because no ChIP-seq experiments have been published for those two proteins in these three cell lines so far.
+RAD21 and TBP were therefore exluded from hicprediction to maintain compatibility among the datasets from different cell lines.
+
+Text files containing the download links for all protein- and histone files in BAM- and narrow-/broadPeak format can be found in the github repository
+\cite{Krauth2020}; \texttt{wget -i} can be used with these to conveniently download all relevant files for each cell line at once.
+
+ChIP-seq data in bigwig- and narrowPeak format were plotted with pyGenomeTracks, 
+the bin number of the bigwig files being adjusted according to the bin size of the corresponding Hi-C matrices.
+
+\subsection{Random forest and Extra trees implementation} \label{sec:methods:randomForestImplementation}
+Hicprediction's random forest implementation is imported from sklearn.ensemble \cite{Pedregosa2011,scikitEnsemble2019}.
+All parameters are adjustable from the command line, but only the default values in \autoref{list:methods:RandomForestRegressor} 
+(p.\;\pageref{list:methods:RandomForestRegressor}) were used for the investigations in this report, 
+compare \emph{training.py} in the github repository \cite{Krauth2020}.
+
+The number of trees, \texttt{n\_estimators}, and the \texttt{max\_features} parameter,
+which controls the number of features drawn at random for each split,
+were chosen to match the corresponding settings of HiC-Reg.
+All other parameters are either sklearn defaults or were set to values deemed reasonable for the task at hand.
+
+The extra trees algorithm was also imported from sklearn.ensemble, 
+using the same parameters as shown in \autoref{list:methods:RandomForestRegressor} for the random forest, 
+except for \texttt{bootstrap}, which was set to \texttt{False}.
+To allow handling random forests and extra trees in the same module, 
+the boolean parameter \texttt{--useExtraTrees} has been added to \emph{training.py} to select
+the desired algorithm, see the hicprediction github for details \cite{Krauth2020}.
+
+\subsection{Investigations on discarding empty samples and input density} \label{sec:methods:discardEmpty}
+The example training- and test matrices for investigations on empty samples in \autoref{sec:improve:emptySamples} 
+were created using a small python script, \emph{createFakeMatrices.py}, which is available from the masterproject github repository \cite{Krauth2020}.
+The bin width (matrix resolution) was set to \SI{20000}{\bp} and the maximum distance to \SI{4000000}{\bp}, 
+which yields \num{79900} training samples. 
+The ``interacting region'' was adjusted to be \SI{2000000}{\bp} wide, which corresponds to \num{5050} training samples, 
+each with a read count of 100.
+The ChIP-seq data was entered into hicprediction as narrowPeak files, these were simply handmade with a text editor.
+Each peak was \SI{200}{\bp} wide with peak positions at \num{4000000} / \num{5000000} / \SI{5999999}{\bp} for training 
+and \num{5000000} / \num{6000000} / \SI{6999999}{\bp} for test.
+The signal value was 10 in all cases.
+
+For protein input smoothing, standard functions from pandas \cite{McKinney2010} were used to apply
+gaussian kernels, in this case truncated at four times the standard deviation (but at least one bin on either side),
+see \emph{createTrainingSet.py} for details \cite{Krauth2020}. 
+The standard deviation $\sigma$ was manually adjusted between 0.1 and 10 until acceptable results were obtained;
+the values used in \autoref{sec:res:dealing_with_sparse_input} are stated in the respective figures.
+
+For matrix smoothing, the \texttt{gaussian\_filter} function from scipy.ndimage \cite{Virtanen2020, SciPyNdimage2019} was used,
+again manually adjusting the standard deviation, see \emph{predict.py} \cite{Krauth2020}.  
+This filter was also truncated at four times the standard deviation.
+
+Two different options for discarding ``empty samples'' without start- and end-feature were considered, 
+termed \emph{single-protein-rectification} and \emph{any-protein rectification}.
+Single-protein rectification means keeping only samples in the datasets where at least one protein has nonzero start- and end-features. 
+Any-protein-rectification on the other hand keeps samples where at least one start- and at least one end-feature are nonzero, 
+no matter from which of the proteins.
+It is obvious that any-protein-rectified datasets are in general a superset of single-protein-rectified datasets, 
+because they contain all samples from single-protein rectification and additionally such samples where at least two
+different proteins have nonzero start- and end feature, but no single protein has both nonzero start- and end-feature.
+These additional samples all have zero window features, 
+while the single-protein approach keeps only -- but generally not all -- samples with at least one nonzero window feature.
+
+Since it seemed impossible to conclude theoretically whether the single- or the any-protein-method is better, 
+the decision was made empirically.
+To this end, \textsc{cross-cell} predictions were conducted from GM12878 on K562 at \SI{25}{\kilo\bp} resolution 
+on chromosomes 9 and 17 using both approaches.
+Across all tested datasets, the difference in the sample numbers was typically small.
+The predictions were thus highly similar, with slightly better results for any-protein rectification in some cases.
+All investigations in this report that involved removing empty samples were therefore made using any-protein rectification.
+
+Rectification was always done on both training- and test set 
+to prevent the algorithm from learning invalid decision criteria
+in areas with insufficient input data.
+Positions in the target matrix which could not be predicted due to unavailability of inputs
+were left unset in the sparse matrix data structure, corresponding to zero interaction count.
+Distance stratified Pearson correlation was always computed including these ``trivial'' zero counts.
+
+\subsection{Scaling interaction counts and protein signal values} \label{sec:methods:normalization}
+The interaction counts were scaled to value ranges [0...1], [0...10], [0...100] and [0...1000] 
+according to \autoref{eq:normInteractCount}, 
+where $sampleMin$ and $sampleMax$ are the minimum and maximum value of a certain feature 
+across all samples in a given per-chromosome dataset.
+It should be noted that for typical Hi-C matrices, $sampleMin$ is zero and $targetMin$ was
+set to zero, so that, with regard to interaction counts, eq.\,\ref{eq:normInteractCount} is effectively a multiplication.
+\begin{equation}\label{eq:normInteractCount}
+ scaledValue = targetMin + \frac{actualValue - sampleMin}{sampleMax - 
+sampleMin} \cdot (targetMax - targetMin)
+\end{equation}
+For convenience, value range scaling was performed using the MinMaxScaler class from
+the sklearn.preprocessing module.
+To suppress noise, values below 0.001 were set to zero after scaling, 
+except for computations with value range [0...1], where no set-to-zero threshold was applied.
+The predicted interaction counts were scaled like the training inputs, using the same value ranges and thresholds.
+
+For protein scaling, Hi-C matrices were first scaled to range [0...1000] with a set-to-zero threshold of 0.001.
+Value range scaling was then applied to the protein inputs in the same fashion as described above, using the same value ranges.
+For division-by-mean scaling, all proteins in a given dataset 
+were divided by their respective mean without additional value range scaling.
+
+Both for matrix- and protein scaling, bigwig files were used as inputs without dropping any values. 
+
+\subsection{Concatenating datasets and predictions from different cell lines} \label{sec:methods:concatenating}
+To concatenate \emph{predictions} from GM12878, HMEC, HUVEC and NHEK on K562,
+predictions from the first-named four cell lines on K562 were separately computed as before, 
+using bigwig files without sample dropping and scaling as inputs.
+The four training matrices and the target matrix were scaled to [0...1000] with set-to-zero threshold of 0.001.
+Next, the four predicted cooler matrices were summed using \texttt{hicSumMatrices} version 3.4.1
+and then divided by four using \texttt{hicNormalize} version 3.4.1 \cite{Ramirez2016}.
+Details can be found in \autoref{list:methods:averagePredictions} (p.\;\pageref{list:methods:averagePredictions}).
+
+To make a prediction on K562 from concatenated \emph{datasets},
+all of them, including the target dataset for K562, were first computed separately as usual, 
+again taking bigwig files without sample dropping as protein inputs.
+Here, the matrices were scaled to [0...1000] with set-to-zero threshold 0.001 and the proteins were used
+in their original value ranges.
+The datasets from GM12878, HMEC, HUVEC and NHEK were then concatenated 
+using the \texttt{concatTrainSet.py} python script \cite{Krauth2020} with the four
+datasets as inputs and standard options otherwise.
+Training was subsequently performed on the concatenated dataset, and finally
+the resulting model was taken to predict the target matrix as usual.
+
+\subsection{Emphasizing certain samples} \label{sec:methods:emphasizing}
+To emphasize samples according to their interaction count, 
+all samples were first given an equal weight of one.
+Next, samples with interaction counts in the range $[lower, upper]$ were selected,
+and their weight was adjusted such that the weight sum of the selected samples
+was $k$-times the weight sum of the unselected samples, \autoref{eq:targetWeight0} and \ref{eq:targetWeight},
+where $k$ is an adjustable numeric parameter.
+\bgroup
+ \small
+\begin{align}
+ k &= \frac{targetWeight \cdot numberWeightedSamples}{1 \cdot numberUnweightedSamples} \label{eq:targetWeight0}\\ 
+ targetWeight &= k \cdot \frac{numberUnweightedSamples}{numberWeightedSamples} \label{eq:targetWeight}
+\end{align} \egroup
+The target weight was rounded to integer, 
+since the default weight of the sklearn.ensemble methods is of integer type.
+
+Finally, five-fold cross-validation (CV) was performed on the modified dataset,
+whereby the weights were only applied to the five training sets.
+To measure the performance of a certain parameter setting, the loss function was then defined by virtue of \autoref{eqn:methods:loss}
+\bgroup
+\small
+\begin{equation} \label{eqn:methods:loss}
+ \textrm{loss}(lower,upper,k) = 1 - \textrm{mean}[\textrm{testScore}_1(lower,upper,k)...\textrm{testScore}_5(lower,upper,k)]
+\end{equation} \egroup
+where $\textrm{testScore}_n$ is defined as the $R^2$-coefficient of determination of the n-th CV-test set for the given
+parameters $lower$, $upper$ and $k$.
+It holds that $\forall (lower,upper,k) \in \mathbb{R}^3:\; \textrm{loss} \in [0,\infty)$, 
+since $R^2 \in (-\infty,1]$ and thus 
+$\forall n \in 1,2,...,5:\; \textrm{testScore}_n(lower,upper,k) \in (-\infty,1]$.
+
+To find a suitable factor and range for sample weighting, hyperopt \cite{Bergstra2011} was applied, 
+using its tree-parzen-estimator based search strategy to minimize the loss function.
+To this end, evaluations of the function were performed with 200 different parameter combinations,
+whereby $lower$ and $upper$ were uniformly sampled from the interaction count value range,
+and factor $k$ was uniformly sampled from $[0.1, 100]$.
+Due to the long run time of the parameter search -- 200 evaluations of the loss function
+took about \SI{24}{\hour} on the available infrastructure -- the optimized 
+parameters could only be determined 
+for chromosome 17 of the GM12878 cell line; 
+these were subsequently applied to the full training set and used to predict interaction counts in K562.
+
+For the CTCF-based sample-emphasizing, the same procedure as above was followed,
+only the sample selection was based on CTCF start-, end- and window-feature instead of interaction counts.
+The full code for searching interaction count- and CTCF-based sample weighting parameters
+can be found in the \emph{weightingParameterSearch.py} module on github \cite{Krauth2020}.
+Among other adjustment parameters, the names of the features used for computing the weights can be modified
+from the command line, so that the code can also be used to compute weights based on other proteins than CTCF.
+
+For the TAD-based sample weighting method, TADs were called on the training cell line using 
+version 3.4.1 of \texttt{hicFindTADs}, \autoref{methods:list:TADs} (p.\;\pageref{methods:list:TADs}). 
+Due to time constraints, again, only GM12878 was used for training, and the parameters
+were adjusted manually until the detected TADs ``looked good'' -- unfortunately, there is 
+no ground truth with regard to TADs, which is a clear weakness of this approach. 
+
+All samples within TADs shorter than \SI{0.5}{\mega\bp} were then selected
+and weighted with factor $k$ and $targetWeight$ defined as in \autoref{eq:targetWeight}.
+Unlike interaction-count- and feature-based weighting, TAD-based weighting was only tested
+for fixed factors $k\in\{0.1,1.0,10,100\}$, to save time but still find out if there was an effect 
+worth being investigated in more detail.
+The length restriction was chosen on the one hand to emphasize structures shorter than \SI{0.5}{\mega\bp}, which were
+often not present in the predictions, and on the other hand to exclude very long TADs which
+\texttt{hicFindTADs} often reports e.\,g. across centromere regions.
+
+In order to remove the ``diagonal'' from the predictions as (probably) done by Zhang et al.,
+all samples with $distance \leq 1$ were discarded, in this case both from the training and test datasets.
+Apart from that, predictions were computed as usual.
+Note that hicprediction records distance in bins, whereas HiC-Reg is using basepairs.
+
+For all sample-weighting investigations, interaction counts were scaled to [0...1000], 
+while protein data were taken in bigwig format, in their original value ranges and without dropping empty samples.
+
+\subsection{Comparison between HiC-Reg and hicprediction}
+To compare hicprediction to HiC-Reg, the corresponding input parameters were set to match, if known.
+This means that the default random forest was used for hicprediction (see \ref{sec:methods:randomForestImplementation}),
+and both empty samples and samples with a distance
+below \SI{5}{\kilo\bp} were discarded, see subsections \ref{sec:methods:discardEmpty}
+and \autoref{sec:methods:normalization}.
+The proteins were not scaled, but matrices were adjusted to a value range of [0...1000].
+Hicprediction was then amended to allow a 5-fold cross-validation as described by Zhang et al. 
+Here, the training data was split using sklearn's \texttt{cross\_validate()} function,
+five models were trained and subsequently used for predicting the target cell line. 
+The single predictions were then combined into one by taking the mean analogous to \autoref{sec:methods:concatenating}.
+
+To generate high-quality plots of the predictions in \cite{Zhang2019}, supplementary data
+were downloaded from \cite{zhangMaterial01,zhangMaterial02,zhangMaterial03} and converted to cooler format using hicprediction's 
+\emph{convertHiCRegPrediction.py} script \cite{Krauth2020}. 
+That same script also computes Pearson correlation with respect to the target interaction counts
+stored in the data.
+It is not exactly known how the target data has been obtained, 
+but it must have been processed in some way, 
+as the value range differs from the original one in \cite{Rao2014}.
+
+To reduce the impact of different input data and improve comparability, 
+HiC-Reg predictions were additionally computed with training data 
+generated by hicprediction.
+For this purpose, five hicprediction (cross-validation) training- and test datasets were generated as described above and then 
+converted to text format using the \emph{convertForHicReg.py} script to be found on github \cite{Krauth2020}.
+With these datasets, training and prediction were performed using the \texttt{regForest} binary as 
+described in sections 2.1 and 2.2 of the HiC-Reg readme \cite{Roy2020}.
+The numeric parameters leaf size $l$, maxfactorsize $k$ and number of trees $n$ were
+chosen as in the readme, i.\,e. $k=1$, $l=10$, $n=20$.
+The priors file $b$ was handmade with a text editor based on the example file given
+in the readme, containing only the 12 proteins available for hicprediction, cf. \autoref{sec:methods:chipseqdata}.
+Since the regForest binary was not available from github, it was recompiled
+with g++ version 5.4.0 (20160609) on Ubuntu 16.04. LTS, dynamically linking against the
+corresponding libgslcblas- and libgsl libraries.
+
+Additionally, \textsc{window}-type predictions were made with HiC-Reg from ground up,
+taking the same Hi-C matrices and BAM files\footnote{here, replicate 2 only; to be repeated with both replicates} 
+as inputs that were used for hicprediction, 
+cf. \autoref{sec:methods:matricesAndPlots} and \ref{sec:methods:chipseqdata}.
+To this end, the BAM files were split up 
+per chromosome using \texttt{samtools} version 1.9
+and the coverage was computed using \texttt{bedtools} \texttt{genomecov} v2.29.2, 
+see \autoref{methods:list:hicregInputs} for an example. 
+This produces a bedgraph-formatted output which can serve as input for binning.
+The latter was done at \SI{5}{\kilo\bp} resolution with respect to the hg19 reference genome, 
+using HiC-Reg's \texttt{aggregateSignal} binary. 
+Unfortunately, this binary requires a third, yet underspecified input, 
+the so-called region file, which was just copied from the examples provided in the repository.
+Next, Hi-C matrices were converted to text using the \emph{convertForHicReg.py} script again, this time discarding its other outputs.
+Window features for HiC-Reg were then generated for all 12 proteins,
+using the \texttt{genDatasetsRH} binary as described in the readme \cite{Roy2020}; refer to \autoref{methods:list:hicregWindow} for an example.
+
+Both the aggregateSignal- and genDatasetsRH binaries are present in the repository, 
+but were also recompiled due to problems with dynamic linking. 
+
+Due to time constraints, comparisons between hicprediction and HiC-Reg 
+were only made for cross-cell predictions GM12878 on K562, chromosome 17,
+using the \textsc{window} method.
+
+Ressource consumption for all steps above 
+was measured with GNU time 1.7, refer to \autoref{methods:list:usrbintime} for the parameters used.
+
+
+
+
