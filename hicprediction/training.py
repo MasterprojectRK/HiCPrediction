@@ -18,6 +18,7 @@ import math
 """ Module responsible for the training of the regressor with data sets.
 """
 @conf.train_options
+@click.version_option()
 @click.command(context_settings=dict(
                                     ignore_unknown_options=True,
                                     allow_extra_args=True))

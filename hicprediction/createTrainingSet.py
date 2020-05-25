@@ -16,18 +16,8 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import math
 
-"""
-Module responsible for creating the training sets
-Is given an optional path to a centromere file, boolean parameters for
-normalization,  and the elimination of centromeres. Furthermore
-parameter that determine the general bin operation and the bin operation for
-the window proteins. The maximum genomic distance can be set as well as an
-output directory for the training sets and the chromosomes that should be
-used for the training sets. The base file from the former script
-(createBaseFile) must also be passed along
-"""
-
 @conf.set_options
+@click.version_option()
 @click.command()
 def createTrainingSet(chromosomes, datasetoutputdirectory, basefile,\
                       normalizeproteins, normsignalvalue, normsignalthreshold, 

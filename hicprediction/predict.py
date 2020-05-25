@@ -23,6 +23,7 @@ conversion of prediction to HiC matrices
 """
 
 @conf.predict_options
+@click.version_option()
 @click.command()
 def executePredictionWrapper(modelfilepath, predictionsetpath,
                       predictionoutputdirectory, resultsfilepath, sigma, noconvertback):

@@ -32,6 +32,7 @@ np.set_printoptions(precision=3, suppress=True)
                # +' files you want to use for the prediction. They should be '+\
                # 'defined for the whole genome or at least, for the chromosomes'\
                # + ' you defined in the options. Format must be "narrowPeak, broadPeak or bigwig"')
+@click.version_option()
 @click.command()
 def loadAllProteins(proteinfiles, basefile, chromosomes,
                    matrixfile,correctmatrix,celltype,resolution,internaloutdir,chromsizefile):
