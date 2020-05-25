@@ -14,3 +14,4 @@ InternalStorage/*
 *.broadPeak
 *.bigwig
 *.chrom.sizes
+*.pyc
