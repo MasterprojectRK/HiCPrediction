@@ -6,111 +6,99 @@ import json
 
 
 _setAndProtein_options = [
-    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
-        help='Base file where to store proteins and chromosomes for later use.'),
+    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True,dir_okay=False),
+        help='Base file where to store proteins and chromosomes for later use. Should be given .ph5 file extension'),
     click.option('--chromosomes', '-chs', default=None, show_default=True,help=\
-                "If set, sets are only calculated for these chromosomes instead of all"),
-]
-_predict_base_options = [
-    click.option('--predictionOutputDirectory', '-pod',default=None,\
-                 type=click.Path(exists=True, writable=True),help='Output directory for'\
-                 +' prediction files'),
-    click.option('--resultsFilePath', '-rfp', default=None,show_default=True,\
-              help='File where to store evaluation metrics. If not set'\
-                +' no evaluation is executed'),
-]
-_predict_options = [
-    click.option('--modelFilePath', '-mfp', required=True,type=click.Path(exists=True),\
-              help='Choose model on which to predict'),
-    click.option('--predictionSetPath','-psp', required=True,type=click.Path(exists=True),
-        help='Data set that is to be predicted.'),
-    click.option('--sigma', type=click.FloatRange(min=0.0,max=10.0), default=0.0),
-    click.option('--noConvertBack', is_flag=True, help="Do not clamp predictions to normed input ranges")
+                "If set, datasets are only calculated for these chromosomes instead of all."\
+                    +"Specify chromosomes by numbers only, e.g. 'chs 1' or 'chs 1,3,17'"\
+                    +"Only numerical chromosomes are allowed."\
+                    +"Default: all numerical human chromsomes"),
 ]
 
-_allpredict_options = [
-    click.option('--modelDirectory', '-md', required=True,\
-              help='Choose model directory'),
-    click.option('--testSetDirectory','-tsd', required=True,type=click.Path(writable=True),
-        help='Data set directory'),
-    click.option('--chromosomes', '-chs', default=None, show_default=True,help=\
-                "If set, sets are only calculated for these chromosomes instead of all"),
+_predict_base_options = [
+    click.option('--predictionOutputDirectory', '-pod',default=None,\
+                 type=click.Path(exists=True, writable=True, file_okay=False),\
+                 help='Output directory for prediction files'),
+    click.option('--resultsFilePath', '-rfp', default=None, type=click.Path(writable=False, dir_okay=False),\
+              help='Filename where to store evaluation metrics. Optional. If not set, no evaluation is performed'),
 ]
+
+_predict_options = [
+    click.option('--modelFilePath', '-mfp', required=True,type=click.Path(exists=True, dir_okay=False, readable=True),\
+              help="Hicprediction-model on which to predict. Models are created by calling 'training' and have a .z file extension."),
+    click.option('--predictionSetPath','-psp', required=True,type=click.Path(exists=True, dir_okay=False),
+        help="Dataset that is to be predicted. Datasets are created by calling 'createTrainingSet' and have a .z file extension"),
+    click.option('--sigma', type=click.FloatRange(min=0.0,max=10.0), default=0.0, show_default=True,\
+        help="Standard deviation for smoothing the predicted matrix with a 2D-Gaussian. Zero means no smoothing."),
+    click.option('--noConvertBack', is_flag=True, show_default=True, help="Do not clamp predictions to normed input ranges")
+]
+
 _protein_options = [
-    click.option('--internalOutDir', '-iod', required=False, type=click.Path(writable=True, exists=True), \
-                    help='path where internally used matrices will be stored'),
+    click.option('--internalOutDir', '-iod', required=False, type=click.Path(writable=True, exists=True, file_okay=False), \
+                    help='Path where internally used matrices will be stored. Required if matrixFile is given'),
     click.option('--resolution' ,'-r', required=True, type=click.IntRange(min=1), \
-                help = "Store resolution for analysis and documentation"),
+                help = "Resolution of matrices (e.g. '5000') required for analysis and documentation"),
     click.option('--cellType' ,'-ct', required=True, type=str,\
-                help="Store cell type for analysis and documentation"),
-    click.option('--matrixFile', '-mf',required=False,type=click.Path(exists=True),\
-                 help='Input file with the whole HiC-matrix '),
-    click.option('--correctMatrix', '-corr', type=bool, default=False, help="Correct the matrixFile using Knight-Ruiz method"),
+                help="Cell type used for analysis and documentation, arbitrary string e.g. 'GM12878'"),
+    click.option('--matrixFile', '-mf',required=False,type=click.Path(exists=True, readable=True, dir_okay=False),\
+                 help='Hi-C matrix in cooler format; optional, required only for training, must then at least have all chromosomes specified by -chs option'),
+    click.option('--correctMatrix', '-corr', type=bool, default=True, show_default=True, help="Correct the matrixFile using Knight-Ruiz method"),
     click.option('--chromsizeFile', '-csf', required=True, type=click.Path(exists=True), help="chrom.sizes file for binning the proteins")
 ]
 
 _set_base_options = [
     click.option('--windowSize', '-ws', default=200, show_default=True,\
-                help='Maximum distance between two potential interaction sites'),
-    click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True),\
+                help='Maximum distance in bins between two potential interaction sites'),
+    click.option('--datasetOutputDirectory', '-dod',required=True,type=click.Path(exists=True, writable=True, file_okay=False),\
                  help='Output directory for training set files'),
 ]
-_allset_options = [
-    click.option('--baseFile','-bf', required=True,type=click.Path(writable=True),
-        help='Base file where to store proteins and chromosomes for later use.'),
-    click.option('--setParamsFile', '-spf', required=True,\
-              type=click.Path(exists=True)),
-]
+
 _set_options = [
     click.option('--mergeOperation','-mo',default='avg',\
                  type=click.Choice(['avg', 'max']),show_default=True,\
-                 help='This parameter defines how the proteins are binned'),
-    click.option('--divideProteinsByMean', type=bool, default=False, required=False, help="divide each protein signal by its mean"),
-    click.option('--normalizeProteins', default=True, type=bool,\
-                 show_default=True,\
-                 help='Normalize protein signal values to the same range'),
-    click.option('--normSignalValue', type=click.FloatRange(min=0.0), default=10.0, help="max. protein signal value after normalization"),
-    click.option('--normSignalThreshold', type=click.FloatRange(min=0.0), default=0.1, help="after signal value normalization, set all values smaller than normSignalThreshold to 0."),
-    click.option('--normalizeReadCounts', default=True, type=bool, help="Normalize HiC matrix read counts"),
-    click.option('--normCountValue', type=click.FloatRange(min=0.0), default=10.0, help="max. read count value after normalization"),
-    click.option('--normCountThreshold', type=click.FloatRange(min=0.0), default=0.0, help="after read count normalization, set all values smaller than normCountThreshold to 0."),
+                 help='Proteins can be binned by taking the mean (avg) or the max signal value within each bin'),
+    click.option('--divideProteinsByMean', type=bool, default=False, required=False, show_default=True, help="Divide each protein signal by its mean"),
+    click.option('--normalizeProteins', type=bool, default=False, show_default=True, help='Normalize protein signal values to value range [0...normSignalValue]'),
+    click.option('--normSignalValue', type=click.FloatRange(min=0.0), default=1000.0, show_default=True, help="Max. protein signal value after normalization"),
+    click.option('--normSignalThreshold', type=click.FloatRange(min=0.0), default=0.1, show_default=True, help="Set all values smaller than 'normSignalThreshold' to 0 after signal value normalization"),
+    click.option('--normalizeReadCounts', type=bool, default=True, show_default=True, help="Normalize HiC matrix read counts to value range [0...normCountValue]"),
+    click.option('--normCountValue', type=click.FloatRange(min=0.0), default=1000.0, show_default=True, help="Max. read count value after normalization"),
+    click.option('--normCountThreshold', type=click.FloatRange(min=0.0), default=0.0, show_default=True, help="Set all values smaller than 'normCountThreshold' to 0 after read count normalization"),
     click.option('--windowOperation', '-wo', default='avg',\
               type=click.Choice(['avg', 'max', 'sum']), show_default=True,\
-                help='How should the proteins in between two base pairs be summed up'),
-    click.option('--internalInDir', '-iid', type=click.Path(exists=True), \
-                    help='path where internally used matrices are stored'),
-    click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, help="standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing"),                
-    click.option('--method',required=False, type=click.Choice(['oneHot', 'multiColumn']), default='multiColumn', help="how to build the dataset. MultiColumn = 3 columns for each protein (start, window, end), OneHot = 3 columns (start, window, end) + one-hot encoding for the proteins"),
-    click.option('--removeEmpty', required=False, type=bool, default=True, help="remove samples which have no protein data"),
-    click.option('--noDiagonal', '-nd',required=False, type=click.IntRange(min=-1),default=-1,help="number of (side-)diagonals to ignore for training, default -1 (none), 0= main diagonal, 1= first side diagonal etc."),
-    click.option('--printproteins', '-pp', required=False, type=bool, default=False, help="print protein plots"),
+                help='Window features can be computed by averaging, summing or taking the max across all bins within the window'),
+    click.option('--internalInDir', '-iid', type=click.Path(exists=True, readable=True, file_okay=False), \
+                    help='Path where internally used matrices are loaded from'),
+    click.option('--smooth',required=False, type=click.FloatRange(min=0.0, max=10.0), default=0.0, show_default=True, help="Standard deviation for gaussian smoothing of protein peaks; Zero means no smoothing"),                
+    click.option('--method',required=False, type=click.Choice(['oneHot', 'multiColumn']), default='multiColumn', show_default=True, help="How to build the dataset. MultiColumn = 3 columns for each protein (start, window, end) + distance, OneHot = 3 columns in total (start, window, end) + one-hot encoding for the proteins + distance"),
+    click.option('--removeEmpty', required=False, type=bool, default=True, help="Invalidate samples which have no protein data"),
+    click.option('--noDiagonal', '-nd',required=False, type=click.IntRange(min=-1),default=-1,help="Number of (side-)diagonals to ignore for training, default -1 (none), 0= main diagonal, 1= first side diagonal etc."),
+    click.option('--printproteins', '-pp', required=False, type=bool, default=False, show_default=True, help="Print protein plots"),
 ]
 _train_options = [
-    click.option('--trainDatasetFile', '-tdf',required=True,type=click.Path(exists=True, dir_okay=False, readable=True), help='dataset for training'),
-    click.option('--noDist', required=False, type=bool, default=False, help="leave out distances when building the model, default False"),
-    click.option('--noMiddle', required=False, type=bool, default=False, help="leave out middle proteins when building the model, default False"),
-    click.option('--noStartEnd', required=False, type=bool, default=False, help="leave out start and end proteins when building the model, default False"),
-    click.option('--weightBound1', '-wb1', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0; default 0"),
-    click.option('--weightBound2', '-wb2', required=False, type=click.FloatRange(min=0.0), default=0.0, help="samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0; default 0"),
-    click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=0.0, help="factor by which the weights within the range between weightBound1/2 are multiplied, default=0 => no weighting"),
-    click.option('--tadDomainFile', '-tads', required=False, type=click.Path(exists=True, dir_okay=False, readable=True), default=None, help="TAD domain file in bed format"),
-    click.option('--weightingType', '-wt', type=click.Choice(choices=['reads', 'proteinFeatures', 'tads']), default='reads', help="compute weights based on reads (default) or protein feature values, only relevant if ovsF > 0"),
-    click.option('--featList', '-fl', multiple=True, type=str, default=['0','12','24'], required=True, help="name of features according to which the weight is computed; default is 0, 12, 24; only relevant if wt=proteinFeatures and ovsF > 0"),    
-    click.option('--plotTrees', required=False, type=bool, default=False, help="Plot decision trees, default False"),
-    click.option('--splitTrainset', type=bool, default=False, help="Split Trainingset for a 5-fold Cross-Validation, i.e. return 5 models instead of 1; default False"),
-    click.option('--useExtraTrees', type=bool, default=False, required=False, help="Use extra trees algorithm instead of random forests; default False")
+    click.option('--trainDatasetFile', '-tdf',required=True,type=click.Path(exists=True, dir_okay=False, readable=True), help='Hicprediction-dataset for training. Datasets are created by createTrainingSet.py and have .z file extension'),
+    click.option('--noDist', required=False, type=bool, default=False, show_default=True, help="Leave out distances when building the model"),
+    click.option('--noMiddle', required=False, type=bool, default=False, show_default=True, help="Leave out window features when building the model"),
+    click.option('--noStartEnd', required=False, type=bool, default=False, show_default=True, help="Leave out start- and end-features when building the model"),
+    click.option('--weightBound1', '-wb1', required=False, type=click.FloatRange(min=0.0), default=0.0, show_default=True, help="Samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0 and weightingType != tads"),
+    click.option('--weightBound2', '-wb2', required=False, type=click.FloatRange(min=0.0), default=0.0, show_default=True, help="Samples within [weightBound1...weightBound2] will be emphasized; only relevant if ovsF > 0 and weightingType != tads"),
+    click.option('--ovsFactor', '-ovsF', required=False, type=click.FloatRange(min=0.0), default=0.0, show_default=True, help="Weight samples within weightBound1/2 such that ovsF=(weight sum of weighted samples)/(weight sum of unweighted samples), 0.0 = no weighting"),
+    click.option('--tadDomainFile', '-tads', required=False, type=click.Path(exists=True, dir_okay=False, readable=True), default=None, help="TAD domain file in bed format for emphasizing samples within TADs; only relevant if weightingType = tads"),
+    click.option('--weightingType', '-wt', type=click.Choice(choices=['reads', 'proteinFeatures', 'tads']), default='reads', help="Compute weights for sample emphasizing based on reads, protein feature values or TADs, only relevant if ovsF > 0"),
+    click.option('--featList', '-fl', multiple=True, type=str, default=['0','12','24'], required=True, show_default=True, help="name of features according to which the weight is computed; only relevant if weightingType = proteinFeatures and ovsF > 0"),    
+    click.option('--plotTrees', required=False, type=bool, default=False, show_default=True, help="Plot decision trees"),
+    click.option('--splitTrainset', type=bool, default=False, show_default=True, help="Split Trainingset for a 5-fold Cross-Validation, i.e. return 5 models instead of 1"),
+    click.option('--useExtraTrees', type=bool, default=False, show_default=True, required=False, help="Use extra trees algorithm instead of random forests")
 ]
-_alltrain_options = [
-    click.option('--setDirectory', '-sd',type=click.Path(exists=True),\
-                 help='Input directory for training files', required=True,),
-]
+
 _train_base_options = [
-    click.option('--modelOutputDirectory', '-mod',type=click.Path(exists=True, writable=True),\
+    click.option('--modelOutputDirectory', '-mod',type=click.Path(exists=True, writable=True, file_okay=False),\
                  help='Output directory for model files', required=True,),
     click.option('--conversion', '-co', default='none',\
               type=click.Choice(['standardLog', 'none']), show_default=True,\
-                help='Define a conversion function for the read values'),
+                help='Conversion function for the interaction count values'),
                 ]
+
 def protein_options(func):
     for option in reversed(_protein_options):
         func = option(func)
@@ -134,36 +122,12 @@ def predict_options(func):
         func = option(func)
     return func
 
-def allpredict_options(func):
-    for option in reversed(_predict_base_options):
-        func = option(func)
-    for option in reversed(_allpredict_options):
-        func = option(func)
-    return func
-
 def train_options(func):
     for option in reversed(_train_options):
         func = option(func)
     for option in reversed(_train_base_options):
         func = option(func)
     return func
-
-def alltrain_options(func):
-    for option in reversed(_alltrain_options):
-        func = option(func)
-    for option in reversed(_train_base_options):
-        func = option(func)
-    return func
-
-def allset_options(func):
-    for option in reversed(_set_base_options):
-        func = option(func)
-    for option in reversed(_setAndProtein_options):
-        func = option(func)
-    for option in reversed(_allset_options):
-        func = option(func)
-    return func
-
 
 def getBaseCombinations():
     params = {

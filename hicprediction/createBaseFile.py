@@ -28,29 +28,19 @@ np.set_printoptions(precision=3, suppress=True)
 """
 
 @conf.protein_options
-@click.argument('proteinFiles', nargs=-1)#, help='Pass all of the protein'\
-               # +' files you want to use for the prediction. They should be '+\
-               # 'defined for the whole genome or at least, for the chromosomes'\
-               # + ' you defined in the options. Format must be "narrowPeak, broadPeak or bigwig"')
+@click.argument('proteinFiles', nargs=-1)
+              
 @click.version_option()
 @click.command()
 def loadAllProteins(proteinfiles, basefile, chromosomes,
                    matrixfile,correctmatrix,celltype,resolution,internaloutdir,chromsizefile):
     """
-    Main function that is called with the desired path to the base file, a list
-    of chromosomes that are to be included, the source HiC file (whole genome),
-    the cell type and the resolution of said HiC matrix and most importantly
-    the paths to the protein files that should be used
-    Attributes:
-        proteinfiles -- list of paths of the protein files to be processed
-        basefile --  output path for base file
-        chromosomes -- list of chromosomes to be processed (without 'chr')
-        matrixfile -- path to input HiC matrix
-        celltype -- cell line of the input matrix
-        resolution -- resolution of the input matrix
-        internaloutdir -- where the internally needed per-chromosome matrices are stored
-        chromsizefile -- chromosome.sizes file for binning the proteins
+    Function for binning ChIP-seq data.
+    Data must be provided in narrowPeak, broadPeak or bigwig format. 
+    Simultaneous usage of different formats is possible. 
+    Outputs a ph5 file which contains binned proteins per chromosome
     """
+    
     #if matrixfile has been provided, internalOutDir must also be present
     if matrixfile and not internaloutdir:
         msg = "Error: If --matrixFile / -mif is provided, --internalOutDir / -iod cannot be empty\n"

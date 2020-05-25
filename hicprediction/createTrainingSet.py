@@ -64,34 +64,12 @@ def createTrainSet(pChromosomes, pDatasetOutputDirectory,pBasefile,
                    pWindowsize, pSmooth, pMethod, pRemoveEmpty, pNoDiagonal,
                    pPrintProteins):
     """
-    Create training- and test datasets and store them into the given directory
-    Attributes:
-            chromosomes -- list of chromosomes to be processed
-            datasetoutputdirectory --  directory to store the created sets
-            basefile -- file path to base file created in first script
-            normalizeProteins -- Boolean to decide if proteins are scaled
-            normSignalValue -- max. value P for protein scaling (0...P)
-            normSignalThreshold -- set all values < threshold to zero after scaling
-            divideProteinsByMean -- divide all protein features by their respective mean
-            normalizeReadCounts -- Boolean to decide if interaction counts are scaled
-            normCountValue -- max. value R for interaction count scaling (0...R)
-            normCountThreshold -- set all values < threshold to zero after scaling
-            internalInDir -- path to directory where the per-chromosome cooler matrices are stored
-            windowOperation -- bin operation for windows
-            mergeOperation --  bin operations for protein binning
-            windowSize --  maximal genomic distance
-            smooth -- sigma value for gaussian smoothing of protein inputs
-            method -- three features per protein (HiC-Reg) or three features in total + one hot encoding
-            removeEmpty -- invalidate samples where all features except distance are zero
-            noDiagonal -- integer N, do not use first N diagonals for training
-            printProteins -- print protein value over bins 
+    Create training- or test datasets from basefiles and store them in compressed form (.z file extension)
     """
     ### check extensions
     if not checkExtension(pBasefile, '.ph5'):
-        pBasefile += ".ph5"
-        msg = "Basefile should have .ph5 file extension.\n"
-        msg += "Renamed to {:s}".format(pBasefile)
-        print(msg)
+        msg = "Can only work with .ph5 files\n"
+        raise SystemExit(msg)
 
     ### convert chromosomes to list
     if pChromosomes:

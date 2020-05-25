@@ -12,22 +12,26 @@ These four steps are described below in more detail.
 
 
 ## Installation
-HiCPrediction requires Python3.6, hicmatrix, hicexplorer, hic2cool, pybedtools, pybigwig, pydot and graphviz.
-It is recommended to install everything via conda into an empty environment:
+HiCPrediction requires Python >= 3.6, click, cooler, graphviz,
+h5py, hicmatrix, hyperopt, joblib, matplotlib, numpy, pandas,
+pybedtools, pyBigWig, pydot, scikit-learn, scipy and tqdm.
+
+It is recommended to install hicprediction using conda and pip
+into a fresh conda environment:
 
 ```
-$ conda install -c conda-forge -c bioconda -c ska hicmatrix hicexplorer
-$ conda install -c conda-forge -c bioconda -c ska hic2cool
-$ conda install -c conda-forge -c bioconda -c ska pybedtools pybigwig pydot
-$ conda install -c abajorat hicprediction
+$ conda create -n hicprediction
+$ conda activate hicprediction
+$ conda install hicexplorer
+$ pip install https://github.com/MasterprojectRK/HiCPrediction/hicprediction.whl
+
 ```
 ## Usage
 
-### 1. createBaseFile.py
+### 1. createBaseFile
 This script bins the proteins for the given cell line and resolution.
 It creates a base file and also per-chromosome cooler matrices, if provided with a HiC-Matrix. 
-Basefiles are required for building training and test datasets (see below).
-Basefiles have to be created for each cell line and each resolution, using the appropriate protein files.
+Basefiles are required both for building training and test datasets (see below. Basefiles can span several or all numerical chromosomes, but separate files have to be created for each cell line and each resolution, using the appropriate protein files.
 
 Options:
  * -bf, --baseFile PATH [required]
@@ -58,12 +62,12 @@ chromosomes specified, otherwise for all numerical ones. Must be a comma separat
  
     Path where internally used matrices will be stored. 
 Note that these matrices can be several 100's of MB in size
-depending on the resolution of the HiC-matrix. Must be used if matrixfile is specified
+depending on the resolution of the HiC-matrix. Must be used if matrixFile is specified
 
 
- * --help                   
- 
-    Show this message and exit.
+ * --help 
+
+   show help and exit
   
 * Positional arguments: 
 
@@ -77,7 +81,7 @@ This script creates the datasets that are required later both for training the r
 
 * -bf, --baseFile PATH [required]
 
-    Base file with binned proteins for given cell line and resolution, can be created with createBaseFile. 
+    Base file with binned proteins for given cell line and resolution, to be created with createBaseFile. 
 * -iid, --internalInDir PATH [required]
 
     path to directory where the internal matrices from createBaseFile are stored
@@ -86,17 +90,9 @@ This script creates the datasets that are required later both for training the r
     Maximum bin distance which will be considered for learning and prediction [default: 200; corresponds to 1.000.000 bp at 5kb resolution]
 * -wo, --windowOperation {avg\|max\|sum} [optional]
 
-    How the proteins between two bins should be considered during binning [default: avg]
+    Window features can be computed by averaging, summing or taking the max across all bins within the window [default: avg]
 
-* --ignoreCentromeres BOOL [optional]
-    
-    Cut out the centroid arms for training [default: True]
-* --normalize BOOL
-    
-    normalize protein signal values to a 0-1 range; default: False
-* -mo, --mergeOperation {avg\|max} [optional]
-    
-    This parameter defines how the proteins are binned [default: avg]
+
 * -chs, --chromosomes LIST OF TEXT [optional]
     
     If specifed, datasets are only computed for the chromosomes specified, otherwise for all 
@@ -105,12 +101,7 @@ This script creates the datasets that are required later both for training the r
 * -dod, --datasetOutputDirectory PATH [required]
 
     Output directory for training set files
-* -cmf, --centromeresFile PATH [required]
 
-    Text file containing centromer regions. See centromeres.txt in InternalStorage for formatting
-* --cutoutLength 
-
-    currently undocumented, don't use
 * --smooth FLOAT [0, 10] [optional]
 
     std. deviation for gaussian smoothing of protein inputs
