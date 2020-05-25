@@ -490,7 +490,3 @@ def tadWeighting(pInOutDataFrame, pParams, pTadDomainFile, pFactorFloat, pMaxDis
         print("actual factor weighted/unweighted: {:.3f}".format(weightSum/numberOfUnweightedSamples))
         success = weightInt != 1
     return success
-
-
-if __name__ == '__main__':
-    train() # pylint: disable=no-value-for-parameter

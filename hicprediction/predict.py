@@ -475,6 +475,3 @@ def saveResults(pTag, pModelParams, pSetParams, pPredictionDf, pTargetDf, pScore
                             'modelCellType','modelChromosome', 'conversion',\
                             'Window','Merge', 'normalize'])
     resultsDf.to_csv(pResultsFilePath)
-    
-if __name__ == '__main__':
-    executePredictionWrapper() # pylint: disable=no-value-for-parameter

@@ -515,7 +515,3 @@ def smoothenProteins(pProteins, pSmooth):
     smoothenedProtDf.fillna(method='bfill', inplace=True) #fill first (window/2) bins
     smoothenedProtDf.fillna(method='ffill', inplace=True) #fill last (window/2) bins
     return smoothenedProtDf
-
-
-if __name__ == '__main__':
-    createTrainingSet() # pylint: disable=no-value-for-parameter
