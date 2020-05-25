@@ -26,6 +26,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     description="HiCMatrix Prediction via protein levels",
     author="Andre Bajorat, Ralf Krauth",
+    author_email="none",
     url='https://github.com/MasterprojectRK/HiCPrediction',
     packages=find_packages(),
     include_package_data = True,
