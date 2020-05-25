@@ -29,13 +29,13 @@ setup(
     url='https://github.com/MasterprojectRK/HiCPrediction',
     packages=find_packages(),
     include_package_data = True,
-    package_data={'hicprediction': ['hicprediction/scripts/*.py']},
+    package_data={'hicprediction': ['scripts/*.py']},
     install_requires=requirements,
     entry_points = {
         'console_scripts': ['createBaseFile=hicprediction.createBaseFile:loadAllProteins',
                             'createTrainingSet=hicprediction.createTrainingSet:createTrainingSet',
                             'training=hicprediction.training:train',
-                            'prediction=hicprediction.predict:executePredictionWrapper']
+                            'predict=hicprediction.predict:executePredictionWrapper']
     },
     keywords='HiCPrediction',
 )
