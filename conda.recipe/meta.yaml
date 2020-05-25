@@ -1,13 +1,14 @@
 
-{% set data = load_setup_py_data() %}
+#{% set data = load_setup_py_data() %}
 
 package:
   name: hicprediction
-  
-  version: '0.0.1'
+  version: '0.0.2'
 
 source:
-  path: ..
+  git-rev: 0.0.1
+  git-url: https://github.com/MasterprojectRK/HiCPrediction
+
 
 build:
   # If the installation is complex, or different between Unix and Windows, use
@@ -23,26 +24,20 @@ requirements:
   run:
     - python
     - click
-    #- cooler
+    - cooler
     - future
     - h5py
     #- hic2cool
-    #- hicexplorer
-    #- hicmatrix 
-    #- intervaltree
+    - hicexplorer
+    - hicmatrix 
     - joblib
-    #- multiprocess
-    - numba
     - pandas
-    - pyarrow
-    #- pybedtools
-    #- pyBigWig
+    - pybedtools
+    - pyBigWig
     - scikit-learn
     - scipy
-    - seaborn
-    #- tables
+    #- seaborn
     - tqdm
-    - Unidecode
 test:
   source_files:
     - tests
@@ -53,5 +48,5 @@ test:
     - pytest tests
 
 about:
-  home: https://github.com/abajorat/HiCPrediction
+  home: https://github.com/MasterprojectRK/HiCPrediction
   summary: HiCMatrix Prediction via protein levels
