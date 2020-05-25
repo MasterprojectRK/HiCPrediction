@@ -1,7 +1,6 @@
 import os
 os.environ['NUMEXPR_MAX_THREADS'] = '16'
 os.environ['NUMEXPR_NUM_THREADS'] = '8'
-#from hicmatrix import HiCMatrix as hm
 import cooler
 import pandas as pd
 import sys
