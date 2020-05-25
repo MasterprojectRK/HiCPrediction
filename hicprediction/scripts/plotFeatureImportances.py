@@ -140,7 +140,7 @@ def plotFeatureImportances(modelfile, outpath, protnames):
 
 
 if __name__ == "__main__":
-    plotFeatureImportances()
+    plotFeatureImportances() #pylint: disable=no-value-for-parameter
 
 
     

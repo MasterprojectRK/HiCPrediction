@@ -76,4 +76,4 @@ def createFakeMatrices(outfile,peakpos,peakwidth,length,resolution,count,chromos
 
 
 if __name__ == '__main__':
-    createFakeMatrices()
+    createFakeMatrices() #pylint: disable=no-value-for-parameter

@@ -114,4 +114,4 @@ def convertForHicReg(dataset, outpath, dropinvalid, matrix):
 
 
 if __name__=="__main__":
-    convertForHicReg()
+    convertForHicReg() #pylint: disable=no-value-for-parameter
