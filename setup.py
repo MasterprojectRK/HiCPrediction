@@ -6,7 +6,6 @@ requirements = [
             'cooler',
             'graphviz',
             'h5py',
-            'hicexplorer',
             'hicmatrix',
             'hyperopt',
             'joblib',
