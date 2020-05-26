@@ -21,10 +21,11 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 np.set_printoptions(threshold=sys.maxsize)
 np.set_printoptions(precision=3, suppress=True)
 
-""" Module responsible for the binning of proteins and the cutting of
+""" Module responsible for the aggregation of ChIP-seq data into bins
+    of user-defined size (equal to Hi-C matrix resolution) and the cutting of
     the genome HiC matrix into the chromosomes for easier access.
-    Creates base file that stores binned proteins and paths to the 
-    chromosome HiC matrices.
+    Creates basefile that stores binned data and paths to the 
+    per-chromosome Hi-C matrices.
 """
 
 @conf.protein_options

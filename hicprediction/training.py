@@ -15,7 +15,10 @@ from sklearn.tree import export_graphviz
 import pydot
 import math
 
-""" Module responsible for the training of the regressor with data sets.
+""" 
+    Train a random forest or extra trees regressor on a dataset 
+    created by createTrainingset. Outputs trained model in compressed
+    format (.z file extension) along with feature importance plots.
 """
 @conf.train_options
 @click.version_option()

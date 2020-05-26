@@ -18,8 +18,11 @@ import sklearn.ensemble
 from sklearn.preprocessing import MinMaxScaler
 
 """
-Module responsible for the prediction of test set, their evaluation and the
-conversion of prediction to HiC matrices
+Predict Hi-C matrix from trained model (as created by training script)
+and ChIP-seq data from target cell line / chromosome (as created by createTrainingSet).
+Predicted matrices are in cooler format. If a target matrix was provided
+to createBaseFile, then additionally some statistical measures can be output
+in a text file.
 """
 
 @conf.predict_options
@@ -27,9 +30,6 @@ conversion of prediction to HiC matrices
 @click.command()
 def executePredictionWrapper(modelfilepath, predictionsetpath,
                       predictionoutputdirectory, resultsfilepath, sigma, noconvertback):
-    """
-    Wrapper function for Cli
-    """
 
     if not checkExtension(modelfilepath, '.z'):
         msg = "model file {0:s} does not have a .z file extension. Aborted"
