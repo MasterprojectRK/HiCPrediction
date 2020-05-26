@@ -1,5 +1,5 @@
 bin
-dist
+dist/*.tar.gz
 *.egg-info
 lib
 lib64
