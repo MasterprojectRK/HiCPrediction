@@ -73,6 +73,6 @@
     \put(0.03454387,0.60254576){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.8}}}%
     \put(0.03454387,0.73735168){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1.0}}}%
     \put(0.0191487,0.28663409){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Pearson correlation}}}}%
-    \put(0.57561316,0.46206336){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.41907859\unitlength}\raggedright pk: narrow-/broadPeak\\ bw: bigwig\end{minipage}}}%
+    \put(0.57561316,0.46598311){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.41907859\unitlength}\raggedright pk: narrow-/broadPeak\\ bw: bigwig\end{minipage}}}%
   \end{picture}%
 \endgroup%

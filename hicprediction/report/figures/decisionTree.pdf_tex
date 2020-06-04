@@ -77,5 +77,9 @@
     \put(0.62478662,0.3244602){\makebox(0,0)[b]{\smash{False}}}%
     \put(0.42599866,0.3244602){\makebox(0,0)[b]{\smash{True}}}%
     \put(0.66244264,0.46345143){\color[rgb]{0,0,0}\makebox(0,0)[lt]{\begin{minipage}{0.43933134\unitlength}\raggedright \scriptsize{}p0: protein feature 0\\ p2: protein feature 2\\ mse: mean squared error\\ value: predicted interaction count\end{minipage}}}%
+    \put(0.42335038,0.12963192){\makebox(0,0)[b]{\smash{False}}}%
+    \put(0.20509833,0.12963192){\makebox(0,0)[b]{\smash{True}}}%
+    \put(0.83750351,0.12963192){\makebox(0,0)[b]{\smash{False}}}%
+    \put(0.63092992,0.12963192){\makebox(0,0)[b]{\smash{True}}}%
   \end{picture}%
 \endgroup%

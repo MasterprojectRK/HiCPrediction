@@ -94,7 +94,7 @@ which cannot directly be explained from the learning regions above.
 Across all trees, distance is still by far the most important feature, \autoref{fig:improve:featureImportance},
 followed by the window feature and lastly by the equally (un-)important start and end features.
 
-The probably most simple way to prevent the random forest from learning gradients and inverted triangles 
+Probably the most simple way to prevent the random forest from learning gradients and inverted triangles 
 is discarding all ``empty'' training- and test samples, i.\,e. samples which have zero signal value for all proteins, cf.\;\autoref{sec:methods:discardEmpty}.
 The results of this approach are shown in \autoref{sec:res:removeEmptySamples}.
 However, discarding empty samples usually leads to sparse training- and test sets, causing other types of problems.

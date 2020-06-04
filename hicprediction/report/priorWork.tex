@@ -8,9 +8,9 @@ and its foundation, HiC-Reg \cite{Zhang2019, Zhang2018}.
 This is preceded by a brief introduction into random forests,
 which are the common basis of both approaches.
 
-\subsection{Random forests} \label{sec:prior:randomForests}
+\subsection{Random forest} \label{sec:prior:randomForests}
 Random forests were conceived by Leo Breiman in 2001 \cite{Breiman2001} and are based on decision trees,
-the probably most simple approach for supervised machine learning.
+probably the most simple approach for supervised machine learning.
 
 Decision trees take as input a set of samples with relevant features and then
 ``learn'' to predict a target feature by splitting the input dataset step by step, 
@@ -45,15 +45,15 @@ Withing this masterproject, the target feature is Hi-C interaction count
 and the training features are the signal values from ChIP-seq data of several proteins,
 along with the genomic distance of the interacting regions.
 
-Because decision trees are well known for overfitting, i.\,e. for adapting too much
-to the data they have been trained with,
+Because decision trees are well known for overfitting, i.\,e. having a low bias but a very high variance,
 random forests contain not only one, but generally a large number of decision trees.
-Each of the trees is trained on a random subset of the original samples, potentially using random subsets
+Each tree is trained on a random subset of the original samples, potentially using random subsets
 of the features for each splitting step.
 For regression problems, the final prediction is then the average output of all trees, 
 for classification problems usually the majority vote.
-The rationale here is that random selection of the samples and features reduces the risk of overfitting,
-while errors in the single predictions cancel out by averaging.
+The rationale here is that random selection of the samples and features reduces the variance,
+usually at the cost of increased bias. 
+However, in most applications, the reduction in variance more than outweighs the increase in bias.
 
 For regression trees, the cut points, e.\,g. ``p2 $\leq$ 5.0'', cf.\;\autoref{fig:prior:decisionTree}, 
 are usually selected such that the variance in the remaining two datasets -- here, 
@@ -63,13 +63,12 @@ Searching for the optimal cut-point is computationally involved,
 but meanwhile there are several open source implementations which handle the task efficiently.
 
 Random forests have a number of tuning parameters. 
-The most important ones are the number of trees in the forest, 
+Probably the most important ones are the number of trees in the forest, 
 the size of the subsample used to train each tree,
 the maximum number of features to investigate for splitting
-and the minimum number of samples allowed to remain in internal nodes.
+and the minimum number of samples allowed to remain in internal nodes, cf.\;\cite{scikitEnsemble2019}.
 All of these are used by HiC-Reg and hicprediction, two random-forest-based methods
 to predict unknown Hi-C matrices.
-
 
 \subsection{HiC-Reg}
 HiC-Reg was proposed by Shilu Zhang and colleagues at the Wisconsin Institute for Discovery in 2018 \cite{Zhang2019, Zhang2018}.
@@ -109,7 +108,7 @@ so it actually trains five different models for each training cell line and chro
 These models can then be used to predict interactions for a different
 chromosome in the same cell line (\textsc{cross-chromosome}) or to predict interactions for the same chromosome in 
 another cell line (\textsc{cross-cell}) -- which is more relevant for practical use cases of HiC-Reg.
-The five separate predictions are simply averaged into a single one by taking the mean.
+The final predicted matrix is just the average output of the five models.
 
 Despite the aim of predicting Hi-C interaction counts, the publication by Zhang et al. unfortunately contains only two small plots 
 of actual Hi-C matrix snippets, depicted in their original size in \autoref{fig:priorW:hicregPredictions}, 
@@ -125,7 +124,7 @@ Most of HiC-Reg, including the custom random forest regression model, is impleme
 complemented by python-, shell- and matlab scripts e.\,g. for converting and concatenating input data or 
 computing various metrics. The source code and most binaries are available from github \cite{Roy2020}.
 
-\subsection{hicprediction}
+\subsection{Hicprediction}
 Hicprediction was conceived and implemented as part of Andre Bajorat's masterproject at the Bioinformatics Group of the University of Freiburg
 in 2019 \cite{Bajorat2019}. It is basically a python implementation of the ideas of Zhang et al. outlined above, 
 yet with a few technical differences.
@@ -153,14 +152,16 @@ Hicprediction is made up from four main python modules, which basically implemen
  \caption{Flow diagram of hicprediction (cross-chromosome prediction)}
  \label{fig:priorW:hicpredFlow}
 \end{figure}
-First, \emph{createBasefile.py} aggregates the protein data for training and test into bins of fixed width and stores them in an h5py file, see 
+First, \emph{createBasefile.py} \cite{hicpred2020bf} aggregates the protein data for training and test into bins of fixed width and stores them in an h5py file, 
+see 
 \autoref{fig:priorW:hicpredFlow}, upper and lower left.
 Additionally, input Hi-C matrices are cut into separate matrices, one per chromosome, and stored for further usage.
-Next, \emph{createTrainingSet.py} joins binned protein data with Hi-C interaction counts, computes the \textsc{window}-features mentioned above and 
+Next, \emph{createTrainingSet.py} \cite{hicpred2020cts} joins binned protein data with Hi-C interaction counts, computes the \textsc{window}-features mentioned 
+above and 
 stores the resulting datasets in a compressed binary format (\autoref{fig:priorW:hicpredFlow}, right).
-The training dataset is then used by \emph{training.py} to train a scikit-learn random forest regressor \cite{Pedregosa2011}, 
+The training dataset is then used by \emph{training.py} \cite{hicpred2020tr} to train a scikit-learn random forest regressor \cite{Pedregosa2011}, 
 which is again stored in binary format (\autoref{fig:priorW:hicpredFlow}, middle).
-Finally, \emph{predict.py} takes the test set with protein data from the target cell line, 
+Finally, \emph{predict.py} \cite{hicpred2020pr} takes the test set with protein data from the target cell line, 
 runs it through the trained model and outputs a predicted Hi-C matrix in cooler format (\autoref{fig:priorW:hicpredFlow}, middle left).
 Additionally, a tab-separated text file can be output, containing distance stratified Pearson correlation values and \textsc{auc},
 plus some other statistical measures and parameter settings for reference. 

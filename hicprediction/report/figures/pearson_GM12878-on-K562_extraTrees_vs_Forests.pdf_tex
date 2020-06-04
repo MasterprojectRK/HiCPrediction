@@ -50,9 +50,9 @@
   \makeatother%
   \begin{picture}(1,0.82222222)%
     \put(0,0){\includegraphics[width=\unitlength,page=1]{pearson_GM12878-on-K562_extraTrees_vs_Forests.pdf}}%
-    \put(0.69576888,0.68499249){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{random forests 5k}}}%
+    \put(0.69576888,0.68499249){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{random forest 5k}}}%
     \put(0.69576888,0.64783182){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{extra trees 5k}}}%
-    \put(0.69576888,0.6106712){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{random forests 25k}}}%
+    \put(0.69576888,0.6106712){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{random forest 25k}}}%
     \put(0.69576888,0.57351053){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{extra trees 25k}}}%
     \put(0.07336525,0.03486916){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
     \put(0.22411645,0.03486916){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.2}}}%

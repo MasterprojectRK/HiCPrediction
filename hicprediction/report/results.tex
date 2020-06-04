@@ -114,8 +114,8 @@ Independent of the root cause, this example again underscores that relying on Pe
 because the corresponding matrices can be useless in practice.
 
 For \SI{25}{\kilo\bp}, predictions were also performed using bigwig- and peak files simultaneously,
-thus increasing the number of features in the samples from $3\cdot12+1=37$ to $3\cdot24+1=73\,$\footnote{2x12 start-, 2x12 window- and 2x12 end features plus 
-distance}.
+thus increasing the number of features in the samples from $3\cdot12+1=37$ to $3\cdot24+1=73$ (2x12 start-, 2x12 window- and 2x12 end features plus 
+distance).
 While the Pearson correlations were mostly better than with bigwig files alone, especially when keeping empty 
 samples, \autoref{fig:app:Pearson:GM12878:K562:chr17:25kb:combi} and \ref{fig:app:Pearson:GM12878:K562:chr21:25kb:combi},
 not much improvement was visible in the predicted matrices, \autoref{fig:results:combined:chr17:25k}, \ref{fig:app:GM12878:K562:chr21:25k:combiFew} and 
@@ -256,7 +256,7 @@ which is a reason on its own to go without the [0...1] range.
   \resizebox{\textwidth}{!}{
   \scriptsize
   \import{figures/}{pearson_GM12878-on-K562_normalized.pdf_tex}}
-  \caption{matrices normalized}
+  \caption{matrices scaled}
   \label{fig:app:Pearson:GM12878:K562:chr17:5kb:normalized}
  \end{subfigure}\hfill
 \begin{subfigure}{.495\textwidth}
@@ -264,10 +264,10 @@ which is a reason on its own to go without the [0...1] range.
   \resizebox{\textwidth}{!}{
   \scriptsize
   \import{figures/}{pearson_GM12878-on-K562_protsNormalized.pdf_tex}}
-  \caption{proteins normalized}
+  \caption{proteins scaled}
   \label{fig:app:Pearson:GM12878:K562:chr17:5kb:protsNormalized}
  \end{subfigure}
- \caption{Pearson correlations, matrices / proteins normalized}
+ \caption{Pearson correlations, matrices / proteins scaled}
  \label{fig:res:Pearson:matrices:proteins:normalized:5kb}
 \end{figure}
 
