@@ -243,8 +243,14 @@ def training(pModeloutputdirectory, pConversion, pModelParamDict,
             trainScore = model.score(X_train, y_train, weights_train)
             testScore = model.score(X_test, y_test, weights_test)
             modelTag = createModelTag(params) + "_" + str(i+1)
+            trainDsTag = createModelTag(params) + "_trainDataset_" + str(i+1)
+            testDsTag = createModelTag(params) + "_testDataset_" + str(i+1)
             modelFileName = os.path.join(pModeloutputdirectory, modelTag + ".z")
+            trainDsFileName = os.path.join(pModeloutputdirectory, trainDsTag + ".z")
+            testDsFileName = os.path.join(pModeloutputdirectory, testDsTag + ".z")
             joblib.dump((model, params), modelFileName, compress=True ) 
+            joblib.dump((df.loc[trainIndices,:],params), trainDsFileName, compress=True)
+            joblib.dump((df.loc[testIndices,:],params), testDsFileName, compress=True)
             print("processed model {:d}".format(i+1))
             print("trainScore:", trainScore)
             print("testScore:", testScore)
@@ -494,3 +500,6 @@ def tadWeighting(pInOutDataFrame, pParams, pTadDomainFile, pFactorFloat, pMaxDis
         print("actual factor weighted/unweighted: {:.3f}".format(weightSum/numberOfUnweightedSamples))
         success = weightInt != 1
     return success
+
+if __name__ == "__main__":
+    train() # pylint: disable=no-value-for-parameter
