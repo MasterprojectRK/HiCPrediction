@@ -336,3 +336,7 @@ def correctHiCMatrix(pMatrixFile, pChrom, pOutDir):
     if storedSuccessfully: 
         msg = "KR-correction successful"
         print(msg)
+
+
+if __name__ == '__main__':
+    loadAllProteins() # pylint: disable=no-value-for-parameter
