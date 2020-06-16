@@ -207,6 +207,23 @@
  \label{fig:app:GM12878:K562:chr17:TadWeighting}
 \end{figure}
 
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{dataFromBAMvsExample_3MB.pdf_tex}
+ \caption{converted input data vs. example data from HiC-Reg github, \SI{3}{\mega\bp}}
+ \label{fig:app:GM12878:CTCF:convertedInput3MB}
+\end{figure}
+\begin{figure}[hb]
+ \centering
+ \scriptsize
+ \import{figures/}{dataFromBAMvsExample_100KB.pdf_tex}
+ \caption{converted input data vs. example data from HiC-Reg github, \SI{100}{\kilo\bp}}
+ \label{fig:app:GM12878:CTCF:convertedInput100KB}
+\end{figure}
+
+
+
 \clearpage
 \section*{Listings}
 
@@ -296,7 +313,7 @@
  countfile="${tmpfile%bam}count"
  outfile="${tmpfile%bam}txt"
  cmd="${protName}.bam ${chromosome}"
- samtools view ${cmd} > ${tmpfile}
+ samtools view -b ${cmd} > ${tmpfile}
  cmd="-ibam ${tmpfile} -bg"
  bedtools genomecov ${cmd} > ${countfile}
  # $countfile is in bedgraph format

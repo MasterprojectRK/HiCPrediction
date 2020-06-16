@@ -311,12 +311,10 @@ Note that hicprediction records distance in bins, whereas HiC-Reg is using basep
 For all sample-weighting investigations, interaction counts were scaled to [0...1000], 
 while protein data were taken in bigwig format, in their original value ranges and without dropping empty samples.
 
-\subsection{Comparison between HiC-Reg and hicprediction}
+\subsection{Comparison between HiC-Reg and hicprediction}\label{sec:methods:comparison}
 To compare hicprediction to HiC-Reg, the corresponding input parameters were set to match, if known.
 This means that the default random forest was used for hicprediction (see \ref{sec:methods:randomForestImplementation}),
-and both empty samples and samples with a distance
-below \SI{5}{\kilo\bp} were discarded, see subsections \ref{sec:methods:discardEmpty}
-and \autoref{sec:methods:normalization}.
+and empty samples were discarded, see subsections \ref{sec:methods:discardEmpty}.
 The proteins were not scaled, but matrices were adjusted to a value range of [0...1000].
 Hicprediction was then amended to allow a 5-fold cross-validation as described by Zhang et al. 
 Here, the training data was split using sklearn's \texttt{cross\_validate()} function,
@@ -340,12 +338,14 @@ converted to text format using the \emph{convertForHicReg.py} script to be found
 With these datasets, training and prediction were performed using the \texttt{regForest} binary as 
 described in sections 2.1 and 2.2 of the HiC-Reg readme \cite{Roy2020}.
 The numeric parameters leaf size $l$, maxfactorsize $k$ and number of trees $n$ were
-chosen as in the readme, i.\,e. $k=1$, $l=10$, $n=20$.
-The priors file $b$ was handmade with a text editor based on the example file given
-in the readme, containing only the 12 proteins available for hicprediction, cf. \autoref{sec:methods:chipseqdata}.
+chosen as in the readme, i.\,e. $k=1$, $l=10$, $n=20$ and 
+the priors file (\texttt{-b} option) is created by the \emph{convertForHicReg.py} script, too.
 Since the regForest binary was not available from github, it was recompiled
 with g++ version 5.4.0 (20160609) on Ubuntu 16.04. LTS, dynamically linking against the
 corresponding libgslcblas- and libgsl libraries.
+Due to technical problems with our computation cluster and HiC-Reg's memory demand at higher resolutions 
+-- around \SI{120}{\giga\byte} for a resolution of \SI{5}{\kilo\bp} -- 
+the comparisons described above could only be computed at \SI{25}{\kilo\bp} resolution.
 
 Additionally, \textsc{window}-type predictions were made with HiC-Reg from ground up,
 taking the same Hi-C matrices and BAM files\footnote{here, replicate 2 only; to be repeated with both replicates} 
@@ -356,9 +356,9 @@ per chromosome using \texttt{samtools} version 1.9
 and the coverage was computed using \texttt{bedtools} \texttt{genomecov} v2.29.2, 
 see \autoref{methods:list:hicregInputs} for an example. 
 This produces a bedgraph-formatted output which can serve as input for binning.
-The latter was done at \SI{5}{\kilo\bp} resolution with respect to the hg19 reference genome, 
-using HiC-Reg's \texttt{aggregateSignal} binary. 
-Unfortunately, this binary requires a third, yet underspecified input, 
+The latter was then performed with HiC-Reg's \texttt{aggregateSignal} binary, 
+taking the bedgraph files as inputs, while resolution was set to \SI{5}{\kilo\bp} and the hg19 reference genome was used. 
+Unfortunately, the \texttt{aggregateSignal} binary requires a third, yet underspecified input, 
 the so-called region file, which was just copied from the examples provided in the repository.
 Next, Hi-C matrices were converted to text using the \emph{convertForHicReg.py} script again, this time discarding its other outputs.
 Window features for HiC-Reg were then generated for all 12 proteins,
@@ -372,7 +372,8 @@ were only made for cross-cell predictions GM12878 on K562, chromosome 17,
 using the \textsc{window} method.
 
 Ressource consumption for all steps above 
-was measured with GNU time 1.7, refer to \autoref{methods:list:usrbintime} for the parameters used.
+was measured with GNU time 1.7 on a machine equipped with a quad Intel{\small\textregistered} Core{\small\texttrademark} i5-4200U CPU at 
+\SI{1.6}{\giga\hertz} and \SI{8}{\giga\byte} memory, refer to \autoref{methods:list:usrbintime} for the parameters used.
 
 
 

@@ -469,31 +469,58 @@ It remains for future research whether this holds for other cell lines and chrom
 \end{figure}
 
 \subsection{Comparison between HiC-Reg and hicprediction} \label{sec:res:compare}
-Looking at the matrices obtained with hicprediction thus far, it is obvious that -- despite some improvements compared to the original state -- 
-the predictions are still inferior to the ones published for HiC-Reg.
+Looking at the matrices obtained with hicprediction thus far, it was obvious that -- despite some improvements compared to the original state -- 
+the predictions were still inferior to the ones published for HiC-Reg.
 \autoref{fig:res:HicregVsHicprediction_supplementary} shows a direct juxtaposition between a cross-cell prediction from HiC-Reg -- 
 reconstructed from data published along with the article \cite{Zhang2019} --
 and the corresponding prediction from hicprediction.
-\begin{figure}[hb]
-\import{figures/}{dummy150x150.pdf_tex}
-\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}}
-\label{fig:res:HicregVsHicprediction_supplementary}
-\end{figure}
+In terms of Pearson correlation, the results from hicprediction and HiC-Reg were very different, 
+see \autoref{fig:res:Pearson:K562:chr17:5kb:HicregFromPublication}. 
+While hicprediction was sometimes better at smaller distances, in the given test case particularly obvious below \SI{0.5}{\mega\bp}, 
+the published results from HiC-Reg were always -- not only in the test case plotted in \autoref{fig:res:Pearson:K562:chr17:5kb:HicregFromPublication} -- better 
+for larger distances.
 
-To check whether the inferior results from hicprediction where due to the underlying algorithm or to the input data,
+To check whether the comparatively worse results from hicprediction where due to the underlying algorithm or to the input data,
 new HiC-Reg predictions were made by converting the corresponding hicprediction training sets to text files and using them for
 training and prediction with HiC-Reg.
-It is obvious from \autoref{fig:res:HicregVsHicprediction_recomputed} that the results do no longer differ much,
-pointing to the input data as the cause.
-\begin{figure}[hb]
-\import{figures/}{dummy150x150.pdf_tex}
-\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}}
-\label{fig:res:HicregVsHicprediction_recomputed}
-\end{figure}
-\xxx cross validation results GM12878
+It is obvious from \autoref{fig:res:HicregVsHicprediction_recomputed} that the results did no longer differ much,
+except for the value range. This indeed points to the input data as the main cause for the differences between hicprediction and HiC-Reg.
 
-Predictions with HiC-Reg from the ground up, starting with the same BAM files used for hicprediction
-unfortunately did not yield useful results, see \xxx.
+However, the computations from hicprediction were much more efficient both in terms of runtime and memory consumption,
+see \autoref{tab:res:efficiency}. While training took almost three hours in HiC-Reg, it finished within around 90 seconds
+in hicprediction -- and this even includes the time spent to split the data into five cross-validation sets and store them.
+No efforts were made to find the cause for the significant runtime difference, 
+but it was obvious that HiC-Reg was using only one CPU, while hicprediction is set up to use multithreading on
+all available CPUs (via sklearn).
+\begin{table}[htb]
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcclcc}
+\hline
+                       & \multicolumn{2}{c}{\textbf{training}}                               &                      & \multicolumn{2}{c}{\textbf{prediction}}    
+                         \\
+                       & \multicolumn{1}{l}{runtime / min} & \multicolumn{1}{l}{memory / GB} &                      & \multicolumn{1}{l}{runtime / min} & 
+\multicolumn{1}{l}{memory / GB} \\ \hline
+\textbf{HiC-Reg}       & 175,58                            & 4,29                            & \multicolumn{1}{c}{} & 3,70                              & 1,92   
+                         \\
+\textbf{hicprediction} & 1,26                              & 0,70                            & \multicolumn{1}{c}{} & 1,18                              & 1,17   
+                         \\ \hline
+\end{tabular}}
+\caption{computational effort HiC-Reg vs. hicprediction} \label{tab:res:efficiency}
+\end{table}
+
+For the example of CTCF in GM12878, the bedgraph input file converted from the corresponding BAM file 
+proved qualitatively quite similar to the example file in the HiC-Reg github repository 
+\cite{Roy2020}\footnote{full url: 
+\url{https://github.com/Roy-lab/HiC-Reg/blob/master/Scripts/aggregateSignalInRegion/wgEncodeBroadHistoneGm12878CtcfStdRawDataRep1_chr17.counts}},
+see \autoref{fig:app:GM12878:CTCF:convertedInput3MB} and \ref{fig:app:GM12878:CTCF:convertedInput100KB}.
+However, the newly created file contained about \num{50000} lines more than the example file, 
+which suggests that the original input data to HiC-Reg must have been filtered in some way. 
+The paper \cite{Zhang2019} contains general information on how the data have been processed,
+e.\,g. with regard to software tools, but detailed information, for example on specific filtering procedures or parameters, 
+could unfortunately not be found.
+
+Irrespective of this, predictions with HiC-Reg using the converted BAM files unfortunately did not yield useful results, see 
+\autoref{fig:res:HicregVsHicprediction_fromGroundUp}.
 It could not be clarified what went wrong, 
 but gradient-like predictions like these can occur when only distance is
 considered as a feature, cf. \autoref{sec:improve:emptySamples}.
@@ -503,3 +530,54 @@ only specified by example.
 
 A concluding discussion of all changes made to hicprediction within this masterproject
 will be given in \autoref{sec:discussion:main}.
+\begin{figure}[hbp]
+\centering
+\scriptsize
+\import{figures/}{chr17-12-15_GM12878-on-K562_oursVsZhangPaper.pdf_tex}
+\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}}
+\label{fig:res:HicregVsHicprediction_supplementary}
+\end{figure}
+\begin{figure}[hbp]
+\centering
+\scriptsize
+\import{figures/}{chr17-12-15_GM12878-on-K562_oursVsZhangPaper_noEmpty_sameInput.pdf_tex}
+\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{25}{\kilo\bp}, HiC-Reg input data converted from hicprediction datasets}
+\label{fig:res:HicregVsHicprediction_recomputed}
+\end{figure}
+\begin{figure}[hbp]
+\centering
+\scriptsize
+\import{figures/}{GM12878-on-K562_HicregFromGroundUp.pdf_tex}
+\caption{HiC-Reg prediction from BAM files, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}}
+\label{fig:res:HicregVsHicprediction_fromGroundUp}
+\end{figure}
+\begin{figure}[hbp]
+\centering
+\begin{subfigure}[t]{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{Pearson_GM12878-on-K562_hicregFromSupplementary_vs_hicprediction.pdf_tex}}
+ \caption{HiC-Reg data from publication \cite{Zhang2019}}
+ \label{fig:res:Pearson:K562:chr17:5kb:HicregFromPublication}
+\end{subfigure}\hfill%
+\begin{subfigure}[t]{.495\textwidth}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{Pearson_GM12878-on-K562_noEmpty_HicregVsHicprediction_sameInputs.pdf_tex}}
+ \caption{HiC-Reg input data converted from hicprediction datasets}
+ \label{fig:res:Pearson:K562:chr17:5kb:HicregFromConversion}
+\end{subfigure}
+\begin{subfigure}{.495\textwidth}
+  \vspace{5mm}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \scriptsize
+ \import{figures/}{Pearson_GM12878-on-K562_HicregFromGroundUp.pdf_tex}}
+ \caption{HiC-Reg input data computed from BAM files}
+ \label{fig:res:Pearson:K562:chr17:5kb:HicregFromBam}
+\end{subfigure}
+\caption{Pearson correlation comparison HiC-Reg vs. hicprediction}
+\label{fig:res:Pearson:hicRegVsHicprediction}
+\end{figure}
