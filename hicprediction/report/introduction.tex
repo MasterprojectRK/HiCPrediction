@@ -4,8 +4,18 @@ because it influences many biological processes within living organisms.
 However, the lab processes required to investigate the so-called chromosome conformation
 are still comparatively expensive, which has stimulated research in predicting 
 3D-structure from available data.
-Consequently, this masterproject report deals with improving an existing algorithm
-for predicting spatial DNA-DNA interactions from DNA-protein interactions.
+
+One such software package to predict the 3D-structure of DNA, \emph{HiC-Reg}, was conceived by Zhang et al. in 2018/2019 \cite{Zhang2018,Zhang2019}.
+It is using a random forest regressor to learn DNA conformation from known DNA-DNA- and DNA-protein interactions. 
+Unfortunately, HiC-Reg requires customized input data, produces custom output data
+and has a high demand for computational ressources, making it inconvenient to use for scientists.
+
+To improve on HiC-Reg's weaknesses, a previous masterproject at the University of Freiburg 
+has resulted in the development of \emph{hicprediction} \cite{Bajorat2019}, 
+which is basically a more efficient python implementation of HiC-Reg with standard in- and output formats.
+However, its predictions are currently not on par with the ones published for HiC-Reg.
+The goal of this present masterproject is thus to investigate reasons for hicprediction's underperformance
+and improve the predictions.
 
 \subsection{Motivation}
 Ever since the discovery of the DNA double-helix structure \cite{Watson1953} and the central dogma of molecular biology \cite{Crick1958} in the 1950's,
@@ -25,16 +35,17 @@ between two distinct loci at a time (one vs. one), while more advanced technique
 4C \cite{Simonis2006} (one vs. all loci) and 5C \cite{Dostie2006} (many vs. many loci) 
  have a higher performance.
 The currently preferred method, Hi-C \cite{LiebermanAiden2009, Berkum2010},
-is capable of determining all DNA interactions on the genome scale in a single experiment 
+is capable of determining all DNA-DNA interactions on the genome scale in a single experiment 
 (all vs. all loci). 
 The main output of Hi-C is the so-called contact- or interaction count matrix, 
 which holds the numbers of interactions between all pairs of loci, genome-wide.
+Hi-C is explained in more detail in \,\autoref{sec:intro:hic}.
+
 Despite the progress in recent years, chromosome conformation capture methods still involve prohibitively expensive and 
 tedious wet-lab processes, which limit their range of applications. 
 In this regard, it must also be noted, that -- unlike the DNA sequence -- 
 chromosome conformation is both dynamic and cell-specific, 
 so a large number of experiments is required to get an overview over a whole organism.
-Hi-C is explained in more detail in \,\autoref{sec:intro:hic}.
 
 Irrespective of the costs, high-resolution Hi-C datasets are already available for several 
 human-, mouse- and drosophila cell lines.
@@ -53,7 +64,7 @@ with a focus on the predicted interaction regions, which would be much more effi
 Detecting hidden patterns in large sets of input data and figuring out -- potentially nonlinear -- dependencies between input and output
 has recently become a domain of machine learning algorithms. 
 For that reason, different machine learning techniques have been applied in the last five years -- more or less successfully -- 
-to predict DNA-DNA interactions and -structure from available data \cite{Pierro2017,Farre2018,Schwessinger2019,Li2019,Zhang2019}.
+to predict DNA-DNA interactions and -structure from available data \cite{Zhang2019,Pierro2017,Farre2018,Schwessinger2019,Li2019}.
 
 During a previous masterproject by Andre Bajorat \cite{Bajorat2019}, 
 a regression model based on random forests as proposed by Zhang et al. \cite{Zhang2019, Zhang2018}
@@ -68,17 +79,18 @@ However, before going into details,
 the underlying Hi-C- and ChIP-seq processes shall be explained in more detail,
 since they are central for understanding the rest of the report.
 
+\clearpage
 \subsection{Introduction to Hi-C} \label{sec:intro:hic}
-\begin{wrapfigure}[19]{r}{0.3\textwidth}
+\begin{wrapfigure}[36]{r}{0.3\textwidth}
  \resizebox{0.3\textwidth}{!}{
  \small
- \import{figures/}{HiC-lab_p1.pdf_tex}}
+ \import{figures/}{HiC-lab.pdf_tex}}
  \caption{Hi-C lab process}
  \label{fig:intro:HiC}
 \end{wrapfigure}
 The Hi-C process is targeted at investigating the three-dimensional structure of DNA
 by detecting DNA-DNA interactions, 
-as depicted in simplified form in \autoref{fig:intro:HiC} and\;\ref{fig:intro:HiC2}.
+as depicted in simplified form in \autoref{fig:intro:HiC}.
 
 The typical input to Hi-C are about 20-25 million cells of the same type \cite{Berkum2010},
 which are first crosslinked to fix DNA-DNA contacts, e.\,g. using formaldehyde, 
@@ -95,17 +107,6 @@ Those fragments which contain biotinylated nucleotides
 are then pulled down (5) and subjected to paired-end DNA-sequencing (6).
 In the end, the outcome of the Hi-C lab process is a bunch of short genomic sequences, so-called reads,
 which are subsequently processed in the bioinformatics part of the Hi-C protocol.
-\bgroup
-\setlength{\intextsep}{0cm}
-\begin{wrapfigure}[17]{R}{0.3\textwidth}
- %\raisebox{0pt}[\dimexpr\height-2.0\baselineskip\relax]{
- \resizebox{0.3\textwidth}{!}{
- \small
- \import{figures/}{HiC-lab_p2.pdf_tex}}%}
- \caption{Hi-C lab process (cont.)}
- \label{fig:intro:HiC2}
-\end{wrapfigure}
-\egroup
 
 On the bioinformatics side, the reads are first mapped to the relevant reference genome,
 keeping only so-called chimeric reads, where the sequence from the ``left'' end of a read
@@ -122,11 +123,12 @@ Often just a small fraction of all reads fulfill the selection criteria outlined
 which makes Hi-C a comparatively expensive process, because several billions
 of reads may be required to obtain meaningful results \cite{Rao2014}.
 
+\clearpage
 \subsection{Introduction to ChIP-seq} \label{sec:intro:chipseq}
-\begin{wrapfigure}[22]{l}{0.3\textwidth}
+\begin{wrapfigure}[38]{l}{0.3\textwidth}
  \resizebox{0.3\textwidth}{!}{
  \small
- \import{figures/}{chipseq_wetlab2.pdf_tex}}
+ \import{figures/}{chipseq_wetlab.pdf_tex}}
  \caption{ChIP-seq lab process}
  \label{fig:intro:chipseq-lab}
 \end{wrapfigure}
@@ -150,17 +152,10 @@ which comprises all steps described above, except the immunoprecipitation.
 As with Hi-C and all other sequencing-based methods, the outcome of the ChIP-seq lab process is
 again a bunch of short genomic sequences, which are then fed into the bioinformatics part of the pipeline.
 
-\begin{wrapfigure}[14]{r}{0.3\textwidth}
- \resizebox{0.3\textwidth}{!}{
- \small
- \import{figures/}{chipseq_wetlab3.pdf_tex}}
- \caption{ChIP-seq lab process (cont.)}
- \label{fig:intro:chipseq-lab2}
-\end{wrapfigure}
 The first data processing step for ChIP-seq, too, is quality control (QC), as with all other sequencing-based processes. 
 Those reads passing QC are next mapped to an appropriate reference genome, 
 to find out where the protein under investigation binds to DNA.
-Therefor the number of mapped reads per genomic position is counted and compared 
+Therefore the number of mapped reads per genomic position is counted and compared 
 to the numbers of reads stemming from the control experiment mentioned above. 
 So-called ``peaks'' are then called at those positions where the number of mapped ChIP-seq reads is
 statistically significant compared to the control signal. 

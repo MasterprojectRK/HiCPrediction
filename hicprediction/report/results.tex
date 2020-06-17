@@ -490,8 +490,8 @@ However, the computations from hicprediction were much more efficient both in te
 see \autoref{tab:res:efficiency}. While training took almost three hours in HiC-Reg, it finished within around 90 seconds
 in hicprediction -- and this even includes the time spent to split the data into five cross-validation sets and store them.
 No efforts were made to find the cause for the significant runtime difference, 
-but it was obvious that HiC-Reg was using only one CPU, while hicprediction is set up to use multithreading on
-all available CPUs (via sklearn).
+but it was obvious that HiC-Reg was using only one CPU, while hicprediction was set up to use multithreading on
+all available (four) CPUs for the random forest regressor.
 \begin{table}[htb]
 \resizebox{\textwidth}{!}{
 \begin{tabular}{lcclcc}
@@ -513,16 +513,14 @@ proved qualitatively quite similar to the example file in the HiC-Reg github rep
 \cite{Roy2020}\footnote{full url: 
 \url{https://github.com/Roy-lab/HiC-Reg/blob/master/Scripts/aggregateSignalInRegion/wgEncodeBroadHistoneGm12878CtcfStdRawDataRep1_chr17.counts}},
 see \autoref{fig:app:GM12878:CTCF:convertedInput3MB} and \ref{fig:app:GM12878:CTCF:convertedInput100KB}.
-However, the newly created file contained about \num{50000} lines more than the example file, 
+However, the newly created file contained about \num{55000} (14.2\%) more lines than the example file, 
 which suggests that the original input data to HiC-Reg must have been filtered in some way. 
-The paper \cite{Zhang2019} contains general information on how the data have been processed,
-e.\,g. with regard to software tools, but detailed information, for example on specific filtering procedures or parameters, 
-could unfortunately not be found.
-
-Irrespective of this, predictions with HiC-Reg using the converted BAM files unfortunately did not yield useful results, see 
+The paper \cite{Zhang2019} provides general information on how the data have been processed,
+e.\,g. with regard to software tools, but unfortunately lacks detailed information for example on specific filtering procedures or parameters.
+Irrespective of this, predictions with HiC-Reg using the converted BAM files did not yield useful results, see 
 \autoref{fig:res:HicregVsHicprediction_fromGroundUp}.
 It could not be clarified what went wrong, 
-but gradient-like predictions like these can occur when only distance is
+but gradient predictions like these can occur when only distance is
 considered as a feature, cf. \autoref{sec:improve:emptySamples}.
 This could have happened either due to a bug in HiC-Reg 
 or a misunderstanding of its input file formats, some of which are 

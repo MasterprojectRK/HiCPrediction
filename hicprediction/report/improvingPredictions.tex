@@ -45,12 +45,15 @@ Gradient-like predictions are most prevalent in those regions where distance is 
 To understand this fact, it helps to recall how decision trees can split the datasets in such distance-only cases.
 For a distance of \SI{1}{\bp} for example, there are approximately four times more training samples
 in region (A) with a target read count of zero than in region (B) with a read count of 100. 
-The resulting predictions for such samples are then around $\frac{1}{4}\cdot100=25$. 
-For a distance of \SI{500000}{\bp}, there are about 8 times more training samples in region (A) than in (B), 
-causing predictions of around $\frac{1}{8}\cdot100=12.5$.
-For distances greater than \SI{1}{\mega\bp} (and all other features still zero), there are no more samples in region (B), 
-so the prediction relies on training samples from region (A), 
-which are all zero, \autoref{fig:improve:predExplained} ($\alpha$) and\;($\epsilon$).
+The resulting predictions for such samples are then around the mean, $\frac{4 \cdot 0 + 1 \cdot 100}{5}=20$.
+For a distance of \SI{500000}{\bp}, there are about 8 times more samples in region (A) than in (B), 
+causing predictions of around \(\frac{8 \cdot 0 + 1 \cdot 100}{9} \approx 11.1 \).
+For distances greater than \SI{1}{\mega\bp} (and all other features still zero), there are no more samples
+in region (B), so the prediction relies on training samples from region (A), which are all
+zero, \autoref{fig:improve:predExplained} $(\alpha)$ and $(\epsilon)$.
+
+For distances greater than \SI{1}{\mega\bp} (and all other features still zero), the prediction relies on training samples which all have zero interaction 
+count, \autoref{fig:improve:predExplained} ($\alpha$) and\;($\epsilon$).
 \begin{figure}[ht]
 \begin{subfigure}{\textwidth}
  \centering
@@ -76,7 +79,7 @@ corresponding to training regions \autoref{fig:improve:learnRegions} (C1), (C2),
 Again, it helps to look at different distances. Between \SI{1}{\bp} and \SI{1}{\mega\bp},
 there are constantly about twice as many training samples
 in region (C1) than in (C2), with target read counts of 0 and 100, respectively. 
-The resulting prediction is thus about $0.5\cdot100 = 50$, \autoref{fig:improve:predExplained}, ($\gamma_1,\,\gamma_2$). 
+The resulting prediction is thus about $\frac{2 \cdot 0 + 1 \cdot 100}{3} \approx 33.3$, \autoref{fig:improve:predExplained}, ($\gamma_1,\,\gamma_2$). 
 For distances greater than \SI{1}{\mega\bp}, the number of samples in region (C1) grows linearly, 
 while the number of samples in region (C3) shrinks linearly, causing a gradient prediction within the inverted triangles, 
 \autoref{fig:improve:predExplained} ($\gamma_1$, $\gamma_3$).
@@ -131,7 +134,7 @@ These will be handled below in \autoref{sec:improve:peakDensity}.
 \clearpage
 \subsection{Dealing with sparse input data} \label{sec:improve:peakDensity}
 As already mentioned in \autoref{sec:intro:chipseq} and \autoref{fig:priorW:hicpredFlow}, 
-hicprediction thus far relies on narrowPeak-files for incorporating ChIP-seq data.
+hicprediction thus far relies on narrowPeak-files for incorporating ChIP-seq data, cf.\,\autoref{sec:methods:chipseqdata}.
 Compared to the length of the single chromosomes, 
 the number of peaks contained in these files is often small.
 For example, in K562, there are 2180 ChIP-seq peaks in the CTCF-narrowPeak file for chromosome 17, 
@@ -264,7 +267,7 @@ For example, if the optimal cut-point was 0.8 for a certain feature with value r
 it would simply be 8.0 for the same feature scaled to range [0...10], 
 and the cut-point would be no different, if another feature had value range [0...5] or [20...1000].
 However, adjusting value ranges should be useful
-for concatenating datasets from different cell lines (cf.\,\autoref{sec:improve:concatdatasets}) and can
+for concatenating datasets from different cell lines, see below, and can
 help avoid problems interpreting feature importances \cite{Strobl2007}.
 
 \subsection{Concatenating datasets and predictions from different cell lines} \label{sec:improve:concatdatasets}
@@ -326,7 +329,7 @@ Since the highest interaction counts typically occur at the lowest distances,
 this way of pruning the datasets predominantly discards samples with high interaction counts
 and thus implicitly gives more weight to samples with \emph{lower} interaction counts.
 As a side effect, outliers with very high interaction counts are often also removed,
-because they commonly stem from the main- or first side diagonal of the matrix, i.\,e. have a distance below \SI{5}{\kilo\bp}.
+because they commonly stem from the main- or first side diagonal of the matrix, i.\,e. have a distance less or equal to \SI{5}{\kilo\bp}.
 
 The results of all sample-emphasizing methods are to be found in \autoref{sec:res:emphasizing}.
 
