@@ -1,43 +1,50 @@
 # HiCPrediction
-HiCPrediction allows predicting Hi-C matrices using protein levels given by ChIPseq data. 
+HiCPrediction allows predicting unknown Hi-C matrices using known
+Hi-C matrices and protein levels given by ChIPseq data. 
 It is based on random forest regression as proposed by [Zhang, Chasman, Knaack and Roy in 2018](http://dx.doi.org/10.1101/406322). 
 
 HiCPrediction consists of four steps
-* binning the proteins, 
+* binning the proteins according to training matrix resolution, 
 * creating training and test data sets, 
 * training a regression model on given HiC-matrices and ChIP-seq data,
-* prediction of unknown HiC-matrices from ChIP-seq data
+* prediction of unknown HiC-matrices using the regression model and ChIP-seq data
 
 These four steps are described below in more detail. 
 
 
 ## Installation
 HiCPrediction requires Python >= 3.6, click, cooler, graphviz,
-h5py, hicmatrix, hyperopt, joblib, matplotlib, numpy, pandas,
+h5py, hicexplorer, hicmatrix, hyperopt, joblib, matplotlib, numpy, pandas,
 pybedtools, pyBigWig, pydot, scikit-learn, scipy and tqdm.
 
-It is recommended to install hicprediction using conda and pip
-into a fresh conda environment, e.g. named hicprediction:
+It is recommended to install hicprediction using a local conda package.
+To do so, first download the meta.yaml provided in our github repository
+and change into the download directory. 
 
 ```
+# first, download and install conda, if not already present
+
+# create a new conda environment (optional, but recommended)
 $ conda create -n hicprediction
 $ conda activate hicprediction
-$ conda install hicexplorer
-$ #conda install pip
-$ pip install https://github.com/MasterprojectRK/HiCPrediction/hicprediction.whl
 
+# go to the directory where the meta.yaml has been stored
+# and build a local conda package.
+# The command will print out the 
+# location where the package has been placed
+$ conda build .
+
+# install the local package
+$ conda install hicprediction --use-local
 ```
-Pip usually comes with hicexplorer and thus should not need to 
-be installed separately. It is strongly recommended to
-install hicexplorer before installing hicprediction (as shown above) to 
-avoid dependency problems.
+
 
 ## Usage
 
 ### 1. createBaseFile
 This script aggregates given ChIP-seq data for a certain cell line and resolution into bins of user-defined size.
 It creates a so-called basefile and also per-chromosome cooler matrices, if provided with a Hi-C matrix. 
-Basefiles are required both for building training and test datasets (see below). Basefiles can span several or all numerical chromosomes, but separate files have to be created for each cell line and each resolution, using the appropriate protein files.
+Basefiles are required both for building training and test datasets (see below). Basefiles can span several or all numerical human chromosomes, but separate files have to be created for each cell line and each resolution, using the appropriate protein files.
 
 Options:
  * -bf, --baseFile PATH [required]
