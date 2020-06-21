@@ -56,7 +56,7 @@
     \put(0.02168261,1.12924833){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{4. Purify \& Shear}}}%
     \put(0.02591213,1.63122365){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{3. Ligate}}}%
     \put(0.02591213,0.65631364){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5. Pull down biotin}}}%
-    \put(0.02591213,0.24624056){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{6. \scriptsize Paired-end sequencing}}}%
+    \put(0.02591213,0.24624056){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\resizebox{35mm}{!}{6. Paired-end sequencing}}}}%
     \put(0.65762558,0.01952092){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize ...ACGA}}}%
     \put(0.30308454,0.13140508){\color[rgb]{0,0,0}\makebox(0,0)[rb]{\smash{\scriptsize CGTA...}}}%
   \end{picture}%

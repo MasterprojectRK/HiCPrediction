@@ -1,14 +1,14 @@
 \section{Introduction} \label{sec:intro}
 The three-dimensional structure of DNA has recently become an active field of research,
 because it influences many biological processes within living organisms.
-However, the lab processes required to investigate the so-called chromosome conformation
+However, the lab procedures required to investigate the so-called chromosome conformation
 are still comparatively expensive, which has stimulated research in predicting 
-3D-structure from available data.
+3D-structure from available data to save time and money.
 
 One such software package to predict the 3D-structure of DNA, \emph{HiC-Reg}, was conceived by Zhang et al. in 2018/2019 \cite{Zhang2018,Zhang2019}.
 It is using a random forest regressor to learn DNA conformation from known DNA-DNA- and DNA-protein interactions. 
 Unfortunately, HiC-Reg requires customized input data, produces custom output data
-and has a high demand for computational ressources, making it inconvenient to use for scientists.
+and has a high demand for computational resources, making it inconvenient to use for scientists.
 
 To improve on HiC-Reg's weaknesses, a previous masterproject at the University of Freiburg 
 has resulted in the development of \emph{hicprediction} \cite{Bajorat2019}, 
@@ -18,7 +18,7 @@ The goal of this present masterproject is thus to investigate reasons for hicpre
 and improve the predictions.
 
 \subsection{Motivation}
-Ever since the discovery of the DNA double-helix structure \cite{Watson1953} and the central dogma of molecular biology \cite{Crick1958} in the 1950's,
+Ever since the discovery of the DNA double-helix structure \cite{Watson1953} and the central dogma of molecular biology \cite{Crick1958} in the 1950s,
 the vital role of Deoxyribonucleic Acid (DNA) for the existence of all living organisms has been generally known.
 Less known, however, is the fact that DNA is not only a long molecule holding genetic information, 
 but also forms a spatial structure termed \emph{chromosome conformation}, 
@@ -108,8 +108,8 @@ are then pulled down (5) and subjected to paired-end DNA-sequencing (6).
 In the end, the outcome of the Hi-C lab process is a bunch of short genomic sequences, so-called reads,
 which are subsequently processed in the bioinformatics part of the Hi-C protocol.
 
-On the bioinformatics side, the reads are first mapped to the relevant reference genome,
-keeping only so-called chimeric reads, where the sequence from the ``left'' end of a read
+On the bioinformatics side, the reads are first mapped to the relevant reference genome.
+Here, only so-called chimeric reads are kept, where the sequence from the ``left'' end of a read
 uniquely maps to one region of the reference genome and the sequence from the ``right'' end 
 of the read uniquely maps to another one.
 These reads are subjected to quality control, and those passing are counted as an interaction

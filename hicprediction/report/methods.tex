@@ -116,13 +116,13 @@ BroadPeak files were downloaded from
 unpacked and renamed as described above. 
 Hicprediction was then modified to internally convert the broadPeak files to 
 narrowPeak, taking $\lfloor\frac{start + end}{2}\rfloor$ as peak position. 
-It is possible to use narrowPeak-, broadPeak- and bigWig-files simultaneously in hiprediction, 
+It is possible to use narrowPeak-, broadPeak- and bigWig-files simultaneously in hicprediction, 
 provided the same order of the inputs is maintained across all cell lines and chromosomes, cf.\;\autoref{sec:res:dealing_with_sparse_input}.
 
 For RAD21 and TBP, no BAM-files and neither of the three usable file formats bigwig, narrow- or broadPeak 
 could be found for cell lines HMEC, HUVEC and NHEK.
 This is probably because no ChIP-seq experiments have been published for those two proteins in these three cell lines so far.
-RAD21 and TBP were therefore exluded from hicprediction to maintain compatibility among the datasets from different cell lines.
+RAD21 and TBP were therefore excluded from hicprediction to maintain compatibility among the datasets from different cell lines.
 
 Text files containing the download links for all protein- and histone files in BAM- and narrow-/broadPeak format can be found in the github repository
 \cite{Krauth2020}; \texttt{wget -i} can be used with these to conveniently download all relevant files for each cell line at once.
@@ -134,7 +134,7 @@ the bin number of the bigwig files being adjusted according to the bin size of t
 Hicprediction's random forest implementation is imported from sklearn.ensemble \cite{Pedregosa2011,scikitEnsemble2019}.
 All parameters are adjustable from the command line, but only the default values in \autoref{list:methods:RandomForestRegressor} 
 (p.\;\pageref{list:methods:RandomForestRegressor}) were used for the investigations in this report, 
-compare \emph{training.py} in the github repository \cite{Krauth2020}.
+compare \emph{training.py} in the github repository \cite{hicpred2020tr}.
 
 The number of trees, \texttt{n\_estimators}, and the \texttt{max\_features} parameter,
 which controls the number of features drawn at random for each split,
@@ -146,7 +146,7 @@ using the same parameters as shown in \autoref{list:methods:RandomForestRegresso
 except for \texttt{bootstrap}, which was set to \texttt{False}.
 To allow handling random forests and extra trees in the same module, 
 the boolean parameter \texttt{--useExtraTrees} has been added to \emph{training.py} to select
-the desired algorithm, see the hicprediction github for details \cite{Krauth2020}.
+the desired algorithm, see the hicprediction github for details \cite{hicpred2020tr}.
 
 \subsection{Investigations on discarding empty samples and input density} \label{sec:methods:discardEmpty}
 The example training- and test matrices for investigations on empty samples in \autoref{sec:improve:emptySamples} 
@@ -161,13 +161,13 @@ and \num{5000000} / \num{6000000} / \SI{6999999}{\bp} for test.
 The signal value was 10 in all cases.
 
 For protein input smoothing, standard functions from pandas \cite{McKinney2010} were used to apply
-gaussian kernels, in this case truncated at four times the standard deviation (but at least one bin on either side),
-see \emph{createTrainingSet.py} for details \cite{Krauth2020}. 
+Gaussian kernels, in this case truncated at four times the standard deviation (but at least one bin on either side),
+see \emph{createTrainingSet.py} for details \cite{hicpred2020cts}. 
 The standard deviation $\sigma$ was manually adjusted between 0.1 and 10 until acceptable results were obtained;
 the values used in \autoref{sec:res:dealing_with_sparse_input} are stated in the respective figures.
 
-For matrix smoothing, the \texttt{gaussian\_filter} function from scipy.ndimage \cite{Virtanen2020, SciPyNdimage2019} was used,
-again manually adjusting the standard deviation, see \emph{predict.py} \cite{Krauth2020}.  
+For matrix smoothing, the \texttt{Gaussian\_filter} function from scipy.ndimage \cite{Virtanen2020, SciPyNdimage2019} was used,
+again manually adjusting the standard deviation, see \emph{predict.py} \cite{hicpred2020pr}.  
 This filter was also truncated at four times the standard deviation.
 
 Two different options for discarding ``empty samples'' without start- and end-feature were considered, 
@@ -207,7 +207,7 @@ set to zero, so that, with regard to interaction counts, eq.\,\ref{eq:normIntera
  scaledValue = targetMin + \frac{actualValue - sampleMin}{sampleMax - 
 sampleMin} \cdot (targetMax - targetMin)
 \end{equation}
-For convenience, value range scaling was performed using the MinMaxScaler class from
+For convenience, value range scaling was performed using the \texttt{MinMaxScaler} class from
 the sklearn.preprocessing module.
 To suppress noise, values below 0.001 were set to zero after scaling, 
 except for computations with value range [0...1], where no set-to-zero threshold was applied.
@@ -271,7 +271,7 @@ since $R^2 \in (-\infty,1]$ and thus
 $\forall n \in 1,2,...,5:\; \textrm{testScore}_n(lower,upper,k) \in (-\infty,1]$.
 
 To find a suitable factor and range for sample weighting, hyperopt \cite{Bergstra2011} was applied, 
-using its tree-parzen-estimator based search strategy to minimize the loss function.
+using its tree-parzen-estimator based search strategy to minimize the loss function in \autoref{eqn:methods:loss}.
 To this end, evaluations of the function were performed with 200 different parameter combinations,
 whereby $lower$ and $upper$ were uniformly sampled from the interaction count value range,
 and factor $k$ was uniformly sampled from $[0.1, 100]$.
@@ -289,7 +289,7 @@ Among other adjustment parameters, the names of the features used for computing 
 from the command line, so that the code can also be used to compute weights based on other proteins than CTCF.
 
 For the TAD-based sample weighting method, TADs were called on the training cell line using 
-version 3.4.1 of \texttt{hicFindTADs}, \autoref{methods:list:TADs} (p.\;\pageref{methods:list:TADs}). 
+version 3.4.1 of \texttt{hicFindTADs} from the HiCExplorer suite \cite{Wolff2018}, cf. \autoref{methods:list:TADs} (p.\;\pageref{methods:list:TADs}). 
 Due to time constraints, again, only GM12878 was used for training, and the parameters
 were adjusted manually until the detected TADs ``looked good'' -- unfortunately, there is 
 no ground truth with regard to TADs, which is a clear weakness of this approach. 
@@ -306,15 +306,15 @@ often not present in the predictions, and on the other hand to exclude very long
 In order to remove the ``diagonal'' from the predictions as (probably) done by Zhang et al.,
 all samples with $distance \leq 1$ were discarded, in this case both from the training and test datasets.
 Apart from that, predictions were computed as usual.
-Note that hicprediction records distance in bins, whereas HiC-Reg is using basepairs.
+Note that hicprediction records distance in bins, whereas HiC-Reg is using base pairs.
 
 For all sample-weighting investigations, interaction counts were scaled to [0...1000], 
 while protein data were taken in bigwig format, in their original value ranges and without dropping empty samples.
 
 \subsection{Comparison between HiC-Reg and hicprediction}\label{sec:methods:comparison}
 To compare hicprediction to HiC-Reg, the corresponding input parameters were set to match, if known.
-This means that the default random forest was used for hicprediction (see \ref{sec:methods:randomForestImplementation}),
-and empty samples were discarded, see subsections \ref{sec:methods:discardEmpty}.
+This means that the default random forest was used for hicprediction (see \autoref{sec:methods:randomForestImplementation}),
+and empty samples were discarded, see subsection \ref{sec:methods:discardEmpty}.
 The proteins were not scaled, but matrices were adjusted to a value range of [0...1000].
 Hicprediction was then amended to allow a 5-fold cross-validation as described by Zhang et al. 
 Here, the training data was split using sklearn's \texttt{cross\_validate()} function,
@@ -352,9 +352,9 @@ taking the same Hi-C matrices and BAM files\footnote{here, replicate 2 only; to 
 as inputs that were used for hicprediction, 
 cf. \autoref{sec:methods:matricesAndPlots} and \ref{sec:methods:chipseqdata}.
 To this end, the BAM files were split up 
-per chromosome using \texttt{samtools} version 1.9
-and the coverage was computed using \texttt{bedtools} \texttt{genomecov} v2.29.2, 
-see \autoref{methods:list:hicregInputs} for an example. 
+per chromosome using \texttt{samtools} \cite{Li2009} version 1.9
+and the coverage was computed using \texttt{bedtools} \texttt{genomecov} v2.29.2 \cite{Quinlan2010}, 
+see \autoref{methods:list:hicregInputs} (p.\;\pageref{methods:list:hicregInputs}) for an example. 
 This produces a bedgraph-formatted output which can serve as input for binning.
 The latter was then performed with HiC-Reg's \texttt{aggregateSignal} binary, 
 taking the bedgraph files as inputs, while resolution was set to \SI{5}{\kilo\bp} and the hg19 reference genome was used. 
@@ -371,7 +371,7 @@ Due to time constraints, comparisons between hicprediction and HiC-Reg
 were only made for cross-cell predictions GM12878 on K562, chromosome 17,
 using the \textsc{window} method.
 
-Ressource consumption for all steps above 
+Resource consumption for all steps above 
 was measured with GNU time 1.7 on a machine equipped with a quad Intel{\small\textregistered} Core{\small\texttrademark} i5-4200U CPU at 
 \SI{1.6}{\giga\hertz} and \SI{8}{\giga\byte} memory, refer to \autoref{methods:list:usrbintime} for the parameters used.
 

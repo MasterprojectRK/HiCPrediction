@@ -61,6 +61,6 @@
     \put(0.22082472,0.00913376){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12,020}}}%
     \put(0.41129163,0.00913376){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12,040}}}%
     \put(0.6017578,0.00913376){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12,060}}}%
-    \put(0.79323335,0.00913376){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12,080 Kb}}}%
+    \put(0.79323335,0.00913376){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{12,080 Kbp}}}%
   \end{picture}%
 \endgroup%

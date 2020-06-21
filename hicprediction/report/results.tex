@@ -62,7 +62,7 @@ Due to the higher peak density in the bigwig files, the effect of leaving out
 empty samples was sometimes hardly recognizable, compare \autoref{fig:results:bigwig:allsamples} and \ref{fig:results:bigwig:noemptysamples}.
 The Pearson correlations were also similar for both approaches, and both were better than the ones from using peak files, 
 \autoref{fig:results:bigwig:Pearson}.
-However, the effect of removing samples was found to be dependent on cell line, chromosome and genomic position. 
+However, the effect of removing empty samples was found to be dependent on cell line, chromosome and genomic position. 
 Some chromosomes, e.\,g. 21, have large contiguous regions which seem to be deprived of all proteins,
 probably for biological reasons.
 For such regions, removing empty samples was significantly better, \autoref{fig:app:GM12878:K562:chr21:25k:goodToRemove}, 
@@ -344,6 +344,7 @@ The structures in the matrix plot were still distinguishable and not significant
 than the ones from single-cell-line predictions.
 
 The prediction from concatenated datasets performed not as well as the averaged single predictions,
+\autoref{fig:res:Pearson:singleVsTogether:K562:chr17:5k} and \ref{fig:app:all:K562:chr17:singleVsJoint:5k}, third panel from bottom,
 but still better than the single predictions from ``less suitable'' cell lines. 
 It should however be noted that the datasets have been concatenated without prior feature scaling, due 
 to the problems mentioned in \autoref{sec:res:normalization} above.
@@ -491,7 +492,7 @@ see \autoref{tab:res:efficiency}. While training took almost three hours in HiC-
 in hicprediction -- and this even includes the time spent to split the data into five cross-validation sets and store them.
 No efforts were made to find the cause for the significant runtime difference, 
 but it was obvious that HiC-Reg was using only one CPU, while hicprediction was set up to use multithreading on
-all available (four) CPUs for the random forest regressor.
+all available (here, four) CPUs for the random forest regressor.
 \begin{table}[htb]
 \resizebox{\textwidth}{!}{
 \begin{tabular}{lcclcc}
@@ -532,7 +533,8 @@ will be given in \autoref{sec:discussion:main}.
 \centering
 \scriptsize
 \import{figures/}{chr17-12-15_GM12878-on-K562_oursVsZhangPaper.pdf_tex}
-\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}}
+\caption{HiC-Reg vs. hicprediction, GM12878 on K562, chromosome 17, \SI{5}{\kilo\bp}, HiC-Reg prediction reconstructed from published 
+data \cite{Zhang2019,zhangMaterial01,zhangMaterial02,zhangMaterial03}}
 \label{fig:res:HicregVsHicprediction_supplementary}
 \end{figure}
 \begin{figure}[hbp]

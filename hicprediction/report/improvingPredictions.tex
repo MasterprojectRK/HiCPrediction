@@ -115,7 +115,7 @@ These will be handled below in \autoref{sec:improve:peakDensity}.
  \centering
  \begin{tabular}{lL{9cm}}
   \hline
-  \textbf{region} 	& \textbf{potential decision rules learned} \\ \hline
+  \textbf{region (fig.\,\ref{fig:improve:learnRegions})} 	& \textbf{potential decision rules learned} \\ \hline
   A		& When all features except $distance$ are zero, the $target\,value$ is~0 \\[1mm]
   B		& When all features except $distance$ are zero and $distance \leq \SI{1}{\mega\bp}$, the $target\,value$ is~100 \\[1mm]
   C1		& When $window\,feature = \frac{10}{distance}$, the $target\,value$ is~0 \\[1mm]
@@ -171,7 +171,7 @@ H4K20me1 & 2,42  & 94,56 & 1,75  & 95,06 & 1,77  & 94,60 & 5,21  & 94,53 & 3,50 
 Even with the 12 proteins used throughout this masterproject,
 the training sets remain quite sparse.
 When discarding empty samples to avoid inverted triangles and gradient-style predictions, often only few valid samples
-remain in the datasets, causing fragmented predictions, \autoref{fig:results:pk:noEmpty:5k}.
+remain in the datasets, causing fragmented predictions, \autoref{fig:results:pk:noEmpty:5k} (p.\;\pageref{fig:results:pk:noEmpty:5k}).
 
 To reduce the number of empty ranges in the predictions, two simple techniques were tried first,
 \emph{filling empty areas in the predicted matrix} using a two-dimensional Gaussian kernel and 
@@ -216,12 +216,12 @@ are shown in \autoref{sec:res:dealing_with_sparse_input}.
 \subsection{Scaling protein signal values and Hi-C interaction counts}
 Remarkably, no matter which types of input files were used thus far, 
 the absolute values of the predicted Hi-C interaction counts were usually not in the target range, 
-and sometimes off by factors of 5 or more, see e.\,g. \autoref{fig:results:bigwig:allsamples}. 
+and sometimes off by factors of 5 or more, see e.\,g. \autoref{fig:results:pk:noEmpty:5k} and \ref{fig:results:bigwig:allsamples}. 
 Such discrepancies can arise when the magnitude and distribution of the values in training samples differ from 
 the target -- which is often the case for the cell lines and chromosomes used throughout this masterproject.
 For example, when predicting K562 from GM12878, 
 the random forest is trained on interaction counts from GM12878, 
-which are mainly in the range [0...4000], \autoref{fig:GM12878:K562:interactionCountDistribution} top panel.
+which are mainly in the range [0...4000], \autoref{fig:GM12878:K562:interactionCountDistribution}, top panel.
 As the algorithm has seen many training samples within this value range,
 it overestimates the interaction counts from K562, 
 which are actually mostly in the smaller range [0...800],
@@ -253,7 +253,7 @@ This somewhat unorthodox way of scaling was found commented out in the code by Z
 Division-by-mean scaling reduces the value ranges of all proteins, 
 as the mean values of the protein signals are all greater than one,
 but does not guarantee a uniform value range, 
-\autoref{fig:app:prots:valueRangeBefore} and \ref{fig:app:prots:valueRangeDivByMean}.
+\autoref{fig:app:prots:valueRangeBefore} and \ref{fig:app:prots:valueRangeDivByMean} (p.\;\pageref{fig:app:prots:valueRangeBefore}).
 For chromosome 17, it turned out that the divisors differed from protein to protein, 
 but within a single protein, they were often roughly equivalent across all five cell lines, \autoref{fig:app:prots:divByMeanFactors}.
 Note that a unified range could be achieved by subsequent value range scaling, but this was not tested.
@@ -298,8 +298,8 @@ it is obvious that the vast majority of training samples
 will have an interaction count close to zero. 
 The random forest is thus likely to associate the protein inputs of the corresponding training samples
 with small interaction counts.
-However, structures like TADs should correspond to samples with nonzero, hopefully comparatively high 
-interaction counts, which seem underrepresented in the training data.
+However, strongly interacting regions like Topologically Associating Domains (TADs) should correspond to samples with nonzero, 
+hopefully comparatively high interaction counts, which seem underrepresented in the training data.
 In total, three options to improve on this were investigated.
 First, samples with ``high'' Hi-C interaction counts were given higher weights
 to make them more relevant when the splits for the single decision trees were computed.
@@ -314,9 +314,10 @@ Within this report, three parameters were used to select and weight samples: $lo
 selecting samples based on their CTCF signal value and interaction count, respectively, and a factor $k$, which 
 allows to control the weights of the selected samples in relation to the weights of the non-selected ones.
 To find optimal values for the three parameters, a search strategy based on tree-structured Parzen estimators
-was followed, cf. \autoref{sec:methods:emphasizing}.
-For TAD-based weighting, TADs were called with an established algorithm and samples within TADs were 
-weighted using a factor $k$ as above, see \autoref{sec:methods:emphasizing} for details.
+was followed \cite{Bergstra2011}.
+For TAD-based weighting, TADs were called with an established algorithm and samples within TADs were then 
+weighted using a factor $k$ as above. 
+Details for all sample-emphasizing methods are to be found in \autoref{sec:methods:emphasizing}.
 
 One further approach, which is in a similar spirit as the weight-based ones above,
 was again borrowed from Zhang et al. \cite{Zhang2019}. 

@@ -50,11 +50,11 @@
   \makeatother%
   \begin{picture}(1,0.82222222)%
     \put(0,0){\includegraphics[width=\unitlength,page=1]{pearson_GM12878-on-K562_5k_TADweighting.pdf}}%
-    \put(0.6150622,0.68926477){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{standard prediction}}}%
-    \put(0.6150622,0.65207592){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^{-1}$}}}%
-    \put(0.6150622,0.61488708){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^0$}}}%
-    \put(0.6150622,0.57769823){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^1$}}}%
-    \put(0.6150622,0.54050944){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^2$}}}%
+    \put(0.6150622,0.54077557){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{standard prediction}}}%
+    \put(0.6150622,0.68970555){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^{-1}$}}}%
+    \put(0.6150622,0.6525167){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^0$}}}%
+    \put(0.6150622,0.61532786){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^1$}}}%
+    \put(0.6150622,0.57813906){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{TAD weight. factor $10^2$}}}%
     \put(0.2320506,0.79316821){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Pearson correlation vs. genomic distance}}}%
     \put(0.3034668,0.75907641){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{GM12878, chr17 on K562, chr17}}}%
     \put(0.03551847,0.05972948){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%

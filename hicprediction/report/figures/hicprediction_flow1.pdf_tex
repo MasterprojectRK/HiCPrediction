@@ -50,7 +50,7 @@
   \makeatother%
   \begin{picture}(1,0.68816187)%
     \put(0,0){\includegraphics[width=\unitlength,page=1]{hicprediction_flow1.pdf}}%
-    \put(0.25453994,0.64275048){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createBasefile.py}}}%
+    \put(0.25453994,0.64275048){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createBaseFile.py}}}%
     \put(0.03616881,0.5521338){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{narrowPeak}}}%
     \put(0.02370393,0.63503778){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{cooler matrix}}}%
     \put(0.80674435,0.36390562){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{training.py}}}%
@@ -61,7 +61,7 @@
     \put(0.2997158,0.36393908){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{predict.py}}}%
     \put(0.01887439,0.35496467){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{cooler matrix}}}%
     \put(0.05663591,0.3307596){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr2}}}%
-    \put(0.7680733,0.64186115){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createTrainingset.py}}}%
+    \put(0.7680733,0.64186115){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createTrainingSet.py}}}%
     \put(0.57066896,0.25853634){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{test set}}}%
     \put(0.01223354,0.61029076){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{chr1, chr2, ...}}}%
     \put(0.03767974,0.24499197){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{metrics}}}%
@@ -78,7 +78,7 @@
     \put(0.81019322,0.52783731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize end}}}%
     \put(0.87069427,0.52783731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize window}}}%
     \put(0.93826036,0.52783731){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize dist.}}}%
-    \put(0.25622812,0.12406826){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createBasefile.py}}}%
+    \put(0.25622812,0.12406826){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createBaseFile.py}}}%
     \put(0.33377122,0.01074435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize sum}}}%
     \put(0.41888515,0.01074435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize max}}}%
     \put(0.25253688,0.01074435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize avg}}}%
@@ -89,7 +89,7 @@
     \put(0.02660432,0.48876395){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize chr1, chr2 are examples}}}%
     \put(0.02660432,0.47418617){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize any numerical chromosome is possible}}}%
     \put(0.02660432,0.45960829){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize mutliple narrowPeak files possible }}}%
-    \put(0.7680733,0.12637224){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createTrainingset.py}}}%
+    \put(0.7680733,0.12637224){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{createTrainingSet.py}}}%
     \put(0.74169849,0.01234838){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize start}}}%
     \put(0.81019322,0.01234838){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize end}}}%
     \put(0.87069427,0.01234838){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\scriptsize window}}}%

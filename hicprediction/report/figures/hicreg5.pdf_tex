@@ -59,7 +59,7 @@
     \put(0.44496392,0.96015552){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq3}}}}%
     \put(0.60798757,0.96015552){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{ChIPseq3}}}}%
     \put(0.77072558,0.96015552){\color[rgb]{0.30196078,0.30196078,0.30196078}\rotatebox{90}{\makebox(0,0)[lb]{\smash{window3}}}}%
-    \put(0.95505866,0.96015552){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{HiC interaction count}}}}%
+    \put(0.95505866,0.96015552){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Hi-C interaction count}}}}%
     \put(0.33528813,0.72166089){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{\small{start bin}}}}%
     \put(0.50205798,0.72166089){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{\small{end bin}}}}%
     \put(0.65160085,0.72789138){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{\small{window avg.}}}}%
@@ -73,7 +73,7 @@
     \put(0.03610912,0.88266582){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{5k}}}%
     \put(0.01619875,0.83881022){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{10k}}}%
     \put(0.01647239,0.79472791){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{15k}}}%
-    \put(0.44076816,1.10855196){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{window features}}}%
+    \put(0.44076816,1.10855196){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{protein features}}}%
     \put(0.66561409,0.60246698){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{training set}}}%
     \put(0.36040339,0.35450103){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{HiC-Reg Random Forest Regressor}}}%
     \put(0.32386888,0.21490268){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{test set -- target}}}%
@@ -82,7 +82,7 @@
     \put(0.03087736,0.25144687){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{ChIPseq input}}}%
     \put(0.07325642,0.2148052){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{-- target --}}}%
     \put(0.05652494,0.33030564){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Predicted}}}}%
-    \put(0.0876214,0.33030564){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{HiC interaction count}}}}%
+    \put(0.0876214,0.33030564){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{Hi-C interaction count}}}}%
     \put(0.65091661,0.70414055){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{\small{start...end}}}}%
     \put(0.04490717,0.17499907){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{0}}}%
     \put(0.03485376,0.13297887){\color[rgb]{0.30196078,0.30196078,0.30196078}\makebox(0,0)[lb]{\smash{5k}}}%

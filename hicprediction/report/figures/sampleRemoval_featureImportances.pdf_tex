@@ -54,7 +54,7 @@
     \put(0.53517779,0.74401087){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{window feature}}}}%
     \put(0.35245766,0.23008139){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{start feature}}}}%
     \put(0.36288793,0.0009777){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{feature name}}}%
-    \put(0.05246876,0.24104285){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{relative feature importance}}}}%
+    \put(0.05246876,0.35153747){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{feature importance}}}}%
     \put(0.01000048,1.38608597){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{Feature importances and std deviations (20 trees)}}}%
     \put(0.09444377,0.06688596){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.0}}}%
     \put(0.09444377,0.19164532){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{0.1}}}%

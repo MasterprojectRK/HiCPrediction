@@ -52,7 +52,7 @@
     \put(0,0){\includegraphics[width=\unitlength,page=1]{chr21-33-36_GM12878-on-K562_25kb_combi.pdf}}%
     \put(0.18779215,0.56219991){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{combi, all samples}}}%
     \put(0.18779215,0.37532547){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{combi, no empty samples}}}%
-    \put(0.1899876,0.0500873){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 Rao et al . 2014 \cite{Rao2014}}}}%
+    \put(0.1899876,0.18699765){\color[rgb]{1,0.8,0}\makebox(0,0)[lb]{\smash{K562 Rao et al . 2014 \cite{Rao2014}}}}%
     \put(-0.0089222,0.44647873){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{500.0}}}%
     \put(-0.01958466,0.47694188){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1000.0}}}%
     \put(-0.01958466,0.50740508){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2000.0}}}%

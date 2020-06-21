@@ -1,4 +1,4 @@
-\section{Discussion} \label{sec:discussion:main}
+\section{Discussion and Conclusion} \label{sec:discussion:main}
 Throughout this masterproject, hicprediction as been amended in many ways,
 and several ideas for improving predictions have been investigated.
 
@@ -65,7 +65,7 @@ well as emphasizing samples within TADs did not have the anticipated positive ef
 It is not yet clear whether these sample-weighting approaches do not work in general or whether 
 their failure was due e.\,g. to inappropriate parameter search spaces. 
 Also, the objective function has been selected in a rather ad-hoc fashion and might be inappropriate, 
-since cross-validation results were always quite good, 
+since cross-validation results were always quite good, usually greater than 0.90,  
 but did not -- and still do not -- generalize very well to cross-cell predictions.
 Removing samples with distances smaller than \SI{5}{\kilo\bp} can also not be considered successful,
 but its influence on the results seemed generally stronger than the one from the sample weighting
@@ -81,7 +81,7 @@ Instead, the predictions were very similar to the ones from hicprediction,
 the latter however being much faster and requiring considerably less memory.
 In this regard, it should also not be forgotten that hicprediction
 is using two proteins fewer than HiC-Reg, because data for RAD21
-and TBP was not available in the required input formats, cf.\;\autoref{sec:methods:matricesAndPlots}.
+and TBP was not available in the required input formats, cf.\;\autoref{sec:methods:chipseqdata}.
 
 To comprehend, at least three tasks have to remain for future research.
 First, there are meanwhile a vast number of tuning parameters for hicprediction,
@@ -92,7 +92,7 @@ leaving open the question whether various combinations would yield better result
 Secondly, the generalization of learned models to different cell lines seems still insufficient,
 despite acceptable cross-validation results on the training datasets.
 Investing time in improving generalization, whether from the input or the models' side,
-would therefor certainly pay off.
+would therefore certainly pay off.
 Thirdly, selecting and possibly filtering inputs such that they are on the one hand dense enough 
 to allow predicting a reasonable portion of the interaction count matrix,
 but on the other hand are still indicative of DNA-DNA interactions remains a challenge.

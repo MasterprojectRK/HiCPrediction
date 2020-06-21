@@ -53,7 +53,7 @@
     \put(0.17804431,3.73867045){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{DNA + proteins}}}%
     \put(0.29781536,3.0577681){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{1. Fixation}}}%
     \put(0.25156969,2.37741258){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{2. Shearing}}}%
-    \put(0.07471134,1.21537851){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{{\scriptsize 4. Immunoprecipitation}}}}%
+    \put(0.0270192,1.21537851){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{\resizebox{34mm}{!}{4. Immunoprecipitation}}}}%
     \put(0.07669851,1.81283435){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{3. adding antibodies}}}%
     \put(0.23320296,0.68502929){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{5. Purification}}}%
     \put(0.23340269,0.2621613){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{6. Sequencing}}}%

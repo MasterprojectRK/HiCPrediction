@@ -7,7 +7,8 @@
 		captions=tableheading,
 		english,
 		parskip=half,
-		bibliography=totoc
+		bibliography=totoc,
+		%twoside
 		]
 		{scrartcl}
 \usepackage[automark]{scrlayer-scrpage}
@@ -113,10 +114,10 @@
 \begin{document}
 
 \include{titlepage}
-\cleardoublepage
+\clearpage
 \pdfbookmark[1]{\contentsname}{toc}
 \tableofcontents
-\cleardoublepage
+\clearpage
 \include{introduction}
 \include{priorWork}
 \include{improvingPredictions}
